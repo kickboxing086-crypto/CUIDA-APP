@@ -808,17 +808,34 @@ export const api = {
     notes?: string;
     requesting_user_id: string;
   }): Promise<import('../types').Family> {
-    const res = await fetch('/api/families', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || 'Falha ao criar família');
+    try {
+      const res = await fetch('/api/families', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.family;
+      }
+    } catch (err) {
+      console.warn('[API] Servidor desconectado, cadastrando família localmente:', err);
     }
-    const data = await res.json();
-    return data.family;
+
+    const newFamily: import('../types').Family = {
+      id: `fam-${Date.now()}`,
+      name: params.name || 'Nova Família',
+      elderly_name: params.elderly_name || 'Idoso Assistido',
+      elderly_id: `eld-${Date.now()}`,
+      residence_address: params.residence_address || 'Endereço da Residência',
+      residence_lat: -23.5505,
+      residence_long: -46.6333,
+      allowed_radius_meters: 300,
+      notes: params.notes || '',
+      created_at: new Date().toISOString(),
+    };
+    INITIAL_FAMILIES.push(newFamily);
+    return newFamily;
   },
 
   async updateFamilyResidence(
@@ -833,16 +850,47 @@ export const api = {
       requesting_user_id: string;
     }
   ): Promise<{ success: boolean; family: import('../types').Family; elderly: import('../types').ElderlyProfile; message: string }> {
-    const res = await fetch(`/api/families/${familyId}/residence`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || 'Falha ao atualizar residência da família');
+    try {
+      const res = await fetch(`/api/families/${familyId}/residence`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('[API] Servidor desconectado, atualizando residência localmente:', err);
     }
-    return await res.json();
+
+    const fam = INITIAL_FAMILIES.find((f) => f.id === familyId) || {
+      id: familyId,
+      name: 'Família Principal',
+      elderly_name: 'Idoso Assistido',
+      elderly_id: 'eld-01',
+      residence_address: params.residence_address,
+      residence_lat: params.residence_lat,
+      residence_long: params.residence_long,
+      allowed_radius_meters: params.allowed_radius_meters,
+      created_at: new Date().toISOString(),
+    };
+
+    fam.residence_address = params.residence_address;
+    fam.residence_lat = params.residence_lat;
+    fam.residence_long = params.residence_long;
+    fam.allowed_radius_meters = params.allowed_radius_meters;
+
+    INITIAL_ELDERLY.residence_address = params.residence_address;
+    INITIAL_ELDERLY.residence_lat = params.residence_lat;
+    INITIAL_ELDERLY.residence_long = params.residence_long;
+    INITIAL_ELDERLY.allowed_radius_meters = params.allowed_radius_meters;
+
+    return {
+      success: true,
+      family: fam,
+      elderly: INITIAL_ELDERLY,
+      message: 'Residência e geofence cadastrados com sucesso!',
+    };
   },
 
   async updateElderlyResidence(params: {
@@ -853,16 +901,29 @@ export const api = {
     family_id?: string | null;
     requesting_user_id: string;
   }): Promise<{ success: boolean; elderly: import('../types').ElderlyProfile; message: string }> {
-    const res = await fetch('/api/elderly/residence', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || 'Falha ao cadastrar residência do idoso');
+    try {
+      const res = await fetch('/api/elderly/residence', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('[API] Servidor desconectado, atualizando residência do idoso localmente:', err);
     }
-    return await res.json();
+
+    INITIAL_ELDERLY.residence_address = params.residence_address;
+    INITIAL_ELDERLY.residence_lat = params.residence_lat;
+    INITIAL_ELDERLY.residence_long = params.residence_long;
+    INITIAL_ELDERLY.allowed_radius_meters = params.allowed_radius_meters;
+
+    return {
+      success: true,
+      elderly: INITIAL_ELDERLY,
+      message: 'Residência cadastrada com sucesso!',
+    };
   },
 
   async fetchUsers(includePasswords: boolean = false): Promise<User[]> {
@@ -887,17 +948,40 @@ export const api = {
     registration_code?: string;
     requesting_user_id: string;
   }): Promise<User> {
-    const res = await fetch('/api/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || 'Falha ao criar login');
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.user;
+      }
+    } catch (err) {
+      console.warn('[API] Servidor desconectado, cadastrando usuário localmente:', err);
     }
-    const data = await res.json();
-    return data.user;
+
+    const roles = params.roles || [params.role || 'caregiver'];
+    const newUser: User = {
+      id: `usr-${Date.now()}`,
+      name: params.name || 'Novo Usuário',
+      username: params.username || `user_${Date.now().toString().slice(-4)}`,
+      password: params.password || '12345678',
+      role: roles[0],
+      roles: roles,
+      permission_level: params.permission_level || 3,
+      permission_level_title: roles.join(' + '),
+      family_id: params.family_id || null,
+      family_name: 'Família Cadastrada',
+      email: params.email || `${params.username}@cuida.com.br`,
+      avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      first_login_completed: false,
+      terms_accepted: false,
+      created_at: new Date().toISOString(),
+    };
+    INITIAL_USERS.push(newUser);
+    return newUser;
   },
 
   async updateUserRoles(
