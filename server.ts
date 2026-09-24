@@ -189,7 +189,7 @@ async function startServer() {
 
   // --- API Endpoints ---
 
-  // 0. Autenticação: Login com Usuário e Senha
+  // 0. Autenticação: Login com Usuário e Senha (com busca flexível por usuário, nome, e-mail ou código)
   app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -199,17 +199,36 @@ async function startServer() {
       });
     }
 
-    const cleanUser = String(username).trim().toLowerCase();
-    const user = db.users.find(
-      (u) =>
-        (u.username && u.username.toLowerCase() === cleanUser) ||
-        (u.email && u.email.toLowerCase() === cleanUser)
-    );
+    const rawInput = String(username).trim();
+    const cleanUser = rawInput.toLowerCase();
+    const cleanUserNoSpaces = cleanUser.replace(/[\s_]+/g, '');
 
-    if (!user || user.password !== String(password)) {
+    const user = db.users.find((u) => {
+      if (!u) return false;
+      const uName = String(u.username || '').toLowerCase();
+      const uNameNoSpaces = uName.replace(/[\s_]+/g, '');
+      const uEmail = String(u.email || '').toLowerCase();
+      const uCode = String(u.registration_code || '').toLowerCase();
+      const uFullName = String(u.name || '').toLowerCase();
+
+      return (
+        uName === cleanUser ||
+        uNameNoSpaces === cleanUserNoSpaces ||
+        uEmail === cleanUser ||
+        uCode === cleanUser ||
+        uFullName === cleanUser
+      );
+    });
+
+    const cleanPass = String(password || '').trim().toLowerCase().slice(0, 8);
+    const userPass = String(user?.password || '').trim().toLowerCase().slice(0, 8);
+
+    if (!user || cleanPass !== userPass) {
       return res.status(401).json({
         error: 'Credenciais inválidas',
-        message: 'Usuário ou senha incorretos. Verifique os dados digitados.',
+        message: user
+          ? 'Senha incorreta para este usuário. Lembre-se: usuário e senha são em minúsculo (máx. 8 caracteres).'
+          : `O login "${rawInput}" não foi localizado no sistema. Verifique o usuário cadastrado.`,
       });
     }
 
@@ -554,9 +573,9 @@ async function startServer() {
     const requester = db.users.find((u) => u.id === requesting_user_id) || db.users[0];
 
     const fullName = (name || '').trim() || 'Novo Cliente';
-    let cleanUsername = (username || '').trim().replace(/\s+/g, '_');
+    let cleanUsername = (username || '').trim().toLowerCase().replace(/\s+/g, '_');
     if (!cleanUsername) cleanUsername = `user_${Date.now().toString().slice(-4)}`;
-    let cleanPassword = String(password || '').trim();
+    let cleanPassword = String(password || '').trim().toLowerCase().slice(0, 8);
     if (!cleanPassword) cleanPassword = '12345678';
 
     // Se o usuário já existir, acrescenta sufixo único para evitar erros de conflito

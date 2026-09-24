@@ -192,31 +192,64 @@ export function getCombinedPermissions(roles: UserRole[]) {
 }
 
 /**
- * Validation rules requested:
- * - Username: Allows letters, characters and numbers (min 3 chars).
- * - Password: Allows letters, characters and numbers (min 8 chars).
+ * Helper to inspect character breakdown for real-time validation checklist (checkout)
  */
+export function inspectCredentials(username: string, password: string) {
+  const cleanUser = username.trim().toLowerCase();
+  const cleanPass = password.trim().toLowerCase().slice(0, 8);
+
+  const hasLettersPass = /[a-z]/i.test(cleanPass);
+  const hasNumbersPass = /[0-9]/.test(cleanPass);
+  const hasSpecialPass = /[^a-z0-9]/i.test(cleanPass);
+
+  const hasLettersUser = /[a-z]/i.test(cleanUser);
+  const hasNumbersUser = /[0-9]/.test(cleanUser);
+
+  return {
+    cleanUser,
+    cleanPass,
+    userMinLength: cleanUser.length >= 3,
+    passMinLength: cleanPass.length >= 3,
+    passMaxLength: cleanPass.length <= 8 && cleanPass.length > 0,
+    passLength: cleanPass.length,
+    hasLettersPass,
+    hasNumbersPass,
+    hasSpecialPass,
+    hasLettersUser,
+    hasNumbersUser,
+    isUserLowercase: username === username.toLowerCase(),
+    isPassLowercase: password === password.toLowerCase(),
+  };
+}
+
 export function validateUsername(username: string): { valid: boolean; error?: string } {
-  const trimmed = username.trim();
+  const trimmed = username.trim().toLowerCase();
   if (trimmed.length < 3) {
     return { valid: false, error: 'O nome de usuário deve ter pelo menos 3 caracteres.' };
   }
   // Allow letters, numbers, and special characters (e.g. . _ - @ ! # $ %)
-  const regex = /^[a-zA-Z0-9._@!#$\-%]+$/;
+  const regex = /^[a-z0-9._@!#$\-%]+$/;
   if (!regex.test(trimmed)) {
     return {
       valid: false,
-      error: 'O nome de usuário permite letras, números e caracteres especiais (. _ - @ ! # $ %). Espaços não são permitidos.',
+      error: 'O nome de usuário aceita apenas letras minúsculas, números e caracteres (. _ - @ ! # $ %). Espaços não são permitidos.',
     };
   }
   return { valid: true };
 }
 
 export function validatePassword(password: string): { valid: boolean; error?: string } {
-  if (password.length < 8) {
+  const trimmed = password.trim().toLowerCase();
+  if (trimmed.length < 3) {
     return {
       valid: false,
-      error: 'A senha de segurança deve conter no mínimo 8 caracteres (letras, números e caracteres especiais permitidos).',
+      error: 'A senha deve conter no mínimo 3 caracteres.',
+    };
+  }
+  if (trimmed.length > 8) {
+    return {
+      valid: false,
+      error: 'A senha é limitada a NO MÁXIMO 8 caracteres.',
     };
   }
   return { valid: true };

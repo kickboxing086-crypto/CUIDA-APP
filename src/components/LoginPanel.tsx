@@ -79,9 +79,14 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2">
-                Usuário
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Usuário
+                </label>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  letras minúsculas
+                </span>
+              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                   <UserIcon className="w-4 h-4" />
@@ -91,17 +96,22 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
                   required
                   autoComplete="username"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Seu usuário cadastrado"
-                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-950/70 border border-slate-800 text-white placeholder-slate-600 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                  onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                  placeholder="seu usuário cadastrado"
+                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-950/70 border border-slate-800 text-white placeholder-slate-600 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium lowercase"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2">
-                Senha
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Senha
+                </label>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  máx. 8 caracteres ({password.length}/8)
+                </span>
+              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                   <Lock className="w-4 h-4" />
@@ -109,11 +119,12 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  maxLength={8}
                   autoComplete="current-password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Sua senha de acesso"
-                  className="w-full pl-10 pr-11 py-3 rounded-2xl bg-slate-950/70 border border-slate-800 text-white placeholder-slate-600 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                  onChange={(e) => setPassword(e.target.value.toLowerCase().slice(0, 8))}
+                  placeholder="sua senha (máx 8)"
+                  className="w-full pl-10 pr-11 py-3 rounded-2xl bg-slate-950/70 border border-slate-800 text-white placeholder-slate-600 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium lowercase"
                 />
                 <button
                   type="button"

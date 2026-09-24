@@ -185,12 +185,15 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
       return;
     }
 
+    const cleanUser = newUserUsername.trim().toLowerCase().replace(/\s+/g, '_');
+    const cleanPass = newUserPassword.trim().toLowerCase().slice(0, 8);
+
     try {
       setIsSubmittingUser(true);
       await api.createUser({
         name: newUserName.trim(),
-        username: newUserUsername.trim(),
-        password: newUserPassword.trim(),
+        username: cleanUser,
+        password: cleanPass,
         roles: selectedRoles,
         role: selectedRoles[0],
         family_id: targetFamilyId || null,
@@ -203,7 +206,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
 
       setFeedback({
         type: 'success',
-        message: `Login "${newUserUsername.trim()}" criado com sucesso com as funções: [${roleNames}]!`,
+        message: `Login "${cleanUser}" criado com sucesso (em minúsculo, senha de ${cleanPass.length} chars) [${roleNames}]!`,
       });
 
       // Reset form
@@ -935,49 +938,95 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
                 />
               </div>
 
-              {/* Security: Username & Password with Real-Time Validation */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Nome de Usuário (Login) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newUserUsername}
-                    onChange={(e) => setNewUserUsername(e.target.value.trim())}
-                    placeholder="Ex: joao_cuidador.02"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-white focus:outline-blue-500"
-                  />
-                  <span className="text-[10px] text-slate-400 block mt-1">
-                    Permite letras, números e caracteres (. _ - @ ! # $ %)
+              {/* Security: Username & Password with Real-Time Validation Checkout */}
+              <div className="space-y-3 bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+                  <span className="flex items-center gap-1.5 text-blue-400">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Checkout de Validação das Credenciais</span>
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    Padrão: Minúsculo &amp; Máx. 8 chars
                   </span>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Senha de Acesso (Mín. 8 caracteres) *
-                  </label>
-                  <div className="relative">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Usuário (Login em minúsculo) *
+                    </label>
                     <input
-                      type={showFormPassword ? 'text' : 'password'}
+                      type="text"
                       required
-                      value={newUserPassword}
-                      onChange={(e) => setNewUserPassword(e.target.value)}
-                      placeholder="Mínimo 8 caracteres"
-                      className="w-full px-3 py-2 pr-9 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
+                      value={newUserUsername}
+                      onChange={(e) => setNewUserUsername(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                      placeholder="ex: joao_cuidador"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-blue-500 lowercase"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowFormPassword(!showFormPassword)}
-                      className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-white cursor-pointer"
-                    >
-                      {showFormPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
                   </div>
-                  <span className={`text-[10px] block mt-1 ${newUserPassword.length >= 8 ? 'text-emerald-400 font-bold' : 'text-slate-400'}`}>
-                    {newUserPassword.length >= 8 ? '✓ Senha segura (8+ caracteres)' : `${newUserPassword.length}/8 caracteres mínimos`}
-                  </span>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Senha de Acesso (Máx. 8 caracteres) *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showFormPassword ? 'text' : 'password'}
+                        required
+                        maxLength={8}
+                        value={newUserPassword}
+                        onChange={(e) => setNewUserPassword(e.target.value.toLowerCase().slice(0, 8))}
+                        placeholder="máx 8 minúsculos"
+                        className="w-full px-3 py-2 pr-9 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-blue-500 lowercase"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowFormPassword(!showFormPassword)}
+                        className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        {showFormPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Checkout Checklist Badges */}
+                <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+                  <div className={`p-1.5 rounded-lg border flex items-center gap-1 font-semibold ${
+                    newUserUsername.length >= 3 && newUserPassword.length >= 3
+                      ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                      : 'bg-slate-900 border-slate-800 text-slate-500'
+                  }`}>
+                    <span>{newUserUsername.length >= 3 && newUserPassword.length >= 3 ? '✓' : '○'}</span>
+                    <span>Tudo Minúsculo</span>
+                  </div>
+
+                  <div className={`p-1.5 rounded-lg border flex items-center gap-1 font-semibold ${
+                    newUserPassword.length > 0 && newUserPassword.length <= 8
+                      ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                      : 'bg-slate-900 border-slate-800 text-slate-500'
+                  }`}>
+                    <span>{newUserPassword.length > 0 && newUserPassword.length <= 8 ? '✓' : '○'}</span>
+                    <span>Senha: {newUserPassword.length}/8 chars</span>
+                  </div>
+
+                  <div className={`p-1.5 rounded-lg border flex items-center gap-1 font-semibold ${
+                    /[a-z]/i.test(newUserPassword)
+                      ? 'bg-blue-950/40 border-blue-500/40 text-blue-300'
+                      : 'bg-slate-900 border-slate-800 text-slate-500'
+                  }`}>
+                    <span>{/[a-z]/i.test(newUserPassword) ? '✓' : '○'}</span>
+                    <span>Letras (a-z)</span>
+                  </div>
+
+                  <div className={`p-1.5 rounded-lg border flex items-center gap-1 font-semibold ${
+                    /[0-9]/.test(newUserPassword)
+                      ? 'bg-purple-950/40 border-purple-500/40 text-purple-300'
+                      : 'bg-slate-900 border-slate-800 text-slate-500'
+                  }`}>
+                    <span>{/[0-9]/.test(newUserPassword) ? '✓' : '○'}</span>
+                    <span>Números (0-9)</span>
+                  </div>
                 </div>
               </div>
 

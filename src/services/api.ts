@@ -729,11 +729,31 @@ export const api = {
       return data;
     } catch (err: any) {
       // Fallback para login local caso servidor esteja desconectado
-      const clean = username.trim().toLowerCase();
-      const localUser = INITIAL_USERS.find(
-        (u) => (u.username && u.username.toLowerCase() === clean) || (u.email && u.email.toLowerCase() === clean)
-      );
-      if (localUser && localUser.password === password) {
+      const rawInput = username.trim();
+      const clean = rawInput.toLowerCase();
+      const cleanNoSpaces = clean.replace(/[\s_]+/g, '');
+
+      const localUser = INITIAL_USERS.find((u) => {
+        if (!u) return false;
+        const uName = String(u.username || '').toLowerCase();
+        const uNameNoSpaces = uName.replace(/[\s_]+/g, '');
+        const uEmail = String(u.email || '').toLowerCase();
+        const uCode = String(u.registration_code || '').toLowerCase();
+        const uFullName = String(u.name || '').toLowerCase();
+
+        return (
+          uName === clean ||
+          uNameNoSpaces === cleanNoSpaces ||
+          uEmail === clean ||
+          uCode === clean ||
+          uFullName === clean
+        );
+      });
+
+      const cleanPass = String(password || '').trim();
+      const userPass = String(localUser?.password || '').trim();
+
+      if (localUser && userPass === cleanPass) {
         const { password: _, ...safeUser } = localUser;
         return {
           success: true,
