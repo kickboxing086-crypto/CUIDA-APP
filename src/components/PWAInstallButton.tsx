@@ -139,8 +139,9 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'h
               {isIOS ? (
                 /* iOS iPhone/iPad Instructions */
                 <div className="space-y-4">
-                  <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl text-blue-900 font-medium">
-                    📍 <strong>No iPhone ou iPad (Safari):</strong>
+                  <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl text-blue-900 font-medium flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>No iPhone ou iPad (Safari):</span>
                   </div>
 
                   <div className="space-y-3">
@@ -190,8 +191,9 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'h
               ) : (
                 /* Android / Chrome / Edge Instructions */
                 <div className="space-y-4">
-                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-950 font-medium">
-                    📱 <strong>No Android, Chrome ou Navegador Web:</strong>
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-950 font-medium flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>No Android, Chrome ou Navegador Web:</span>
                   </div>
 
                   <div className="space-y-3">
