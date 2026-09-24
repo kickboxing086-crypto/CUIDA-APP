@@ -38,7 +38,19 @@ export default function App() {
   });
 
   const [usersList, setUsersList] = useState<User[]>(api.getUsers());
-  const [elderly, setElderly] = useState<ElderlyProfile | null>(null);
+  const [elderly, setElderly] = useState<ElderlyProfile>({
+    id: 'eld-01',
+    full_name: 'Dona Maria Silveira',
+    birth_date: '1945-05-12',
+    blood_type: 'O+',
+    allergies: ['Dipirona'],
+    residence_address: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP',
+    residence_lat: -23.5505,
+    residence_long: -46.6333,
+    allowed_radius_meters: 300,
+    emergency_contacts: [],
+    created_at: new Date().toISOString(),
+  });
   const [activeTab, setActiveTab] = useState<AppTabType>('caregiver_dashboard');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -69,7 +81,9 @@ export default function App() {
           api.getElderlyProfile(),
           api.fetchUsers(),
         ]);
-        setElderly(eldData);
+        if (eldData && eldData.full_name) {
+          setElderly(eldData);
+        }
         if (usersData && usersData.length > 0) {
           setUsersList(usersData);
         }
