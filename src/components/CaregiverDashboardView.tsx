@@ -19,7 +19,7 @@ import {
   CheckSquare,
   FileText,
 } from 'lucide-react';
-import { ElderlyProfile, TimeEntry, User, DailyMission, FamilyNotice } from '../types';
+import { ElderlyProfile, TimeEntry, User, DailyMission, FamilyNotice, FamilyActivityLog } from '../types';
 import { api } from '../services/api';
 
 interface CaregiverDashboardViewProps {
@@ -29,6 +29,9 @@ interface CaregiverDashboardViewProps {
   onOpenAddPresence: () => void;
   onOpenLiveCamera: (mode: 'check_in' | 'check_out') => void;
   onOpenResidenceConfig?: () => void;
+  onOpenNotifications?: () => void;
+  unreadCount?: number;
+  unreadLogs?: FamilyActivityLog[];
 }
 
 export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
@@ -38,6 +41,9 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
   onOpenAddPresence,
   onOpenLiveCamera,
   onOpenResidenceConfig,
+  onOpenNotifications,
+  unreadCount = 0,
+  unreadLogs = [],
 }) => {
   const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
   const [missions, setMissions] = useState<DailyMission[]>([]);
@@ -97,6 +103,47 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Red Alert Banner: Notificações de Alterações no Plantão */}
+      {unreadCount > 0 && (
+        <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white rounded-3xl p-5 shadow-xl shadow-red-600/20 border border-red-400/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top-3 duration-300">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/40 flex items-center justify-center shrink-0 shadow-inner">
+              <Bell className="w-6 h-6 text-white animate-bounce" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="bg-white text-red-700 font-black text-xs px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                  ({unreadCount}) Alterações no Plantão
+                </span>
+                <span className="text-xs text-red-100 font-bold flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                  Fique atento ao que foi atualizado
+                </span>
+              </div>
+              <p className="text-sm font-bold text-white mt-1 leading-snug">
+                {unreadLogs && unreadLogs.length > 0
+                  ? unreadLogs[0].description
+                  : 'Houve atualizações recentes no protocolo de missões, residência ou sinais vitais.'}
+              </p>
+              {unreadLogs && unreadLogs.length > 1 && (
+                <span className="text-[11px] text-red-100 font-medium block mt-0.5">
+                  + outras {unreadLogs.length - 1} alterações registradas pela família / administração.
+                </span>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenNotifications}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white text-red-700 hover:bg-red-50 active:bg-red-100 font-extrabold text-xs shrink-0 shadow-lg shadow-black/10 transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            <Bell className="w-4 h-4 text-red-600" />
+            <span>Ver Notificações ({unreadCount})</span>
+          </button>
+        </div>
+      )}
+
       {/* 1. Header do Painel do Cuidador */}
       <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 rounded-3xl p-6 text-white shadow-md relative overflow-hidden">
         <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />

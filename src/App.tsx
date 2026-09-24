@@ -17,6 +17,9 @@ import { LoginPanel } from './components/LoginPanel';
 import { AddPresenceModal } from './components/AddPresenceModal';
 import { CameraCaptureModal } from './components/CameraCaptureModal';
 import { ElderlyResidenceConfigModal } from './components/ElderlyResidenceConfigModal';
+import { NotificationsDropdown } from './components/NotificationsDropdown';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { useNotifications } from './hooks/useNotifications';
 import { api } from './services/api';
 import { ElderlyProfile, User } from './types';
 import { ElderCaneLogo } from './components/ElderCaneLogo';
@@ -38,6 +41,19 @@ export default function App() {
   const [elderly, setElderly] = useState<ElderlyProfile | null>(null);
   const [activeTab, setActiveTab] = useState<AppTabType>('caregiver_dashboard');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Notifications State & Real-time Hook
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const {
+    logs: activityLogs,
+    unreadLogs,
+    unreadIds,
+    unreadCount,
+    categoryUnreadCounts,
+    markAsRead,
+    markAllAsRead,
+    refreshNotifications,
+  } = useNotifications(currentUser?.id, currentUser?.family_id || 'fam-01');
 
   // Presence Modals
   const [isAddPresenceModalOpen, setIsAddPresenceModalOpen] = useState(false);
@@ -192,7 +208,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-blue-100 selection:text-blue-900 font-sans">
-      {/* Navigation Header with '+ Adicionar Presença', User Tag & Logout */}
+      <OfflineIndicator />
+      {/* Navigation Header with '+ Adicionar Presença', User Tag, Logout & Notifications */}
       <HeaderNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -201,7 +218,25 @@ export default function App() {
         onSelectUser={setCurrentUser}
         onOpenAddPresence={() => setIsAddPresenceModalOpen(true)}
         onOpenResidenceConfig={() => setIsResidenceModalOpen(true)}
+        onOpenNotifications={() => setIsNotificationsOpen(true)}
+        unreadCount={unreadCount}
+        categoryUnreadCounts={categoryUnreadCounts}
         onLogout={handleLogout}
+      />
+
+      {/* Notifications Dropdown / Central de Notificações */}
+      <NotificationsDropdown
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+        logs={activityLogs}
+        unreadIds={unreadIds}
+        onMarkAsRead={markAsRead}
+        onMarkAllAsRead={markAllAsRead}
+        onNavigateTab={(tab) => {
+          setActiveTab(tab);
+          setIsNotificationsOpen(false);
+        }}
+        currentUserName={currentUser.name}
       />
 
       {/* Main Content Area */}
@@ -220,6 +255,9 @@ export default function App() {
             onOpenAddPresence={() => setIsAddPresenceModalOpen(true)}
             onOpenLiveCamera={handleOpenLiveCamera}
             onOpenResidenceConfig={() => setIsResidenceModalOpen(true)}
+            onOpenNotifications={() => setIsNotificationsOpen(true)}
+            unreadCount={unreadCount}
+            unreadLogs={unreadLogs}
           />
         )}
 

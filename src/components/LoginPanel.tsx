@@ -16,6 +16,7 @@ import {
   Info,
 } from 'lucide-react';
 import { ElderCaneLogo } from './ElderCaneLogo';
+import { PWAInstallButton } from './PWAInstallButton';
 import { api } from '../services/api';
 import { User, FamilyWithLogins } from '../types';
 
@@ -101,6 +102,9 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
             Plataforma oficial de controle de cuidadores e acompanhamento de idosos com auditoria de presença.
           </p>
         </div>
+
+        {/* PWA Install Card on Login Panel */}
+        <PWAInstallButton variant="login" />
 
         {/* Master Admin Card (Samuel_02) */}
         <div className="bg-linear-to-r from-blue-900/60 via-indigo-900/60 to-blue-900/60 border border-blue-400/40 rounded-2xl p-4 sm:p-5 shadow-xl backdrop-blur-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

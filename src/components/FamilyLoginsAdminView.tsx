@@ -25,6 +25,7 @@ import {
 import { api } from '../services/api';
 import { User as UserType, Family, UserRole, FamilyActivityLog } from '../types';
 import { AVAILABLE_ROLES, validateUsername, validatePassword, getRoleDefinition } from '../utils/permissions';
+import { fetchAddressByCep, formatCep } from '../utils/cep';
 import { ElderCaneLogo } from './ElderCaneLogo';
 import { ElderlyResidenceConfigModal } from './ElderlyResidenceConfigModal';
 
@@ -72,9 +73,30 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
   // Form State: Create Family
   const [newFamilyName, setNewFamilyName] = useState('');
   const [newElderlyName, setNewElderlyName] = useState('');
+  const [newFamilyCep, setNewFamilyCep] = useState('');
   const [newFamilyAddress, setNewFamilyAddress] = useState('');
   const [newFamilyNotes, setNewFamilyNotes] = useState('');
+  const [isLoadingFamilyCep, setIsLoadingFamilyCep] = useState(false);
   const [isSubmittingFamily, setIsSubmittingFamily] = useState(false);
+
+  const handleFamilyCepChange = async (val: string) => {
+    const formatted = formatCep(val);
+    setNewFamilyCep(formatted);
+    const clean = formatted.replace(/\D/g, '');
+    if (clean.length === 8) {
+      setIsLoadingFamilyCep(true);
+      try {
+        const res = await fetchAddressByCep(clean);
+        if (res && res.fullAddress) {
+          setNewFamilyAddress(res.fullAddress);
+        }
+      } catch (err) {
+        console.warn('Erro ao buscar CEP da família:', err);
+      } finally {
+        setIsLoadingFamilyCep(false);
+      }
+    }
+  };
 
   // Search filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -1097,17 +1119,36 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Endereço Residencial (Opcional)
-                </label>
-                <input
-                  type="text"
-                  value={newFamilyAddress}
-                  onChange={(e) => setNewFamilyAddress(e.target.value)}
-                  placeholder="Ex: Alameda Santos, 1200 - Jardins, SP"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-blue-500"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    CEP (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newFamilyCep}
+                    onChange={(e) => handleFamilyCepChange(e.target.value)}
+                    placeholder="00000-000"
+                    maxLength={9}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-white focus:outline-blue-500"
+                  />
+                  <span className="text-[10px] text-blue-400 block mt-0.5">
+                    {isLoadingFamilyCep ? 'Buscando rua...' : 'Preenche a rua'}
+                  </span>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Endereço / Nome da Rua
+                  </label>
+                  <input
+                    type="text"
+                    value={newFamilyAddress}
+                    onChange={(e) => setNewFamilyAddress(e.target.value)}
+                    placeholder="Ex: Alameda Santos, 1200 - Jardins, SP"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-blue-500"
+                  />
+                </div>
               </div>
 
               <div>

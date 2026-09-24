@@ -1249,6 +1249,19 @@ async function startServer() {
     };
 
     db.healthLogs.unshift(newLog);
+    saveDb();
+
+    logActivity({
+      family_id: user?.family_id || 'fam-01',
+      user_id: user?.id || 'usr-01',
+      user_name: user?.name || 'Profissional',
+      user_role: user?.role || 'caregiver',
+      action_type: 'vitals_added',
+      category: 'Sinais Vitais',
+      description: `Sinais vitais aferidos por ${user?.name || 'Cuidador'}: ${hasBp ? `PA ${sys}/${dia} mmHg` : 'Registro clínico'} · FC ${hr || 75} bpm.`,
+      details: statusCategory,
+    });
+
     res.status(201).json({ success: true, log: newLog });
   });
 
@@ -1303,30 +1316,35 @@ async function startServer() {
       } else {
         statusCategory = 'Normal (Ótima)';
       }
-    } else if (heart_rate) {
-      hr = Number(heart_rate);
     }
 
-    const existing = db.healthLogs[logIndex];
-    const updatedLog = {
-      ...existing,
-      systolic_bp: sys,
-      diastolic_bp: dia,
-      heart_rate: hr,
-      is_bp_measured: hasBp,
-      glucose: glucose ? Number(glucose) : null,
-      glucose_context: glucose_context || existing.glucose_context,
-      temperature_c: temperature_c ? Number(temperature_c) : null,
-      weight_kg: weight_kg ? Number(weight_kg) : null,
-      status_category: statusCategory,
-      contractor_signed: contractor_signed !== undefined ? contractor_signed : existing.contractor_signed,
-      caregiver_signed: caregiver_signed !== undefined ? caregiver_signed : existing.caregiver_signed,
-      notes: notes !== undefined ? notes : existing.notes,
-      updated_at: getOfficialServerTime().iso_timestamp,
-    };
+    const targetLog = db.healthLogs[logIndex];
+    if (systolic_bp !== undefined) targetLog.systolic_bp = sys;
+    if (diastolic_bp !== undefined) targetLog.diastolic_bp = dia;
+    if (heart_rate !== undefined) targetLog.heart_rate = hr;
+    targetLog.is_bp_measured = hasBp;
+    if (glucose !== undefined) targetLog.glucose = glucose ? Number(glucose) : null;
+    if (glucose_context !== undefined) targetLog.glucose_context = glucose_context;
+    if (temperature_c !== undefined) targetLog.temperature_c = temperature_c ? Number(temperature_c) : null;
+    if (weight_kg !== undefined) targetLog.weight_kg = weight_kg ? Number(weight_kg) : null;
+    if (notes !== undefined) targetLog.notes = notes;
+    if (contractor_signed !== undefined) targetLog.contractor_signed = Boolean(contractor_signed);
+    if (caregiver_signed !== undefined) targetLog.caregiver_signed = Boolean(caregiver_signed);
+    targetLog.status_category = statusCategory;
 
-    db.healthLogs[logIndex] = updatedLog;
-    res.json({ success: true, log: updatedLog });
+    saveDb();
+
+    logActivity({
+      family_id: 'fam-01',
+      user_id: 'usr-01',
+      user_name: 'Cuidador',
+      user_role: 'caregiver',
+      action_type: 'vitals_edited',
+      category: 'Sinais Vitais',
+      description: `Aferição de sinais vitais atualizada e auditada no sistema.`,
+    });
+
+    res.json({ success: true, log: targetLog });
   });
 
   // 7b. Relatório Diário de Ocorrências & Acompanhamento Familiar (Diário de Bordo)
@@ -1371,6 +1389,19 @@ async function startServer() {
     };
 
     db.dailyIncidents.unshift(newIncident);
+    saveDb();
+
+    logActivity({
+      family_id: user?.family_id || 'fam-01',
+      user_id: user?.id || 'usr-01',
+      user_name: user?.name || 'Cuidador',
+      user_role: user?.role || 'caregiver',
+      action_type: 'incident_reported',
+      category: 'Boletim do Idoso',
+      description: `Boletim diário de ocorrências preenchido por ${user?.name || 'Cuidador'}: Estado ${general_state}.`,
+      details: symptoms_description || '',
+    });
+
     res.status(201).json({
       success: true,
       message: 'Boletim diário de ocorrências registrado com sucesso.',
@@ -1391,6 +1422,18 @@ async function startServer() {
     if (user?.name && !incident.family_viewed_by.includes(user.name)) {
       incident.family_viewed_by.push(user.name);
     }
+
+    saveDb();
+
+    logActivity({
+      family_id: user?.family_id || 'fam-01',
+      user_id: user?.id || 'usr-01',
+      user_name: user?.name || 'Familiar',
+      user_role: user?.role || 'admin_family',
+      action_type: 'incident_signed',
+      category: 'Boletim do Idoso',
+      description: `Visto e assinatura de ciência no Boletim do Idoso confirmados por ${user?.name || 'Administrador Familiar'}.`,
+    });
 
     res.json({
       success: true,
@@ -1419,6 +1462,19 @@ async function startServer() {
     med.administered_by_name = user?.name || 'Clara Mendes';
     if (notes) med.instructions += ` (Obs: ${notes})`;
 
+    saveDb();
+
+    logActivity({
+      family_id: user?.family_id || 'fam-01',
+      user_id: user?.id || 'usr-01',
+      user_name: user?.name || 'Cuidador',
+      user_role: user?.role || 'caregiver',
+      action_type: 'medication_administered',
+      category: 'Medicamentos',
+      description: `Medicamento ${med.name} (${med.dosage}) administrado ao idoso por ${user?.name || 'Cuidador'}.`,
+      details: `Horário: ${med.time_scheduled} | Status: Ministrado`,
+    });
+
     res.json({ success: true, medication: med });
   });
 
@@ -1428,8 +1484,22 @@ async function startServer() {
     const med = db.medicationLogs.find((m) => m.id === id);
     if (!med) return res.status(404).json({ error: 'Medicamento não localizado' });
 
+    const user = db.users.find((u) => u.id === (user_id || 'usr-01'));
     med.status = 'skipped';
     med.instructions += ` [NÃO MINISTRADO: ${reason || 'Idoso recusou ou jejum cirúrgico'}]`;
+
+    saveDb();
+
+    logActivity({
+      family_id: user?.family_id || 'fam-01',
+      user_id: user?.id || 'usr-01',
+      user_name: user?.name || 'Cuidador',
+      user_role: user?.role || 'caregiver',
+      action_type: 'medication_administered',
+      category: 'Medicamentos',
+      description: `Medicamento ${med.name} não ministrado por ${user?.name || 'Cuidador'}. Motivo: ${reason || 'Recusado/Jejum'}.`,
+    });
+
     res.json({ success: true, medication: med });
   });
 
@@ -1459,6 +1529,19 @@ async function startServer() {
     };
 
     db.familyNotices.unshift(newNotice);
+    saveDb();
+
+    logActivity({
+      family_id: user?.family_id || 'fam-01',
+      user_id: user?.id || 'usr-01',
+      user_name: user?.name || 'Familiar',
+      user_role: user?.role || 'family_member',
+      action_type: 'family_notice',
+      category: 'Mural',
+      description: `Novo aviso no mural publicado por ${user?.name || 'Família'}: "${title}".`,
+      details: description,
+    });
+
     res.status(201).json({ success: true, notice: newNotice });
   });
 
@@ -1468,6 +1551,18 @@ async function startServer() {
     if (!notice) return res.status(404).json({ error: 'Aviso não encontrado' });
 
     notice.is_resolved = !notice.is_resolved;
+    saveDb();
+
+    logActivity({
+      family_id: 'fam-01',
+      user_id: 'usr-01',
+      user_name: 'Usuário',
+      user_role: 'caregiver',
+      action_type: 'family_notice',
+      category: 'Mural',
+      description: `Aviso "${notice.title}" marcado como ${notice.is_resolved ? 'resolvido' : 'pendente'}.`,
+    });
+
     res.json({ success: true, notice });
   });
 
@@ -1516,6 +1611,17 @@ async function startServer() {
     db.dailyMissions.push(newMission);
     saveDb();
 
+    logActivity({
+      family_id: user?.family_id || 'fam-01',
+      user_id: user.id,
+      user_name: user.name,
+      user_role: user.role,
+      action_type: 'mission_created',
+      category: 'Obrigações Diárias',
+      description: `Nova obrigação diária cadastrada por ${user.name}: "${title}" às ${scheduled_time}.`,
+      details: clear_instructions,
+    });
+
     res.status(201).json({
       success: true,
       message: 'Missão diária incluída com sucesso no protocolo do cuidador.',
@@ -1546,6 +1652,18 @@ async function startServer() {
     if (clear_instructions) mission.clear_instructions = clear_instructions;
 
     saveDb();
+
+    logActivity({
+      family_id: user?.family_id || 'fam-01',
+      user_id: user.id,
+      user_name: user.name,
+      user_role: user.role,
+      action_type: 'mission_created',
+      category: 'Obrigações Diárias',
+      description: `Obrigação diária "${mission.title}" atualizada pelo Administrador ${user.name}.`,
+      details: `Novo horário: ${mission.scheduled_time} | Instruções: ${mission.clear_instructions}`,
+    });
+
     res.json({
       success: true,
       message: 'Missão diária atualizada com sucesso pelo administrador.',
@@ -1569,8 +1687,19 @@ async function startServer() {
     const index = db.dailyMissions.findIndex((m) => m.id === id);
     if (index === -1) return res.status(404).json({ error: 'Missão não encontrada' });
 
-    db.dailyMissions.splice(index, 1);
+    const removed = db.dailyMissions.splice(index, 1)[0];
     saveDb();
+
+    logActivity({
+      family_id: user?.family_id || 'fam-01',
+      user_id: user.id,
+      user_name: user.name,
+      user_role: user.role,
+      action_type: 'mission_created',
+      category: 'Obrigações Diárias',
+      description: `Obrigação diária "${removed.title}" removida do protocolo por ${user.name}.`,
+    });
+
     res.json({ success: true, message: 'Missão removida do protocolo diário.' });
   });
 
@@ -1595,6 +1724,18 @@ async function startServer() {
       mission.completed_by_name = null;
       mission.execution_notes = null;
     }
+
+    saveDb();
+
+    logActivity({
+      family_id: user?.family_id || 'fam-01',
+      user_id: user?.id || 'usr-01',
+      user_name: user?.name || 'Cuidador',
+      user_role: user?.role || 'caregiver',
+      action_type: 'mission_completed',
+      category: 'Obrigações Diárias',
+      description: `Missão "${mission.title}" marcada como ${mission.completed ? 'CUMPRIDA' : 'PENDENTE'} por ${user?.name || 'Cuidador'}.`,
+    });
 
     res.json({ success: true, mission });
   });
