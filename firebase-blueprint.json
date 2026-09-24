@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "user": {
+      "title": "User Account",
+      "description": "User profile, credentials, role, permission level, and onboarding state",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "last_name": { "type": "string" },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "role": { "type": "string" },
+        "permission_level": { "type": "integer" },
+        "permission_level_title": { "type": "string" },
+        "family_id": { "type": "string" },
+        "family_name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "avatar_url": { "type": "string" },
+        "registration_code": { "type": "string" },
+        "first_login_completed": { "type": "boolean" },
+        "terms_accepted": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "username", "role"]
+    },
+    "family": {
+      "title": "Family Unit",
+      "description": "Family group and elder information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "elderly_name": { "type": "string" },
+        "residence_address": { "type": "string" },
+        "created_at": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "name", "elderly_name"]
+    },
+    "family_activity_log": {
+      "title": "Family Activity Log",
+      "description": "Shared activity feed showing what members and caregivers edited or completed",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "family_id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "user_name": { "type": "string" },
+        "user_role": { "type": "string" },
+        "action_type": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "details": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "family_id", "user_name", "action_type", "description", "created_at"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/user" },
+      "description": "Collection of user accounts and permissions"
+    },
+    "/families/{familyId}": {
+      "schema": { "$ref": "#/entities/family" },
+      "description": "Collection of family units"
+    },
+    "/family_activity_logs/{logId}": {
+      "schema": { "$ref": "#/entities/family_activity_log" },
+      "description": "Shared audit trail of edits and activities by family members and caregivers"
+    }
+  }
+}

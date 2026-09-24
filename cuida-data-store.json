@@ -1,0 +1,40 @@
+{
+  "officialOffsetMs": 0,
+  "elderly": null,
+  "families": [],
+  "users": [
+    {
+      "id": "usr-admin-samuel",
+      "name": "Samuel (Administrador Geral)",
+      "last_name": "Geral",
+      "username": "Samuel_02",
+      "password": "072131Sa@",
+      "email": "samuel.admin@cuida.com.br",
+      "phone": "(11) 99999-0000",
+      "role": "admin_geral",
+      "roles": [
+        "admin_geral"
+      ],
+      "role_label": "Administrador Geral",
+      "role_labels": [
+        "Administrador Geral"
+      ],
+      "permission_level": 1,
+      "permission_level_title": "Administrador Geral",
+      "registration_code": "ADM-MASTER-01",
+      "family_id": null,
+      "family_name": "Administração Geral do Aplicativo",
+      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "first_login_completed": true,
+      "terms_accepted": true,
+      "created_at": "2026-01-01T00:00:00Z"
+    }
+  ],
+  "familyActivityLogs": [],
+  "timeEntries": [],
+  "healthLogs": [],
+  "medicationLogs": [],
+  "familyNotices": [],
+  "dailyMissions": [],
+  "dailyIncidents": []
+}

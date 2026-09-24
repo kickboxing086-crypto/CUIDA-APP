@@ -1,0 +1,6 @@
+{
+  "name": "CUIDA - Gestão de Cuidados e Ponto Seguro",
+  "description": "Plataforma de gestão familiar para saúde de idosos e controle de ponto eletrônico seguro de cuidadores com captura facial e sincronização oficial de horário.",
+  "requestFramePermissions": ["camera", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
