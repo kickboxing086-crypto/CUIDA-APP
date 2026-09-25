@@ -125,7 +125,15 @@ export default function App() {
     }
   };
 
-  const handleOnboardingComplete = async (updatedData: Partial<User>) => {
+  const handleOnboardingComplete = async (
+    updatedData: Partial<User>,
+    residenceData?: {
+      address: string;
+      lat?: number;
+      long?: number;
+      radius?: number;
+    }
+  ) => {
     if (!currentUser) return;
     try {
       const updatedUser = await api.completeOnboarding(currentUser.id, updatedData);
@@ -135,6 +143,22 @@ export default function App() {
       } catch {
         // ignore
       }
+
+      if (residenceData && residenceData.address) {
+        try {
+          await api.updateElderlyResidence({
+            residence_address: residenceData.address,
+            residence_lat: residenceData.lat || -23.5505,
+            residence_long: residenceData.long || -46.6333,
+            allowed_radius_meters: residenceData.radius || 150,
+            family_id: updatedUser.family_id || null,
+            requesting_user_id: updatedUser.id,
+          });
+        } catch (resErr) {
+          console.warn('Erro ao atualizar residência no onboarding:', resErr);
+        }
+      }
+
       handleRefreshHistory();
     } catch (err) {
       console.error('Erro no onboarding:', err);
@@ -205,6 +229,7 @@ export default function App() {
     return (
       <OnboardingWelcomeModal
         user={currentUser}
+        elderly={elderly}
         onComplete={handleOnboardingComplete}
       />
     );
