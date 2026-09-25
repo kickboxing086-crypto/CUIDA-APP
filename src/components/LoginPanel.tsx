@@ -486,8 +486,11 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
         )}
 
         {/* Rodapé institucional */}
-        <div className="text-center text-[11px] text-slate-500">
+        <div className="text-center text-[11px] text-slate-500 space-y-1">
           <p>© {new Date().getFullYear()} CUIDA · Controle Unificado e Diário de Assistência</p>
+          <p className="text-xs text-slate-400 font-medium tracking-wide">
+            desenvolvido por <strong className="text-slate-200 font-bold">SF TECNOLOGIA</strong>
+          </p>
         </div>
       </div>
     </div>

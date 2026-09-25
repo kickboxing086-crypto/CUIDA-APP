@@ -23,9 +23,11 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
   user,
   onComplete,
 }) => {
-  const [firstName, setFirstName] = useState(user.name?.split(' ')[0] || '');
-  const [lastName, setLastName] = useState(user.last_name || user.name?.split(' ').slice(1).join(' ') || '');
-  const [phone, setPhone] = useState(user.phone || '');
+  const cleanName = (user.name || '').trim();
+  const isGeneric = !cleanName || cleanName.toLowerCase().includes('pendente') || cleanName.toLowerCase().includes('administrador') || cleanName.toLowerCase().includes('novo cliente') || cleanName.toLowerCase().includes('convidado');
+  const [firstName, setFirstName] = useState(isGeneric ? '' : cleanName.split(' ')[0] || '');
+  const [lastName, setLastName] = useState(isGeneric ? '' : (user.last_name || cleanName.split(' ').slice(1).join(' ') || ''));
+  const [phone, setPhone] = useState(user.phone && user.phone !== '(11) 98000-0000' ? user.phone : '');
   const [photoUrl, setPhotoUrl] = useState(
     user.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80'
   );
@@ -258,9 +260,14 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
           </button>
         </form>
 
-        <div className="text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5 pt-1">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>Dados criptografados e sincronizados com Firebase Firestore</span>
+        <div className="text-center text-[11px] text-slate-400 flex flex-col items-center justify-center gap-1 pt-1">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <span>Dados criptografados e sincronizados com Firebase Firestore</span>
+          </div>
+          <span className="text-[10px] text-slate-400">
+            desenvolvido por <strong className="text-slate-600 font-bold">SF TECNOLOGIA</strong>
+          </span>
         </div>
       </div>
 

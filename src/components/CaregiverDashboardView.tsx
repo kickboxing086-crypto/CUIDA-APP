@@ -53,11 +53,28 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
   const [shiftTimeFormatted, setShiftTimeFormatted] = useState<string>('00h 00m');
 
   const canManageResidence =
-    currentUser.role === 'admin_geral' ||
     currentUser.role === 'admin_family' ||
-    currentUser.roles?.includes('admin_family');
+    Boolean(currentUser.roles?.includes('admin_family'));
 
-  const hasResidenceConfigured = Boolean(elderly?.residence_lat && elderly?.residence_long);
+  const hasResidenceConfigured = Boolean(
+    elderly?.residence_address &&
+    elderly.residence_address !== 'Residência do Idoso' &&
+    elderly.residence_address !== 'Endereço da Residência' &&
+    elderly.residence_lat &&
+    elderly.residence_long
+  );
+
+  const handleStartCheckIn = () => {
+    if (!hasResidenceConfigured) {
+      if (canManageResidence && onOpenResidenceConfig) {
+        onOpenResidenceConfig();
+      } else {
+        alert('⚠️ Atenção: O Administrador Familiar ainda precisa cadastrar o endereço da residência do idoso antes que o ponto possa ser validado.');
+      }
+      return;
+    }
+    onOpenLiveCamera('check_in');
+  };
 
   const loadData = async () => {
     try {
@@ -199,7 +216,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
               </button>
             ) : (
               <button
-                onClick={() => onOpenLiveCamera('check_in')}
+                onClick={handleStartCheckIn}
                 className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-blue-500 text-white font-bold text-xs shadow-md hover:bg-blue-400 active:scale-98 transition-all"
               >
                 <Camera className="w-4 h-4 text-white" />

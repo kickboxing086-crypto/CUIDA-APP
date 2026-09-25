@@ -73,7 +73,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 }) => {
   const isMasterAdmin = currentUser.role === 'admin_geral';
   const isFamilyAdmin = currentUser.role === 'admin_family' || currentUser.roles?.includes('admin_family');
-  const canManageResidence = isMasterAdmin || isFamilyAdmin;
+  const canManageResidence = Boolean(isFamilyAdmin);
 
   const tabs: NavTabItem[] = [
     { id: 'caregiver_dashboard', label: 'Painel do Cuidador', icon: LayoutDashboard, badge: 'Plantão' },

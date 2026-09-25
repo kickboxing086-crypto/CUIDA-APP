@@ -425,8 +425,14 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
         </div>
 
         {/* Footer */}
-        <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-          <span>CUIDA · Gestão Exclusiva da Família</span>
+        <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+          <div className="space-x-2">
+            <span>CUIDA · Gestão Exclusiva da Família</span>
+            <span className="opacity-40">|</span>
+            <span className="text-[10px] text-slate-400">
+              desenvolvido por <strong className="text-slate-300 font-bold">SF TECNOLOGIA</strong>
+            </span>
+          </div>
           <button
             onClick={onClose}
             className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl cursor-pointer"

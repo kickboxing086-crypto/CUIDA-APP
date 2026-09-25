@@ -25,6 +25,8 @@ import { api } from './services/api';
 import { ElderlyProfile, User } from './types';
 import { ElderCaneLogo } from './components/ElderCaneLogo';
 import { ShieldCheck } from 'lucide-react';
+import { ResidenceAddressNotice } from './components/ResidenceAddressNotice';
+import { FooterBranding } from './components/FooterBranding';
 
 export default function App() {
   // Session User (Null indicates login screen)
@@ -263,6 +265,13 @@ export default function App() {
           <OfficialClockBadge />
         </div>
 
+        {/* Aviso Obrigatório de Endereço da Residência Pendente */}
+        <ResidenceAddressNotice
+          currentUser={currentUser}
+          elderly={elderly}
+          onOpenResidenceModal={() => setIsResidenceModalOpen(true)}
+        />
+
         {/* Tab View Routing */}
         {activeTab === 'caregiver_dashboard' && (
           <CaregiverDashboardView
@@ -335,6 +344,9 @@ export default function App() {
           <TechSpecView />
         )}
       </main>
+
+      {/* Rodapé com Assinatura */}
+      <FooterBranding className="mt-auto" />
 
       {/* Modal: Adicionar Presença / Lançar Plantão */}
       <AddPresenceModal

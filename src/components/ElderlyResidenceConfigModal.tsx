@@ -61,6 +61,11 @@ export const ElderlyResidenceConfigModal: React.FC<ElderlyResidenceConfigModalPr
 
   const numberInputRef = useRef<HTMLInputElement | null>(null);
 
+  const isFamilyAdmin =
+    currentUser.role === 'admin_family' ||
+    (Array.isArray(currentUser.roles) && currentUser.roles.includes('admin_family')) ||
+    currentUser.role === 'admin_geral';
+
   // Pre-fill with existing data when opening
   useEffect(() => {
     if (isOpen) {
@@ -208,6 +213,11 @@ export const ElderlyResidenceConfigModal: React.FC<ElderlyResidenceConfigModalPr
 
     const finalAddress = fullAddress.trim() || [street, number ? `nº ${number}` : '', neighborhood, cityState, cep ? `CEP ${cep}` : ''].filter(Boolean).join(', ');
 
+    if (!isFamilyAdmin) {
+      setErrorMessage('Somente o Administrador Familiar tem autorização para cadastrar ou alterar o endereço da residência.');
+      return;
+    }
+
     if (!finalAddress) {
       setErrorMessage('Por favor, informe o endereço da residência do idoso.');
       return;
@@ -302,18 +312,32 @@ export const ElderlyResidenceConfigModal: React.FC<ElderlyResidenceConfigModalPr
 
         {/* Form Body */}
         <form onSubmit={handleSave} className="p-6 sm:p-7 space-y-6">
-          {/* Security Banner */}
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-start gap-3 text-xs text-blue-950">
-            <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold block text-sm text-blue-900 mb-0.5">
-                Poder Exclusivo do Administrador Familiar & Geral
-              </span>
-              <p className="text-blue-800 leading-relaxed">
-                Digite o <strong>CEP</strong> para que o <strong>nome da rua seja preenchido automaticamente</strong>. Os cuidadores <strong>só conseguirão bater ponto quando estiverem fisicamente no endereço cadastrado</strong>.
-              </p>
+          {!isFamilyAdmin ? (
+            <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start gap-3 text-xs text-amber-950">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block text-sm text-amber-900 mb-0.5">
+                  Exclusividade do Administrador Familiar
+                </span>
+                <p className="text-amber-800 leading-relaxed">
+                  Somente o Administrador Familiar pode cadastrar ou alterar o endereço oficial da residência.
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Security Banner */
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-start gap-3 text-xs text-blue-950">
+              <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block text-sm text-blue-900 mb-0.5">
+                  Configuração Exclusiva do Administrador Familiar
+                </span>
+                <p className="text-blue-800 leading-relaxed">
+                  Digite o <strong>CEP</strong> para que o <strong>nome da rua seja preenchido automaticamente</strong>. Os cuidadores <strong>só conseguirão bater ponto quando estiverem fisicamente no endereço cadastrado</strong>.
+                </p>
+              </div>
+            </div>
+          )}
 
           {errorMessage && (
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2 animate-in fade-in">
@@ -591,17 +615,27 @@ export const ElderlyResidenceConfigModal: React.FC<ElderlyResidenceConfigModalPr
               onClick={onClose}
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-colors cursor-pointer"
             >
-              Cancelar
+              {isFamilyAdmin ? 'Cancelar' : 'Fechar'}
             </button>
 
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>{isSaving ? 'Salvando Residência...' : 'Salvar Residência e Ativar Ponto'}</span>
-            </button>
+            {isFamilyAdmin ? (
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>{isSaving ? 'Salvando Residência...' : 'Salvar Residência e Ativar Ponto'}</span>
+              </button>
+            ) : (
+              <span className="text-xs font-semibold text-slate-500 italic">
+                Apenas o Administrador Familiar pode salvar alterações no endereço.
+              </span>
+            )}
+          </div>
+
+          <div className="text-center text-[10px] text-slate-400 pt-1">
+            desenvolvido por <strong className="text-slate-600 font-bold">SF TECNOLOGIA</strong>
           </div>
         </form>
       </div>

@@ -390,7 +390,18 @@ async function startServer() {
       requesting_user_id,
     } = req.body;
 
-    const requester = db.users.find((u) => u.id === requesting_user_id) || db.users[0];
+    const requester = db.users.find((u) => u.id === requesting_user_id);
+    const isFamilyAdmin = requester && (
+      requester.role === 'admin_family' ||
+      (Array.isArray((requester as any).roles) && (requester as any).roles.includes('admin_family')) ||
+      requester.role === 'admin_geral'
+    );
+    if (!isFamilyAdmin) {
+      return res.status(403).json({
+        error: 'Permissão negada',
+        message: 'Somente o Administrador Familiar pode cadastrar ou alterar o endereço da residência da família.',
+      });
+    }
 
     let family = db.families.find((f) => f.id === id);
     if (!family) {
@@ -476,7 +487,18 @@ async function startServer() {
       requesting_user_id,
     } = req.body;
 
-    const requester = db.users.find((u) => u.id === requesting_user_id) || db.users[0];
+    const requester = db.users.find((u) => u.id === requesting_user_id);
+    const isFamilyAdmin = requester && (
+      requester.role === 'admin_family' ||
+      (Array.isArray((requester as any).roles) && (requester as any).roles.includes('admin_family')) ||
+      requester.role === 'admin_geral'
+    );
+    if (!isFamilyAdmin) {
+      return res.status(403).json({
+        error: 'Permissão negada',
+        message: 'Somente o Administrador Familiar tem autorização para cadastrar ou alterar o endereço da residência.',
+      });
+    }
 
     let lat = Number(residence_lat);
     let lng = Number(residence_long);

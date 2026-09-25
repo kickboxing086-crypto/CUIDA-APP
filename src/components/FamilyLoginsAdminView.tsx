@@ -31,6 +31,7 @@ import { AVAILABLE_ROLES, validateUsername, validatePassword, getRoleDefinition 
 import { fetchAddressByCep, formatCep } from '../utils/cep';
 import { ElderCaneLogo } from './ElderCaneLogo';
 import { ElderlyResidenceConfigModal } from './ElderlyResidenceConfigModal';
+import { FooterBranding } from './FooterBranding';
 
 interface FamilyLoginsAdminViewProps {
   currentUser: UserType;
@@ -220,14 +221,12 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
     try {
       setIsSubmittingUser(true);
       await api.createUser({
-        name: newUserName.trim(),
+        name: 'Pendente de Preenchimento',
         username: cleanUser,
         password: cleanPass,
         roles: selectedRoles,
         role: selectedRoles[0],
         family_id: targetFamilyId || null,
-        email: newUserEmail.trim() || undefined,
-        registration_code: newUserCode.trim() || undefined,
         requesting_user_id: currentUser.id,
       });
 
@@ -235,15 +234,12 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
 
       setFeedback({
         type: 'success',
-        message: `Login "${cleanUser}" criado com sucesso (em minúsculo, senha de ${cleanPass.length} chars) [${roleNames}]!`,
+        message: `Login "${cleanUser}" criado com sucesso! No primeiro acesso, o usuário preencherá seu nome, sobrenome e foto.`,
       });
 
       // Reset form
-      setNewUserName('');
       setNewUserUsername('');
       setNewUserPassword('');
-      setNewUserEmail('');
-      setNewUserCode('');
       setSelectedRoles(['caregiver']);
       setIsCreateUserModalOpen(false);
 
@@ -344,27 +340,22 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
       const res = await api.createFamilyWithAdmin({
         name: cfaFamilyName.trim(),
         elderly_name: cfaElderlyName.trim(),
-        residence_address: cfaAddress.trim() || 'Endereço da Família',
-        admin_name: cfaAdminName.trim() || 'Administrador Familiar',
+        residence_address: '',
+        admin_name: 'Pendente de Preenchimento',
         admin_username: cleanUser,
         admin_password: cleanPass,
-        admin_email: cfaAdminEmail.trim() || `${cleanUser}@cuida.com.br`,
         requesting_user_id: currentUser.id,
       });
 
       setFeedback({
         type: 'success',
-        message: `Família "${res.family.name}" e Administrador Familiar "@${res.adminUser.username}" cadastrados com sucesso! O administrador já pode acessar e gerar os convites para seus irmãos e cuidadores.`,
+        message: `Família "${res.family.name}" e Administrador Familiar "@${res.adminUser.username}" criados com sucesso! O administrador preencherá seus dados pessoais e o endereço oficial da residência no seu primeiro login.`,
       });
 
       setCfaFamilyName('');
       setCfaElderlyName('');
-      setCfaAddress('');
-      setCfaCep('');
-      setCfaAdminName('');
       setCfaAdminUsername('');
       setCfaAdminPassword('');
-      setCfaAdminEmail('');
       setIsCreateFamilyAndAdminModalOpen(false);
       await loadData();
       if (onRefreshDirectory) onRefreshDirectory();
@@ -1228,6 +1219,8 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
             )}
           </div>
         )}
+
+        <FooterBranding theme="dark" className="border-t border-slate-800/80 mt-10 pt-6" />
       </main>
 
       {/* Modal: Criar Login de Cliente com Suporte a até 2 Opções e Validação de Segurança */}
@@ -1266,18 +1259,10 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Nome Completo *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newUserName}
-                  onChange={(e) => setNewUserName(e.target.value)}
-                  placeholder="Ex: João Vitor Souza"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
-                />
+              <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200">
+                <p className="font-semibold text-blue-300">
+                  ℹ️ Como Administrador Geral, você gera apenas o login e a função. O usuário completará seu nome completo, sobrenome e foto de perfil no seu primeiro acesso.
+                </p>
               </div>
 
               {/* Security: Username & Password with Real-Time Validation Checkout */}
@@ -1415,34 +1400,6 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Código de Matrícula (Opcional)
-                  </label>
-                  <input
-                    type="text"
-                    value={newUserCode}
-                    onChange={(e) => setNewUserCode(e.target.value)}
-                    placeholder="Ex: CUID-1090"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-white focus:outline-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    E-mail do Cliente (Opcional)
-                  </label>
-                  <input
-                    type="email"
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
-                    placeholder="cliente@email.com"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-blue-500"
-                  />
-                </div>
-              </div>
-
               <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
@@ -1482,6 +1439,12 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
             </div>
 
             <form onSubmit={handleCreateFamily} className="space-y-4">
+              <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200">
+                <p className="font-semibold text-blue-300">
+                  ℹ️ O endereço oficial da residência será cadastrado exclusivamente pelo Administrador da Família após o login.
+                </p>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
                   Nome da Família *
@@ -1507,51 +1470,6 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
                   onChange={(e) => setNewElderlyName(e.target.value)}
                   placeholder="Ex: Dona Helena Albuquerque (88 anos)"
                   className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    CEP (Opcional)
-                  </label>
-                  <input
-                    type="text"
-                    value={newFamilyCep}
-                    onChange={(e) => handleFamilyCepChange(e.target.value)}
-                    placeholder="00000-000"
-                    maxLength={9}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-white focus:outline-blue-500"
-                  />
-                  <span className="text-[10px] text-blue-400 block mt-0.5">
-                    {isLoadingFamilyCep ? 'Buscando rua...' : 'Preenche a rua'}
-                  </span>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Endereço / Nome da Rua
-                  </label>
-                  <input
-                    type="text"
-                    value={newFamilyAddress}
-                    onChange={(e) => setNewFamilyAddress(e.target.value)}
-                    placeholder="Ex: Alameda Santos, 1200 - Jardins, SP"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Observações / Rotina do Idoso
-                </label>
-                <textarea
-                  rows={2}
-                  value={newFamilyNotes}
-                  onChange={(e) => setNewFamilyNotes(e.target.value)}
-                  placeholder="Ex: Hipertensão, dieta hipossódica e fisioterapia às 14h."
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-blue-500"
                 />
               </div>
 
@@ -1634,10 +1552,20 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
             </div>
 
             <form onSubmit={handleCreateFamilyAndAdmin} className="space-y-4">
+              <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200 space-y-1">
+                <p className="font-bold flex items-center gap-1.5 text-blue-300">
+                  <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
+                  <span>Missão do Administrador Geral</span>
+                </p>
+                <p className="text-slate-300 leading-relaxed">
+                  Você apenas cria a Família e as credenciais de acesso. O próprio Administrador Familiar preencherá seu nome, sobrenome, foto e cadastrará o endereço oficial da residência no primeiro login.
+                </p>
+              </div>
+
               {/* Seção 1: Dados da Família e do Idoso */}
               <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-3">
                 <span className="text-[11px] font-black uppercase text-blue-400 tracking-wider flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5" /> 1. Dados da Família & Idoso Assistido
+                  <Building2 className="w-3.5 h-3.5" /> 1. Família & Idoso Assistido
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1669,67 +1597,17 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
                     />
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      CEP da Residência
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        maxLength={9}
-                        value={cfaCep}
-                        onChange={(e) => handleCfaCepChange(e.target.value)}
-                        placeholder="00000-000"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-blue-500"
-                      />
-                      {cfaIsSearchingCep && (
-                        <div className="absolute right-2.5 top-2.5">
-                          <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Endereço da Residência (Local do Ponto)
-                    </label>
-                    <input
-                      type="text"
-                      value={cfaAddress}
-                      onChange={(e) => setCfaAddress(e.target.value)}
-                      placeholder="Rua, número, bairro e cidade"
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-blue-500"
-                    />
-                  </div>
-                </div>
               </div>
 
               {/* Seção 2: Login do Administrador Familiar Contratante */}
               <div className="p-3.5 bg-slate-950/70 border border-emerald-500/30 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-black uppercase text-emerald-400 tracking-wider flex items-center gap-1.5">
-                    <UserPlus className="w-3.5 h-3.5" /> 2. Login do Administrador Familiar
+                    <UserPlus className="w-3.5 h-3.5" /> 2. Login de Acesso do Administrador Familiar
                   </span>
                   <span className="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/40 font-bold">
                     admin_family
                   </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Nome Completo do Administrador *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={cfaAdminName}
-                    onChange={(e) => setCfaAdminName(e.target.value)}
-                    placeholder="Ex: Carlos Roberto Silveira"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-blue-500"
-                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1745,7 +1623,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
                       required
                       value={cfaAdminUsername}
                       onChange={(e) => setCfaAdminUsername(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
-                      placeholder="ex: carlos_silveira"
+                      placeholder="ex: silveira_admin"
                       className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-blue-500 lowercase"
                     />
                   </div>
@@ -1778,19 +1656,6 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
                       </button>
                     </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    E-mail do Administrador (opcional)
-                  </label>
-                  <input
-                    type="email"
-                    value={cfaAdminEmail}
-                    onChange={(e) => setCfaAdminEmail(e.target.value)}
-                    placeholder="ex: carlos@email.com"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-blue-500"
-                  />
                 </div>
               </div>
 
