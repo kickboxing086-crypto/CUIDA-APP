@@ -59,6 +59,7 @@ async function startServer() {
     dailyMissions: any[];
     dailyIncidents: any[];
     familyActivityLogs: any[];
+    invites: any[];
   } = {
     officialOffsetMs: 0, // Server clock offset
     elderly: defaultElderly,
@@ -71,6 +72,7 @@ async function startServer() {
     familyNotices: [],
     dailyMissions: [],
     dailyIncidents: [],
+    invites: [],
   };
 
   // Load persisted data if exists
@@ -98,6 +100,7 @@ async function startServer() {
       if (loaded.dailyMissions) db.dailyMissions = loaded.dailyMissions;
       if (loaded.dailyIncidents) db.dailyIncidents = loaded.dailyIncidents;
       if (loaded.familyActivityLogs) db.familyActivityLogs = loaded.familyActivityLogs;
+      if (loaded.invites && Array.isArray(loaded.invites)) db.invites = loaded.invites;
     }
   } catch (err) {
     console.warn('[CUIDA DB] Aviso ao ler cuida-data-store.json:', err);
@@ -644,6 +647,259 @@ async function startServer() {
       message: `Login "${newUser.username}" cadastrado com sucesso para a ${newUser.family_name}!`,
       user: newUser,
     });
+  });
+
+  // --- Sistema de Convites por Link Exclusivo ---
+
+  // Listar Convites
+  app.get('/api/invites', (req, res) => {
+    if (!db.invites) db.invites = [];
+    res.json(db.invites);
+  });
+
+  // Criar Novo Link de Convite (Apenas Admin)
+  app.post('/api/invites', (req, res) => {
+    const {
+      family_id,
+      roles,
+      guest_name,
+      requesting_user_id,
+      max_uses = 1,
+    } = req.body;
+
+    const requester = db.users.find((u) => u.id === requesting_user_id) || db.users[0];
+    const family = db.families.find((f) => f.id === family_id);
+
+    const userRoles: string[] = Array.isArray(roles) && roles.length > 0 ? roles.slice(0, 2) : ['caregiver'];
+    const userRoleLabels = userRoles.map(getFriendlyRoleLabel);
+
+    const randomNum = Math.floor(100000 + Math.random() * 900000);
+    const inviteCode = `INV-${randomNum}`;
+    const token = `cnv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    const newInvite = {
+      id: `inv-${Date.now()}`,
+      code: inviteCode,
+      token: token,
+      family_id: family_id || null,
+      family_name: family ? family.name : (family_id ? 'Família Vinculada' : 'Sem família associada'),
+      roles: userRoles,
+      role_labels: userRoleLabels,
+      guest_name: (guest_name || '').trim() || 'Convidado(a)',
+      created_by_user_id: requester?.id || 'usr-admin-samuel',
+      created_by_user_name: requester?.name || 'Administrador',
+      created_at: getOfficialServerTime().iso_timestamp,
+      max_uses: Number(max_uses) || 1,
+      used_count: 0,
+      status: 'active',
+      used_by_users: [],
+    };
+
+    if (!db.invites) db.invites = [];
+    db.invites.unshift(newInvite);
+    saveDb();
+
+    logActivity({
+      family_id: family_id || 'fam-01',
+      user_id: requester?.id || 'usr-admin-samuel',
+      user_name: requester?.name || 'Administrador',
+      user_role: requester?.role || 'admin_geral',
+      action_type: 'invite_created',
+      category: 'Mural',
+      description: `Link de convite ${inviteCode} gerado para "${newInvite.guest_name}" [${userRoleLabels.join(' + ')}].`,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Link de convite ${inviteCode} criado com sucesso!`,
+      invite: newInvite,
+    });
+  });
+
+  // Validar Código ou Link de Convite (Acesso Público)
+  app.get('/api/invites/validate/:codeOrToken', (req, res) => {
+    const rawParam = String(req.params.codeOrToken || '').trim();
+    const search = rawParam.toUpperCase();
+    if (!db.invites) db.invites = [];
+
+    const invite = db.invites.find(
+      (inv) =>
+        inv.code?.toUpperCase() === search ||
+        inv.token === rawParam ||
+        inv.token?.toUpperCase() === search
+    );
+
+    if (!invite) {
+      return res.status(404).json({
+        valid: false,
+        error: 'Convite não encontrado',
+        message: 'O código ou link de convite informado não existe ou é inválido. Solicite um novo link ao Administrador.',
+      });
+    }
+
+    if (invite.status === 'revoked') {
+      return res.status(400).json({
+        valid: false,
+        error: 'Convite revogado',
+        message: 'Este link de convite foi cancelado pelo Administrador.',
+      });
+    }
+
+    if (invite.max_uses > 0 && invite.used_count >= invite.max_uses) {
+      return res.status(400).json({
+        valid: false,
+        error: 'Convite já utilizado',
+        message: 'Este link de convite já foi utilizado para criar uma conta e não pode ser reutilizado.',
+      });
+    }
+
+    res.json({
+      valid: true,
+      invite: {
+        id: invite.id,
+        code: invite.code,
+        token: invite.token,
+        family_id: invite.family_id,
+        family_name: invite.family_name,
+        roles: invite.roles,
+        role_labels: invite.role_labels,
+        guest_name: invite.guest_name,
+      },
+    });
+  });
+
+  // Criar Conta Via Convite
+  app.post('/api/invites/register', (req, res) => {
+    const { invite_code, name, username, password, email } = req.body;
+
+    if (!invite_code || !username || !password) {
+      return res.status(400).json({
+        error: 'Dados incompletos',
+        message: 'Código do convite, usuário e senha são obrigatórios.',
+      });
+    }
+
+    const rawCode = String(invite_code).trim();
+    const search = rawCode.toUpperCase();
+    if (!db.invites) db.invites = [];
+
+    const invite = db.invites.find(
+      (inv) =>
+        inv.code?.toUpperCase() === search ||
+        inv.token === rawCode ||
+        inv.token?.toUpperCase() === search
+    );
+
+    if (!invite || invite.status === 'revoked' || (invite.max_uses > 0 && invite.used_count >= invite.max_uses)) {
+      return res.status(400).json({
+        error: 'Convite inválido',
+        message: 'O link ou código de convite não é válido ou já foi utilizado. Solicite um novo link ao Administrador.',
+      });
+    }
+
+    const fullName = (name || invite.guest_name || 'Novo Usuário').trim();
+    let cleanUsername = (username || '').trim().toLowerCase().replace(/\s+/g, '_');
+    let cleanPassword = (password || '').trim().toLowerCase().slice(0, 8);
+
+    if (cleanUsername.length < 3) {
+      return res.status(400).json({
+        error: 'Usuário inválido',
+        message: 'O nome de usuário deve ter pelo menos 3 caracteres em minúsculo.',
+      });
+    }
+
+    if (cleanPassword.length < 3) {
+      return res.status(400).json({
+        error: 'Senha inválida',
+        message: 'A senha deve ter entre 3 e 8 caracteres em minúsculo.',
+      });
+    }
+
+    // Verificar se o usuário já existe
+    let finalUsername = cleanUsername;
+    let counter = 1;
+    while (db.users.some((u) => u.username && u.username.toLowerCase() === finalUsername.toLowerCase())) {
+      counter++;
+      finalUsername = `${cleanUsername}_${counter}`;
+    }
+
+    const family = db.families.find((f) => f.id === invite.family_id);
+    const userRoles = invite.roles || ['caregiver'];
+    const primaryRole = userRoles[0];
+    const userRoleLabels = invite.role_labels || userRoles.map(getFriendlyRoleLabel);
+    const lvl = userRoles.includes('admin_family') ? 2 : 3;
+
+    const newUser = {
+      id: `usr-${Date.now()}`,
+      name: fullName,
+      last_name: fullName.split(' ').slice(1).join(' ') || '',
+      username: finalUsername,
+      password: cleanPassword,
+      role: primaryRole,
+      roles: userRoles,
+      role_label: userRoleLabels.join(' + '),
+      role_labels: userRoleLabels,
+      permission_level: lvl,
+      permission_level_title: userRoleLabels.join(' + '),
+      family_id: invite.family_id || null,
+      family_name: family ? family.name : (invite.family_name || 'Sem família vinculada'),
+      email: email ? String(email).trim() : `${finalUsername.toLowerCase()}@cuida.com.br`,
+      phone: '(11) 98000-0000',
+      registration_code: userRoles.includes('caregiver')
+        ? `CUID-${Math.floor(1000 + Math.random() * 9000)}`
+        : `FAM-${Math.floor(1000 + Math.random() * 9000)}`,
+      avatar_url: userRoles.includes('caregiver')
+        ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
+        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      first_login_completed: false,
+      terms_accepted: false,
+      created_at: getOfficialServerTime().iso_timestamp,
+    };
+
+    db.users.push(newUser);
+
+    // Marcar convite como utilizado
+    invite.used_count = (invite.used_count || 0) + 1;
+    if (invite.max_uses > 0 && invite.used_count >= invite.max_uses) {
+      invite.status = 'used';
+    }
+    if (!invite.used_by_users) invite.used_by_users = [];
+    invite.used_by_users.push({
+      user_id: newUser.id,
+      username: newUser.username,
+      used_at: getOfficialServerTime().iso_timestamp,
+    });
+
+    saveDb();
+
+    logActivity({
+      family_id: newUser.family_id || 'fam-01',
+      user_id: newUser.id,
+      user_name: newUser.name,
+      user_role: newUser.role,
+      action_type: 'user_registered_via_invite',
+      category: 'Mural',
+      description: `Conta criada via convite ${invite.code}: ${newUser.name} (@${newUser.username}) [${userRoleLabels.join(' + ')}].`,
+    });
+
+    const { password: _, ...safeUser } = newUser;
+    res.status(201).json({
+      success: true,
+      message: `Conta criada com sucesso! Bem-vindo(a), ${newUser.name}.`,
+      user: safeUser,
+    });
+  });
+
+  // Revogar Convite
+  app.delete('/api/invites/:id', (req, res) => {
+    const inviteId = req.params.id;
+    if (!db.invites) db.invites = [];
+    const invite = db.invites.find((inv) => inv.id === inviteId);
+    if (invite) {
+      invite.status = 'revoked';
+      saveDb();
+    }
+    res.json({ success: true, message: 'Link de convite revogado com sucesso.' });
   });
 
   // Atualizar Opções / Funções do Usuário (Até 2 opções configuráveis pelo Admin)

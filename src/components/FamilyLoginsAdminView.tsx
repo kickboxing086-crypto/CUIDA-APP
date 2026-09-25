@@ -21,9 +21,12 @@ import {
   Sparkles,
   Lock,
   MapPin,
+  Link2,
+  Send,
+  MessageCircle,
 } from 'lucide-react';
 import { api } from '../services/api';
-import { User as UserType, Family, UserRole, FamilyActivityLog } from '../types';
+import { User as UserType, Family, UserRole, FamilyActivityLog, InviteLink } from '../types';
 import { AVAILABLE_ROLES, validateUsername, validatePassword, getRoleDefinition } from '../utils/permissions';
 import { fetchAddressByCep, formatCep } from '../utils/cep';
 import { ElderCaneLogo } from './ElderCaneLogo';
@@ -40,10 +43,11 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
   onRefreshDirectory,
   onLogout,
 }) => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'logins' | 'roles' | 'audit'>('logins');
+  const [activeAdminTab, setActiveAdminTab] = useState<'logins' | 'invites' | 'roles' | 'audit'>('logins');
   const [families, setFamilies] = useState<Family[]>([]);
   const [allUsers, setAllUsers] = useState<UserType[]>([]);
   const [globalAuditLogs, setGlobalAuditLogs] = useState<FamilyActivityLog[]>([]);
+  const [invitesList, setInvitesList] = useState<InviteLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -56,7 +60,15 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
   const [isCreateFamilyModalOpen, setIsCreateFamilyModalOpen] = useState(false);
   const [isResidenceModalOpen, setIsResidenceModalOpen] = useState(false);
+  const [isCreateInviteModalOpen, setIsCreateInviteModalOpen] = useState(false);
   const [targetResidenceFamily, setTargetResidenceFamily] = useState<Family | null>(null);
+
+  // Form State: Create Invite Link
+  const [inviteTargetFamilyId, setInviteTargetFamilyId] = useState('');
+  const [inviteSelectedRoles, setInviteSelectedRoles] = useState<UserRole[]>(['caregiver']);
+  const [inviteGuestName, setInviteGuestName] = useState('');
+  const [isSubmittingInvite, setIsSubmittingInvite] = useState(false);
+  const [copiedInviteCode, setCopiedInviteCode] = useState<string | null>(null);
 
   // Form State: Create User
   const [targetFamilyId, setTargetFamilyId] = useState('');
@@ -105,16 +117,19 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
     try {
       setLoading(true);
       // Fetch users with passwords enabled for the admin account
-      const [famData, usersData, auditData] = await Promise.all([
+      const [famData, usersData, auditData, invitesData] = await Promise.all([
         api.getFamilies(),
         api.fetchUsers(true),
         api.getFamilyActivityLogs('all'),
+        api.getInvites(),
       ]);
       setFamilies(famData);
       setAllUsers(usersData);
       setGlobalAuditLogs(auditData);
-      if (famData.length > 0 && !targetFamilyId) {
-        setTargetFamilyId(famData[0].id);
+      setInvitesList(invitesData);
+      if (famData.length > 0) {
+        if (!targetFamilyId) setTargetFamilyId(famData[0].id);
+        if (!inviteTargetFamilyId) setInviteTargetFamilyId(famData[0].id);
       }
     } catch (err) {
       console.error(err);
@@ -267,6 +282,53 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
     }
   };
 
+  const handleCreateInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsSubmittingInvite(true);
+      const newInv = await api.createInvite({
+        family_id: inviteTargetFamilyId || null,
+        roles: inviteSelectedRoles,
+        guest_name: inviteGuestName,
+        requesting_user_id: currentUser.id,
+      });
+
+      setFeedback({
+        type: 'success',
+        message: `Link de convite ${newInv.code} criado com sucesso para "${newInv.guest_name}"!`,
+      });
+
+      setInviteGuestName('');
+      setIsCreateInviteModalOpen(false);
+      await loadData();
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Erro ao gerar convite.' });
+    } finally {
+      setIsSubmittingInvite(false);
+    }
+  };
+
+  const handleRevokeInvite = async (inviteId: string, inviteCode: string) => {
+    if (!window.confirm(`Deseja revogar/cancelar o convite ${inviteCode}?`)) return;
+    try {
+      await api.revokeInvite(inviteId);
+      setFeedback({ type: 'success', message: `Convite ${inviteCode} foi revogado com sucesso.` });
+      await loadData();
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Erro ao revogar convite.' });
+    }
+  };
+
+  const handleCopyInviteUrl = (code: string) => {
+    const hostDomain = window.location.origin.includes('cuida-app.vercel.app')
+      ? window.location.origin
+      : 'https://cuida-app.vercel.app';
+    const fullUrl = `${hostDomain}${window.location.pathname}?invite=${code}`;
+    navigator.clipboard.writeText(fullUrl);
+    setCopiedInviteCode(code);
+    setTimeout(() => setCopiedInviteCode(null), 2500);
+  };
+
   const handleDeleteUser = async (userId: string, userName: string) => {
     if (!window.confirm(`Tem certeza que deseja excluir o login de ${userName}?`)) {
       return;
@@ -382,6 +444,21 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
             <span>Logins, Famílias & Senhas</span>
             <span className="bg-slate-900/60 text-slate-300 px-1.5 py-0.2 rounded text-[10px]">
               {allUsers.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveAdminTab('invites')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeAdminTab === 'invites'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Link2 className="w-4 h-4 text-emerald-400" />
+            <span>Gerador de Links de Convite</span>
+            <span className="bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.2 rounded text-[10px]">
+              {invitesList.filter((i) => i.status === 'active').length} Ativos
             </span>
           </button>
 
@@ -719,6 +796,152 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Tab: Gerador de Links de Convite */}
+        {activeAdminTab === 'invites' && (
+          <div className="space-y-6">
+            <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-xs font-semibold text-emerald-300">
+                  <Link2 className="w-4 h-4 text-emerald-400" />
+                  <span>Fluxo Exclusivo de Cadastro via Convite</span>
+                </div>
+                <h3 className="text-xl font-extrabold text-white">
+                  Gerador de Links de Convite
+                </h3>
+                <p className="text-xs text-slate-400 max-w-2xl">
+                  Como Administrador, envie um Link de Convite exclusivo para que cuidadores e familiares possam criar seu login e senha com segurança.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsCreateInviteModalOpen(true)}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-2 cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Gerar Novo Link de Convite</span>
+              </button>
+            </div>
+
+            {/* List of Convites */}
+            <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-5 space-y-4">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>Histórico de Links de Convite Gerados</span>
+                <span className="text-xs font-mono text-slate-500">({invitesList.length})</span>
+              </h4>
+
+              {invitesList.length === 0 ? (
+                <div className="p-8 text-center bg-slate-900/50 rounded-xl border border-slate-800 space-y-3">
+                  <Link2 className="w-8 h-8 text-slate-600 mx-auto" />
+                  <p className="text-xs text-slate-400">
+                    Nenhum link de convite gerado ainda. Clique em "Gerar Novo Link de Convite" acima para convidar um novo cuidador ou familiar.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {invitesList.map((inv) => {
+                    const hostDomain = window.location.origin.includes('cuida-app.vercel.app')
+                      ? window.location.origin
+                      : 'https://cuida-app.vercel.app';
+                    const fullInviteUrl = `${hostDomain}${window.location.pathname}?invite=${inv.code}`;
+                    const whatsappMsg = `Olá ${inv.guest_name || ''}! Você foi convidado(a) para acessar o sistema CUIDA (${inv.family_name}).\nPara criar sua conta e senha, acesse o link de convite exclusivo:\n${fullInviteUrl}`;
+                    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappMsg)}`;
+
+                    return (
+                      <div
+                        key={inv.id}
+                        className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                          inv.status === 'active'
+                            ? 'bg-slate-900 border-slate-800 hover:border-blue-500/40'
+                            : inv.status === 'used'
+                            ? 'bg-slate-950/80 border-slate-800/80 opacity-80'
+                            : 'bg-red-950/20 border-red-900/40 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-black text-blue-400 bg-blue-950/80 px-2.5 py-1 rounded-lg border border-blue-800">
+                              {inv.code}
+                            </span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              inv.status === 'active'
+                                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                                : inv.status === 'used'
+                                ? 'bg-blue-950/80 text-blue-300 border-blue-500/40'
+                                : 'bg-red-950/80 text-red-300 border-red-500/40'
+                            }`}>
+                              {inv.status === 'active' ? '🟢 Ativo (Aguardando uso)' : inv.status === 'used' ? '🔵 Conta Criada' : '⚪ Revogado'}
+                            </span>
+                          </div>
+
+                          {inv.status === 'active' && (
+                            <button
+                              onClick={() => handleRevokeInvite(inv.id, inv.code)}
+                              className="text-[11px] text-red-400 hover:text-red-300 font-medium cursor-pointer"
+                              title="Cancelar este convite"
+                            >
+                              Revogar
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="text-xs space-y-1">
+                          <p className="font-extrabold text-white text-sm">{inv.guest_name}</p>
+                          <p className="text-slate-400">
+                            <strong>Família:</strong> {inv.family_name}
+                          </p>
+                          <p className="text-slate-400">
+                            <strong>Funções Liberadas:</strong>{' '}
+                            <span className="text-blue-300 font-semibold">{inv.role_labels?.join(' + ')}</span>
+                          </p>
+                        </div>
+
+                        {/* Quick Action Buttons for Active Invite */}
+                        {inv.status === 'active' && (
+                          <div className="pt-2 border-t border-slate-800/80 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyInviteUrl(inv.code)}
+                              className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                            >
+                              {copiedInviteCode === inv.code ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span className="text-emerald-300">Copiado!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3.5 h-3.5 text-blue-400" />
+                                  <span>Copiar Link</span>
+                                </>
+                              )}
+                            </button>
+
+                            <a
+                              href={whatsappUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 py-2 px-3 rounded-xl bg-emerald-700/80 hover:bg-emerald-600 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              <span>Enviar no WhatsApp</span>
+                            </a>
+                          </div>
+                        )}
+
+                        {inv.status === 'used' && inv.used_by_users && inv.used_by_users.length > 0 && (
+                          <div className="text-[11px] text-emerald-400 bg-emerald-950/40 p-2 rounded-xl border border-emerald-500/20">
+                            ✓ Conta criada pelo usuário: <strong>@{inv.used_by_users[0].username}</strong>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1263,6 +1486,114 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
             if (onRefreshDirectory) onRefreshDirectory();
           }}
         />
+      )}
+
+      {/* Modal: Gerar Novo Link de Convite */}
+      {isCreateInviteModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-white">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-emerald-400 font-bold text-base">
+                <Link2 className="w-5 h-5" />
+                <span>Gerar Link de Convite para Novo Usuário</span>
+              </div>
+              <button
+                onClick={() => setIsCreateInviteModalOpen(false)}
+                className="text-slate-400 hover:text-white text-sm font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateInvite} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Nome do Convidado(a) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={inviteGuestName}
+                  onChange={(e) => setInviteGuestName(e.target.value)}
+                  placeholder="Ex: Cuidadora Ana Paula ou Filho Marcos"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Vincular à Família do Idoso *
+                </label>
+                <select
+                  value={inviteTargetFamilyId}
+                  onChange={(e) => setInviteTargetFamilyId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
+                >
+                  {families.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name} ({f.elderly_name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-2">
+                  Funções Liberadas para este Convite (Até 2):
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {Object.values(AVAILABLE_ROLES).map((roleDef) => {
+                    const isSelected = inviteSelectedRoles.includes(roleDef.id);
+                    return (
+                      <button
+                        key={roleDef.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            if (inviteSelectedRoles.length > 1) {
+                              setInviteSelectedRoles(inviteSelectedRoles.filter((r) => r !== roleDef.id));
+                            }
+                          } else {
+                            if (inviteSelectedRoles.length >= 2) {
+                              setInviteSelectedRoles([inviteSelectedRoles[0], roleDef.id]);
+                            } else {
+                              setInviteSelectedRoles([...inviteSelectedRoles, roleDef.id]);
+                            }
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-emerald-950/60 border-emerald-500 text-white font-bold'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                        }`}
+                      >
+                        <span>{roleDef.name}</span>
+                        {isSelected && <Check className="w-4 h-4 text-emerald-400" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateInviteModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingInvite || !inviteGuestName.trim()}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer shadow-lg flex items-center gap-1.5"
+                >
+                  {isSubmittingInvite ? 'Gerando Link...' : 'Gerar Link de Convite'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

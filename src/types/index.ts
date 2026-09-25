@@ -1,3 +1,21 @@
+export interface InviteLink {
+  id: string;
+  code: string;
+  token: string;
+  family_id: string | null;
+  family_name: string;
+  roles: UserRole[];
+  role_labels: string[];
+  guest_name?: string;
+  created_by_user_id: string;
+  created_by_user_name: string;
+  created_at: string;
+  max_uses: number;
+  used_count: number;
+  status: 'active' | 'used' | 'revoked';
+  used_by_users?: { user_id: string; username: string; used_at: string }[];
+}
+
 export type UserRole =
   | 'admin_geral'
   | 'admin_family'

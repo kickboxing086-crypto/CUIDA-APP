@@ -1164,4 +1164,78 @@ export const api = {
       console.error('Falha ao registrar log de atividade:', err);
     }
   },
+
+  // --- Gestão de Convites Exclusivos para Criação de Conta ---
+  async getInvites(): Promise<import('../types').InviteLink[]> {
+    try {
+      const res = await fetch('/api/invites');
+      if (res.ok) return await res.json();
+    } catch {}
+    return [];
+  },
+
+  async createInvite(params: {
+    family_id?: string | null;
+    roles: import('../types').UserRole[];
+    guest_name?: string;
+    requesting_user_id: string;
+    max_uses?: number;
+  }): Promise<import('../types').InviteLink> {
+    const res = await fetch('/api/invites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Falha ao gerar link de convite.');
+    }
+    const data = await res.json();
+    return data.invite;
+  },
+
+  async validateInvite(codeOrToken: string): Promise<{ valid: boolean; invite?: Partial<import('../types').InviteLink>; message?: string }> {
+    try {
+      const res = await fetch(`/api/invites/validate/${encodeURIComponent(codeOrToken)}`);
+      const data = await res.json();
+      if (res.ok) return data;
+      return { valid: false, message: data.message || 'Convite inválido' };
+    } catch {
+      return { valid: false, message: 'Não foi possível validar o código do convite.' };
+    }
+  },
+
+  async registerWithInvite(params: {
+    invite_code: string;
+    name: string;
+    username: string;
+    password: string;
+    email?: string;
+  }): Promise<{ success: boolean; user: User; message: string }> {
+    const res = await fetch('/api/invites/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Falha ao criar conta via convite.');
+    }
+    if (data.user) {
+      const existingIdx = INITIAL_USERS.findIndex((u) => u.id === data.user.id || u.username?.toLowerCase() === data.user.username?.toLowerCase());
+      if (existingIdx !== -1) {
+        INITIAL_USERS[existingIdx] = data.user;
+      } else {
+        INITIAL_USERS.push(data.user);
+      }
+      persistUsersToCache(INITIAL_USERS);
+    }
+    return data;
+  },
+
+  async revokeInvite(inviteId: string): Promise<void> {
+    try {
+      await fetch(`/api/invites/${inviteId}`, { method: 'DELETE' });
+    } catch {}
+  },
 };
