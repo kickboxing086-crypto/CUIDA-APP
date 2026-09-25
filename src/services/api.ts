@@ -24,8 +24,8 @@ const INITIAL_ELDERLY: ElderlyProfile = {
 
 const INITIAL_FAMILIES: any[] = [];
 
-const INITIAL_USERS: User[] = [
-  {
+function loadInitialUsers(): User[] {
+  const master: User = {
     id: 'usr-admin-samuel',
     name: 'Samuel (Administrador Geral)',
     last_name: 'Geral',
@@ -46,8 +46,35 @@ const INITIAL_USERS: User[] = [
     first_login_completed: true,
     terms_accepted: true,
     created_at: '2026-01-01T00:00:00Z',
-  },
-];
+  };
+
+  try {
+    const saved = localStorage.getItem('cuida_persisted_users');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const hasSamuel = parsed.some((u) => u.username?.toLowerCase() === 'samuel_02');
+        if (!hasSamuel) parsed.unshift(master);
+        return parsed;
+      }
+    }
+  } catch {}
+  return [master];
+}
+
+let INITIAL_USERS: User[] = loadInitialUsers();
+
+function persistUsersToCache(newList: User[]) {
+  INITIAL_USERS = [...newList];
+  const hasSamuel = INITIAL_USERS.some((u) => u.username?.toLowerCase() === 'samuel_02');
+  if (!hasSamuel) {
+    const master = loadInitialUsers()[0];
+    INITIAL_USERS.unshift(master);
+  }
+  try {
+    localStorage.setItem('cuida_persisted_users', JSON.stringify(INITIAL_USERS));
+  } catch {}
+}
 
 // Fallback sample selfie for pre-populated entries
 const SAMPLE_SELFIE_CARE = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80';
@@ -715,54 +742,60 @@ export const api = {
 
   // --- Autenticação com Usuário e Senha & Gestão de Logins por Família ---
   async login(username: string, password: string): Promise<{ success: boolean; user: User; message: string }> {
+    const rawInput = username.trim();
+    const cleanUser = rawInput.toLowerCase();
+    const cleanUserNoSpaces = cleanUser.replace(/[\s_]+/g, '');
+    const cleanPass = password.trim().toLowerCase().slice(0, 8);
+
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: cleanUser, password: cleanPass }),
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Usuário ou senha incorretos.');
+      if (res.ok) {
+        return data;
       }
-      return data;
     } catch (err: any) {
-      // Fallback para login local caso servidor esteja desconectado
-      const rawInput = username.trim();
-      const clean = rawInput.toLowerCase();
-      const cleanNoSpaces = clean.replace(/[\s_]+/g, '');
-
-      const localUser = INITIAL_USERS.find((u) => {
-        if (!u) return false;
-        const uName = String(u.username || '').toLowerCase();
-        const uNameNoSpaces = uName.replace(/[\s_]+/g, '');
-        const uEmail = String(u.email || '').toLowerCase();
-        const uCode = String(u.registration_code || '').toLowerCase();
-        const uFullName = String(u.name || '').toLowerCase();
-
-        return (
-          uName === clean ||
-          uNameNoSpaces === cleanNoSpaces ||
-          uEmail === clean ||
-          uCode === clean ||
-          uFullName === clean
-        );
-      });
-
-      const cleanPass = String(password || '').trim();
-      const userPass = String(localUser?.password || '').trim();
-
-      if (localUser && userPass === cleanPass) {
-        const { password: _, ...safeUser } = localUser;
-        return {
-          success: true,
-          user: safeUser,
-          message: `Bem-vindo(a), ${localUser.name}!`,
-        };
-      }
-      throw new Error(err.message || 'Credenciais inválidas. Verifique usuário e senha digitados.');
+      // Fallback para login local
     }
+
+    // Busca local de usuário nos logins salvos
+    const localUser = INITIAL_USERS.find((u) => {
+      if (!u) return false;
+      const uName = String(u.username || '').toLowerCase();
+      const uNameNoSpaces = uName.replace(/[\s_]+/g, '');
+      const uEmail = String(u.email || '').toLowerCase();
+      const uCode = String(u.registration_code || '').toLowerCase();
+      const uFullName = String(u.name || '').toLowerCase();
+
+      return (
+        uName === cleanUser ||
+        uNameNoSpaces === cleanUserNoSpaces ||
+        uEmail === cleanUser ||
+        uCode === cleanUser ||
+        uFullName === cleanUser
+      );
+    });
+
+    const userPass = String(localUser?.password || '').trim().toLowerCase().slice(0, 8);
+
+    if (localUser && userPass === cleanPass) {
+      const { password: _, ...safeUser } = localUser;
+      return {
+        success: true,
+        user: safeUser,
+        message: `Bem-vindo(a), ${localUser.name}!`,
+      };
+    }
+
+    if (localUser) {
+      throw new Error('Senha incorreta para este usuário. Lembre-se: usuário e senha são em minúsculo (máx. 8 caracteres).');
+    }
+
+    throw new Error(`O login "${rawInput}" não foi localizado no sistema. Verifique o usuário cadastrado.`);
   },
 
   async getFamiliesDirectory(): Promise<{
@@ -949,7 +982,13 @@ export const api = {
   async fetchUsers(includePasswords: boolean = false): Promise<User[]> {
     try {
       const res = await fetch(`/api/users${includePasswords ? '?include_passwords=true' : ''}`);
-      if (res.ok) return await res.json();
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list) && list.length > 0) {
+          persistUsersToCache(list);
+        }
+        return INITIAL_USERS;
+      }
     } catch {
       // fallback
     }
@@ -968,40 +1007,59 @@ export const api = {
     registration_code?: string;
     requesting_user_id: string;
   }): Promise<User> {
+    const cleanUser = (params.username || '').trim().toLowerCase().replace(/\s+/g, '_');
+    const cleanPass = (params.password || '').trim().toLowerCase().slice(0, 8);
+    const roles = params.roles || [params.role || 'caregiver'];
+
+    let createdUser: User | null = null;
+
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
+        body: JSON.stringify({
+          ...params,
+          username: cleanUser,
+          password: cleanPass,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
-        return data.user;
+        createdUser = data.user;
       }
     } catch (err) {
       console.warn('[API] Servidor desconectado, cadastrando usuário localmente:', err);
     }
 
-    const roles = params.roles || [params.role || 'caregiver'];
-    const newUser: User = {
-      id: `usr-${Date.now()}`,
-      name: params.name || 'Novo Usuário',
-      username: params.username || `user_${Date.now().toString().slice(-4)}`,
-      password: params.password || '12345678',
-      role: roles[0],
-      roles: roles,
-      permission_level: params.permission_level || 3,
-      permission_level_title: roles.join(' + '),
-      family_id: params.family_id || null,
-      family_name: 'Família Cadastrada',
-      email: params.email || `${params.username}@cuida.com.br`,
-      avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-      first_login_completed: false,
-      terms_accepted: false,
-      created_at: new Date().toISOString(),
-    };
-    INITIAL_USERS.push(newUser);
-    return newUser;
+    if (!createdUser) {
+      createdUser = {
+        id: `usr-${Date.now()}`,
+        name: params.name || 'Novo Usuário',
+        username: cleanUser || `user_${Date.now().toString().slice(-4)}`,
+        password: cleanPass || '12345678',
+        role: roles[0],
+        roles: roles,
+        permission_level: params.permission_level || 3,
+        permission_level_title: roles.join(' + '),
+        family_id: params.family_id || null,
+        family_name: 'Família Cadastrada',
+        email: params.email || `${cleanUser}@cuida.com.br`,
+        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        first_login_completed: false,
+        terms_accepted: false,
+        created_at: new Date().toISOString(),
+      };
+    }
+
+    const existingIndex = INITIAL_USERS.findIndex((u) => u.id === createdUser!.id || (u.username && u.username.toLowerCase() === createdUser!.username.toLowerCase()));
+    if (existingIndex !== -1) {
+      INITIAL_USERS[existingIndex] = createdUser;
+    } else {
+      INITIAL_USERS.push(createdUser);
+    }
+    persistUsersToCache(INITIAL_USERS);
+
+    return createdUser;
   },
 
   async updateUserRoles(
