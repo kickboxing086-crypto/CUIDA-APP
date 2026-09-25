@@ -270,7 +270,7 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
                 <span>Cadastro Restrito por Convite</span>
               </div>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                Novas contas só podem ser criadas mediante um <strong>Link de Convite Exclusivo</strong> gerado e enviado pelo Administrador Geral do CUIDA.
+                Novas contas só podem ser criadas mediante um <strong>Link de Convite Exclusivo</strong> gerado e enviado pelo <strong>Administrador da sua Família</strong>.
               </p>
             </div>
 
@@ -357,7 +357,10 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
                     </div>
                     <div className="text-slate-300 text-[11px] space-y-0.5">
                       <p><strong>Família:</strong> {inviteData.family_name}</p>
-                      <p><strong>Função Autorizada:</strong> {inviteData.role_labels?.join(' + ') || 'Cuidador(a)'}</p>
+                      {inviteData.classification_label && (
+                        <p><strong>Classificação Familiar:</strong> <span className="text-emerald-300 font-bold">{inviteData.classification_label}</span></p>
+                      )}
+                      <p><strong>Função Liberada:</strong> {inviteData.role_labels?.join(' + ') || 'Membro Familiar'}</p>
                     </div>
                   </div>
 

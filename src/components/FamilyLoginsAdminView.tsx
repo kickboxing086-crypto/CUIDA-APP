@@ -76,11 +76,25 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
   const [newUserUsername, setNewUserUsername] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   // User can select UP TO TWO roles
-  const [selectedRoles, setSelectedRoles] = useState<UserRole[]>(['caregiver']);
+  const [selectedRoles, setSelectedRoles] = useState<UserRole[]>(['admin_family']);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserCode, setNewUserCode] = useState('');
   const [showFormPassword, setShowFormPassword] = useState(false);
   const [isSubmittingUser, setIsSubmittingUser] = useState(false);
+
+  // Form State: Create Family & Family Admin together
+  const [isCreateFamilyAndAdminModalOpen, setIsCreateFamilyAndAdminModalOpen] = useState(false);
+  const [cfaFamilyName, setCfaFamilyName] = useState('');
+  const [cfaElderlyName, setCfaElderlyName] = useState('');
+  const [cfaCep, setCfaCep] = useState('');
+  const [cfaAddress, setCfaAddress] = useState('');
+  const [cfaAdminName, setCfaAdminName] = useState('');
+  const [cfaAdminUsername, setCfaAdminUsername] = useState('');
+  const [cfaAdminPassword, setCfaAdminPassword] = useState('');
+  const [cfaAdminEmail, setCfaAdminEmail] = useState('');
+  const [cfaIsSearchingCep, setCfaIsSearchingCep] = useState(false);
+  const [cfaIsSubmitting, setCfaIsSubmitting] = useState(false);
+  const [cfaShowPassword, setCfaShowPassword] = useState(false);
 
   // Form State: Create Family
   const [newFamilyName, setNewFamilyName] = useState('');
@@ -279,6 +293,85 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
       setFeedback({ type: 'error', message: err.message || 'Erro ao cadastrar família.' });
     } finally {
       setIsSubmittingFamily(false);
+    }
+  };
+
+  const handleCfaCepChange = async (val: string) => {
+    const formatted = formatCep(val);
+    setCfaCep(formatted);
+    const clean = formatted.replace(/\D/g, '');
+    if (clean.length === 8) {
+      setCfaIsSearchingCep(true);
+      try {
+        const res = await fetchAddressByCep(clean);
+        if (res && res.fullAddress) {
+          setCfaAddress(res.fullAddress);
+        }
+      } catch (err) {
+        console.warn('Erro ao buscar CEP:', err);
+      } finally {
+        setCfaIsSearchingCep(false);
+      }
+    }
+  };
+
+  const handleCreateFamilyAndAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFeedback(null);
+
+    const cleanUser = cfaAdminUsername.trim().toLowerCase().replace(/\s+/g, '_');
+    const cleanPass = cfaAdminPassword.trim().toLowerCase().slice(0, 8);
+
+    if (!cfaFamilyName.trim()) {
+      setFeedback({ type: 'error', message: 'Informe o nome da Família.' });
+      return;
+    }
+    if (!cfaElderlyName.trim()) {
+      setFeedback({ type: 'error', message: 'Informe o nome do idoso(a) assistido.' });
+      return;
+    }
+    if (cleanUser.length < 3) {
+      setFeedback({ type: 'error', message: 'O usuário do administrador deve ter pelo menos 3 caracteres em minúsculo.' });
+      return;
+    }
+    if (cleanPass.length < 3) {
+      setFeedback({ type: 'error', message: 'A senha do administrador deve ter pelo menos 3 caracteres em minúsculo (máx. 8).' });
+      return;
+    }
+
+    try {
+      setCfaIsSubmitting(true);
+      const res = await api.createFamilyWithAdmin({
+        name: cfaFamilyName.trim(),
+        elderly_name: cfaElderlyName.trim(),
+        residence_address: cfaAddress.trim() || 'Endereço da Família',
+        admin_name: cfaAdminName.trim() || 'Administrador Familiar',
+        admin_username: cleanUser,
+        admin_password: cleanPass,
+        admin_email: cfaAdminEmail.trim() || `${cleanUser}@cuida.com.br`,
+        requesting_user_id: currentUser.id,
+      });
+
+      setFeedback({
+        type: 'success',
+        message: `Família "${res.family.name}" e Administrador Familiar "@${res.adminUser.username}" cadastrados com sucesso! O administrador já pode acessar e gerar os convites para seus irmãos e cuidadores.`,
+      });
+
+      setCfaFamilyName('');
+      setCfaElderlyName('');
+      setCfaAddress('');
+      setCfaCep('');
+      setCfaAdminName('');
+      setCfaAdminUsername('');
+      setCfaAdminPassword('');
+      setCfaAdminEmail('');
+      setIsCreateFamilyAndAdminModalOpen(false);
+      await loadData();
+      if (onRefreshDirectory) onRefreshDirectory();
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Erro ao cadastrar Família e Administrador.' });
+    } finally {
+      setCfaIsSubmitting(false);
     }
   };
 
@@ -519,6 +612,32 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
         {/* Tab 1: Logins, Famílias e Senhas */}
         {activeAdminTab === 'logins' && (
           <div className="space-y-6">
+            {/* Operação Oficial do Administrador Geral: Cadastro de Família & Admin Familiar */}
+            <div className="bg-gradient-to-r from-blue-950/90 via-slate-900 to-indigo-950/90 border border-blue-500/40 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+              <div className="space-y-1.5">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-xs font-bold text-blue-300">
+                  <ShieldCheck className="w-4 h-4 text-blue-400" />
+                  <span>Logística do Administrador Geral</span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-black text-white">
+                  Cadastrar Família & Administrador Familiar
+                </h3>
+                <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                  Como Administrador Geral, você cria a <strong>Família</strong> e o login do <strong>Administrador Familiar</strong>.
+                  Com esse acesso, o próprio administrador familiar é quem gera os links de convite para os <strong>irmãos, irmãs, parentes e cuidadores</strong> entrarem no CUIDA com sua classificação.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsCreateFamilyAndAdminModalOpen(true)}
+                className="w-full md:w-auto px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Cadastrar Família & Admin Familiar</span>
+              </button>
+            </div>
+
             {/* Action Bar */}
             <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="relative w-full sm:w-80">
@@ -1486,6 +1605,214 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
             if (onRefreshDirectory) onRefreshDirectory();
           }}
         />
+      )}
+
+      {/* Modal: Cadastrar Família & Administrador Familiar em Etapa Única */}
+      {isCreateFamilyAndAdminModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl space-y-5 text-white my-6 text-left">
+            <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-emerald-500/20 rounded-xl text-emerald-400 border border-emerald-500/30">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white">
+                    Cadastrar Família & Administrador Familiar
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    O administrador familiar terá a conta inicial para convidar irmãos, irmãs e cuidadores.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCreateFamilyAndAdminModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateFamilyAndAdmin} className="space-y-4">
+              {/* Seção 1: Dados da Família e do Idoso */}
+              <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-3">
+                <span className="text-[11px] font-black uppercase text-blue-400 tracking-wider flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5" /> 1. Dados da Família & Idoso Assistido
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Nome da Família *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={cfaFamilyName}
+                      onChange={(e) => setCfaFamilyName(e.target.value)}
+                      placeholder="Ex: Família Silveira"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Nome do Idoso(a) Assistido *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={cfaElderlyName}
+                      onChange={(e) => setCfaElderlyName(e.target.value)}
+                      placeholder="Ex: Dona Maria Silveira"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      CEP da Residência
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        maxLength={9}
+                        value={cfaCep}
+                        onChange={(e) => handleCfaCepChange(e.target.value)}
+                        placeholder="00000-000"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-blue-500"
+                      />
+                      {cfaIsSearchingCep && (
+                        <div className="absolute right-2.5 top-2.5">
+                          <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Endereço da Residência (Local do Ponto)
+                    </label>
+                    <input
+                      type="text"
+                      value={cfaAddress}
+                      onChange={(e) => setCfaAddress(e.target.value)}
+                      placeholder="Rua, número, bairro e cidade"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção 2: Login do Administrador Familiar Contratante */}
+              <div className="p-3.5 bg-slate-950/70 border border-emerald-500/30 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase text-emerald-400 tracking-wider flex items-center gap-1.5">
+                    <UserPlus className="w-3.5 h-3.5" /> 2. Login do Administrador Familiar
+                  </span>
+                  <span className="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/40 font-bold">
+                    admin_family
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Nome Completo do Administrador *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={cfaAdminName}
+                    onChange={(e) => setCfaAdminName(e.target.value)}
+                    placeholder="Ex: Carlos Roberto Silveira"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-blue-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-slate-300">
+                        Usuário (Login) *
+                      </label>
+                      <span className="text-[10px] text-slate-500 font-mono">minúsculo</span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={cfaAdminUsername}
+                      onChange={(e) => setCfaAdminUsername(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                      placeholder="ex: carlos_silveira"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-blue-500 lowercase"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-slate-300">
+                        Senha (Máx. 8 caracteres) *
+                      </label>
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        {cfaAdminPassword.length}/8 chars
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={cfaShowPassword ? 'text' : 'password'}
+                        required
+                        maxLength={8}
+                        value={cfaAdminPassword}
+                        onChange={(e) => setCfaAdminPassword(e.target.value.toLowerCase().slice(0, 8))}
+                        placeholder="senha (máx 8)"
+                        className="w-full px-3 py-2 pr-10 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-blue-500 lowercase"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCfaShowPassword(!cfaShowPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        {cfaShowPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    E-mail do Administrador (opcional)
+                  </label>
+                  <input
+                    type="email"
+                    value={cfaAdminEmail}
+                    onChange={(e) => setCfaAdminEmail(e.target.value)}
+                    placeholder="ex: carlos@email.com"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateFamilyAndAdminModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={cfaIsSubmitting || !cfaFamilyName.trim() || !cfaElderlyName.trim() || !cfaAdminUsername.trim() || !cfaAdminPassword.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold cursor-pointer shadow-lg shadow-emerald-600/30 flex items-center gap-1.5"
+                >
+                  {cfaIsSubmitting ? 'Cadastrando Família...' : 'Criar Família & Administrador'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Modal: Gerar Novo Link de Convite */}

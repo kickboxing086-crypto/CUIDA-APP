@@ -15,6 +15,7 @@ import {
   History,
   MapPin,
   Bell,
+  Link2,
 } from 'lucide-react';
 import { ElderCaneLogo } from './ElderCaneLogo';
 import { User as UserType } from '../types';
@@ -41,6 +42,7 @@ interface HeaderNavProps {
   onSelectUser: (user: UserType) => void;
   onOpenAddPresence: () => void;
   onOpenResidenceConfig?: () => void;
+  onOpenFamilyInvites?: () => void;
   onOpenNotifications?: () => void;
   unreadCount?: number;
   categoryUnreadCounts?: Record<string, number>;
@@ -63,6 +65,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   onSelectUser,
   onOpenAddPresence,
   onOpenResidenceConfig,
+  onOpenFamilyInvites,
   onOpenNotifications,
   unreadCount = 0,
   categoryUnreadCounts = {},
@@ -168,6 +171,19 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                 <MapPin className="w-4 h-4 text-amber-700" />
                 <span className="hidden xl:inline">Residência do Idoso</span>
                 <span className="xl:hidden">Residência</span>
+              </button>
+            )}
+
+            {isFamilyAdmin && onOpenFamilyInvites && (
+              <button
+                type="button"
+                onClick={onOpenFamilyInvites}
+                className="inline-flex items-center gap-1.5 py-2 px-3 sm:px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold text-xs shadow-xs active:scale-98 transition-all cursor-pointer shrink-0"
+                title="Convidar Irmãos, Irmãs e Cuidadores com classificação familiar"
+              >
+                <Link2 className="w-4 h-4 text-emerald-700" />
+                <span className="hidden xl:inline">Convidar Família / Cuidadores</span>
+                <span className="xl:hidden">Convites</span>
               </button>
             )}
 

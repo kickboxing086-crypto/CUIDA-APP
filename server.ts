@@ -651,26 +651,33 @@ async function startServer() {
 
   // --- Sistema de Convites por Link Exclusivo ---
 
-  // Listar Convites
+  // Listar Convites (suporta filtro por família)
   app.get('/api/invites', (req, res) => {
     if (!db.invites) db.invites = [];
+    const { family_id } = req.query;
+    if (family_id) {
+      return res.json(db.invites.filter((inv) => inv.family_id === String(family_id)));
+    }
     res.json(db.invites);
   });
 
-  // Criar Novo Link de Convite (Apenas Admin)
+  // Criar Novo Link de Convite (Admin Geral ou Admin Familiar)
   app.post('/api/invites', (req, res) => {
     const {
       family_id,
       roles,
       guest_name,
+      classification,
+      classification_label,
       requesting_user_id,
       max_uses = 1,
     } = req.body;
 
     const requester = db.users.find((u) => u.id === requesting_user_id) || db.users[0];
-    const family = db.families.find((f) => f.id === family_id);
+    const targetFamilyId = family_id || requester.family_id || null;
+    const family = db.families.find((f) => f.id === targetFamilyId);
 
-    const userRoles: string[] = Array.isArray(roles) && roles.length > 0 ? roles.slice(0, 2) : ['caregiver'];
+    const userRoles: string[] = Array.isArray(roles) && roles.length > 0 ? roles.slice(0, 2) : ['family_member'];
     const userRoleLabels = userRoles.map(getFriendlyRoleLabel);
 
     const randomNum = Math.floor(100000 + Math.random() * 900000);
@@ -681,11 +688,13 @@ async function startServer() {
       id: `inv-${Date.now()}`,
       code: inviteCode,
       token: token,
-      family_id: family_id || null,
-      family_name: family ? family.name : (family_id ? 'Família Vinculada' : 'Sem família associada'),
+      family_id: targetFamilyId,
+      family_name: family ? family.name : (targetFamilyId ? 'Família Vinculada' : 'Sem família associada'),
       roles: userRoles,
       role_labels: userRoleLabels,
       guest_name: (guest_name || '').trim() || 'Convidado(a)',
+      classification: classification || 'outro_familiar',
+      classification_label: classification_label || 'Membro Familiar',
       created_by_user_id: requester?.id || 'usr-admin-samuel',
       created_by_user_name: requester?.name || 'Administrador',
       created_at: getOfficialServerTime().iso_timestamp,
@@ -700,13 +709,13 @@ async function startServer() {
     saveDb();
 
     logActivity({
-      family_id: family_id || 'fam-01',
+      family_id: targetFamilyId || 'fam-01',
       user_id: requester?.id || 'usr-admin-samuel',
       user_name: requester?.name || 'Administrador',
-      user_role: requester?.role || 'admin_geral',
+      user_role: requester?.role || 'admin_family',
       action_type: 'invite_created',
       category: 'Mural',
-      description: `Link de convite ${inviteCode} gerado para "${newInvite.guest_name}" [${userRoleLabels.join(' + ')}].`,
+      description: `Link de convite ${inviteCode} gerado para "${newInvite.guest_name}" [${newInvite.classification_label}] [${userRoleLabels.join(' + ')}].`,
     });
 
     res.status(201).json({
@@ -764,6 +773,8 @@ async function startServer() {
         roles: invite.roles,
         role_labels: invite.role_labels,
         guest_name: invite.guest_name,
+        classification: invite.classification,
+        classification_label: invite.classification_label,
       },
     });
   });
@@ -843,6 +854,8 @@ async function startServer() {
       permission_level_title: userRoleLabels.join(' + '),
       family_id: invite.family_id || null,
       family_name: family ? family.name : (invite.family_name || 'Sem família vinculada'),
+      classification: invite.classification || null,
+      classification_label: invite.classification_label || null,
       email: email ? String(email).trim() : `${finalUsername.toLowerCase()}@cuida.com.br`,
       phone: '(11) 98000-0000',
       registration_code: userRoles.includes('caregiver')

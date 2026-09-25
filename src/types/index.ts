@@ -1,3 +1,13 @@
+export type FamilyMemberClassification =
+  | 'irmao_irma'
+  | 'filho_filha'
+  | 'esposo_esposa'
+  | 'neto_neta'
+  | 'cuidador_profissional'
+  | 'cuidador_folguista'
+  | 'tio_sobrinho'
+  | 'outro_familiar';
+
 export interface InviteLink {
   id: string;
   code: string;
@@ -7,6 +17,8 @@ export interface InviteLink {
   roles: UserRole[];
   role_labels: string[];
   guest_name?: string;
+  classification?: FamilyMemberClassification | string;
+  classification_label?: string;
   created_by_user_id: string;
   created_by_user_name: string;
   created_at: string;
@@ -127,6 +139,8 @@ export interface User {
   family_name?: string | null;
   avatar_url?: string;
   registration_code?: string;
+  classification?: string;
+  classification_label?: string;
   first_login_completed?: boolean;
   terms_accepted?: boolean;
   created_at?: string;

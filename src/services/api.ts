@@ -1166,9 +1166,10 @@ export const api = {
   },
 
   // --- Gestão de Convites Exclusivos para Criação de Conta ---
-  async getInvites(): Promise<import('../types').InviteLink[]> {
+  async getInvites(familyId?: string | null): Promise<import('../types').InviteLink[]> {
     try {
-      const res = await fetch('/api/invites');
+      const url = familyId ? `/api/invites?family_id=${encodeURIComponent(familyId)}` : '/api/invites';
+      const res = await fetch(url);
       if (res.ok) return await res.json();
     } catch {}
     return [];
@@ -1178,6 +1179,8 @@ export const api = {
     family_id?: string | null;
     roles: import('../types').UserRole[];
     guest_name?: string;
+    classification?: string;
+    classification_label?: string;
     requesting_user_id: string;
     max_uses?: number;
   }): Promise<import('../types').InviteLink> {
@@ -1192,6 +1195,40 @@ export const api = {
     }
     const data = await res.json();
     return data.invite;
+  },
+
+  async createFamilyWithAdmin(params: {
+    name: string;
+    elderly_name: string;
+    residence_address?: string;
+    admin_name: string;
+    admin_username: string;
+    admin_password: string;
+    admin_email?: string;
+    requesting_user_id: string;
+  }): Promise<{ family: import('../types').Family; adminUser: User }> {
+    // 1. Criar Família
+    const family = await this.createFamily({
+      name: params.name,
+      elderly_name: params.elderly_name,
+      residence_address: params.residence_address,
+      requesting_user_id: params.requesting_user_id,
+    });
+
+    // 2. Criar Login do Administrador Familiar vinculado à família recém-criada
+    const adminUser = await this.createUser({
+      name: params.admin_name,
+      username: params.admin_username,
+      password: params.admin_password,
+      role: 'admin_family',
+      roles: ['admin_family'],
+      permission_level: 2,
+      family_id: family.id,
+      email: params.admin_email,
+      requesting_user_id: params.requesting_user_id,
+    });
+
+    return { family, adminUser };
   },
 
   async validateInvite(codeOrToken: string): Promise<{ valid: boolean; invite?: Partial<import('../types').InviteLink>; message?: string }> {

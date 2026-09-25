@@ -17,6 +17,7 @@ import { LoginPanel } from './components/LoginPanel';
 import { AddPresenceModal } from './components/AddPresenceModal';
 import { CameraCaptureModal } from './components/CameraCaptureModal';
 import { ElderlyResidenceConfigModal } from './components/ElderlyResidenceConfigModal';
+import { FamilyAdminInvitesModal } from './components/FamilyAdminInvitesModal';
 import { NotificationsDropdown } from './components/NotificationsDropdown';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { useNotifications } from './hooks/useNotifications';
@@ -71,6 +72,7 @@ export default function App() {
   const [isAddPresenceModalOpen, setIsAddPresenceModalOpen] = useState(false);
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
   const [isResidenceModalOpen, setIsResidenceModalOpen] = useState(false);
+  const [isFamilyInvitesOpen, setIsFamilyInvitesOpen] = useState(false);
   const [cameraMode, setCameraMode] = useState<'check_in' | 'check_out'>('check_in');
 
   // Load Elderly Profile and Users on refresh
@@ -232,6 +234,7 @@ export default function App() {
         onSelectUser={setCurrentUser}
         onOpenAddPresence={() => setIsAddPresenceModalOpen(true)}
         onOpenResidenceConfig={() => setIsResidenceModalOpen(true)}
+        onOpenFamilyInvites={() => setIsFamilyInvitesOpen(true)}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
         unreadCount={unreadCount}
         categoryUnreadCounts={categoryUnreadCounts}
@@ -269,6 +272,7 @@ export default function App() {
             onOpenAddPresence={() => setIsAddPresenceModalOpen(true)}
             onOpenLiveCamera={handleOpenLiveCamera}
             onOpenResidenceConfig={() => setIsResidenceModalOpen(true)}
+            onOpenInvites={() => setIsFamilyInvitesOpen(true)}
             onOpenNotifications={() => setIsNotificationsOpen(true)}
             unreadCount={unreadCount}
             unreadLogs={unreadLogs}
@@ -355,6 +359,14 @@ export default function App() {
           setElderly(updatedElderly);
           handleRefreshHistory();
         }}
+      />
+
+      {/* Modal: Convidar Membros da Família & Cuidadores (Administrador Familiar) */}
+      <FamilyAdminInvitesModal
+        isOpen={isFamilyInvitesOpen}
+        onClose={() => setIsFamilyInvitesOpen(false)}
+        currentUser={currentUser}
+        elderlyName={elderly?.full_name}
       />
 
       {/* Modal: Live Camera Selfie Capture */}

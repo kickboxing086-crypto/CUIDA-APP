@@ -32,6 +32,7 @@ interface CaregiverDashboardViewProps {
   onOpenNotifications?: () => void;
   unreadCount?: number;
   unreadLogs?: FamilyActivityLog[];
+  onOpenInvites?: () => void;
 }
 
 export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
@@ -44,6 +45,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
   onOpenNotifications,
   unreadCount = 0,
   unreadLogs = [],
+  onOpenInvites,
 }) => {
   const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
   const [missions, setMissions] = useState<DailyMission[]>([]);
@@ -241,6 +243,42 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Family Admin Exclusive: Gerador de Links de Convite para Irmãos, Irmãs e Cuidadores */}
+      {canManageResidence && onOpenInvites && (
+        <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 border border-emerald-500/40 rounded-3xl p-5 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="p-3 bg-emerald-500/20 border border-emerald-400/30 rounded-2xl text-emerald-400 shrink-0">
+              <Plus className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
+                  Administrador Familiar
+                </span>
+                <span className="text-xs text-emerald-300 font-bold">
+                  Gestão de Convites da Família
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-white mt-1">
+                Convidar Irmãos, Irmãs & Cuidadores
+              </h3>
+              <p className="text-xs text-emerald-100/90 leading-relaxed max-w-xl">
+                Como Administrador Familiar, você é o responsável por enviar os links de convite para que seus irmãos, parentes ou cuidadores entrem e criem seus logins com a classificação familiar adequada.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenInvites}
+            className="w-full md:w-auto px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-extrabold text-xs shrink-0 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Convidar Membro / Cuidador</span>
+          </button>
+        </div>
+      )}
 
       {/* Residence & Geofence Status Card */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
