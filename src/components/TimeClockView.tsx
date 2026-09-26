@@ -476,42 +476,143 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
           <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
             <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              Protocolo Inviolável de Presença
+              Protocolo Seguro de Ponto
             </h3>
 
             <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                 <strong className="text-slate-900 block flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                  1. Validação por GPS Presencial
+                  1. Localização & GPS
                 </strong>
                 <span>
-                  O ponto é estritamente bloqueado caso o aparelho do cuidador esteja fora do raio cadastrado pelo Administrador Familiar.
+                  O ponto registra a coordenada geográfica e verifica a presença na residência de {elderly.full_name}.
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                 <strong className="text-slate-900 block flex items-center gap-1.5">
                   <Camera className="w-3.5 h-3.5 text-blue-600" />
-                  2. Biometria Facial ao Vivo
+                  2. Foto Facial Auditada
                 </strong>
                 <span>
-                  Acesso à galeria é permanentemente bloqueado. Exige foto frontal tirada no momento exato com marca d'água auditada.
+                  Foto capturada no momento da entrada ou saída com carimbo de data e hora inviolável.
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                 <strong className="text-slate-900 block flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-blue-600" />
-                  3. Relógio Oficial Inalterável
+                  3. Horário Oficial de Brasília
                 </strong>
                 <span>
-                  Horário auditado diretamente pelo servidor NTP sincronizado com o Observatório Nacional.
+                  Cálculo automático e preciso de permanência para total tranquilidade da família e do cuidador.
                 </span>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Recent Clock Records History */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-700">
+              <History className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                Últimos Registros de Ponto (Entradas e Saídas)
+              </h3>
+              <p className="text-xs text-slate-500">
+                Histórico auditado de presenças registradas no aplicativo
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+            {recentEntries.length} registro(s)
+          </span>
+        </div>
+
+        {recentEntries.length === 0 ? (
+          <div className="py-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-2">
+            <Clock className="w-8 h-8 text-slate-400 mx-auto" />
+            <p className="text-xs font-bold text-slate-700">Nenhum ponto registrado recentemente</p>
+            <p className="text-[11px] text-slate-500">
+              Ao bater o ponto de entrada ou saída, o registro aparecerá aqui automaticamente.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {recentEntries.map((entry) => {
+              const entryDate = new Date(entry.entry_time);
+              const formattedEntryTime = entryDate.toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+              const exitDate = entry.exit_time ? new Date(entry.exit_time) : null;
+              const formattedExitTime = exitDate
+                ? exitDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                : null;
+
+              return (
+                <div
+                  key={entry.id}
+                  className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    {entry.entry_photo_url ? (
+                      <img
+                        src={entry.entry_photo_url}
+                        alt="Selfie de Ponto"
+                        className="w-10 h-10 rounded-xl object-cover border border-emerald-400 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900">{entry.user_name || 'Cuidador(a)'}</span>
+                        <span className="text-[10px] text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded font-medium">
+                          {entry.day_of_week || 'Plantão'} · {entry.date_stamp}
+                        </span>
+                      </div>
+                      <div className="text-slate-600 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">
+                        <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                          <LogIn className="w-3 h-3 text-emerald-600" /> Entrada: {formattedEntryTime}
+                        </span>
+                        {formattedExitTime ? (
+                          <span className="text-rose-700 font-semibold flex items-center gap-1">
+                            <LogOut className="w-3 h-3 text-rose-600" /> Saída: {formattedExitTime}
+                          </span>
+                        ) : (
+                          <span className="text-amber-700 font-bold flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                            Em Andamento
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-center">
+                    {entry.total_hours_formatted && entry.total_hours_formatted !== 'Em andamento' ? (
+                      <span className="font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-1 rounded-lg text-xs">
+                        {entry.total_hours_formatted}
+                      </span>
+                    ) : null}
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-1 rounded-lg">
+                      Auditado
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Camera Capture Modal */}

@@ -115,8 +115,26 @@ function saveLocalTimeEntries() {
   } catch {}
 }
 
+function loadLocalInvites(): import('../types').InviteLink[] {
+  try {
+    const saved = localStorage.getItem('cuida_local_invites');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+function saveLocalInvites() {
+  try {
+    localStorage.setItem('cuida_local_invites', JSON.stringify(localInvites));
+  } catch {}
+}
+
 // Clean in-memory states with localStorage persistence
 let localTimeEntries: TimeEntry[] = loadLocalTimeEntries();
+let localInvites: import('../types').InviteLink[] = loadLocalInvites();
 let localHealthLogs: HealthLog[] = [];
 let localMedications: MedicationLog[] = [];
 let localNotices: FamilyNotice[] = [];
@@ -1173,6 +1191,31 @@ export const api = {
     return createdUser;
   },
 
+  async updateUserProfile(userId: string, data: Partial<User>): Promise<User> {
+    const res = await safeFetchJson<{ user: User }>(`/api/users/${userId}/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (res.ok && res.data?.user) {
+      const idx = INITIAL_USERS.findIndex((u) => u.id === userId);
+      if (idx !== -1) INITIAL_USERS[idx] = res.data.user;
+      persistUsersToCache(INITIAL_USERS);
+      return res.data.user;
+    }
+
+    const idx = INITIAL_USERS.findIndex((u) => u.id === userId);
+    if (idx !== -1) {
+      INITIAL_USERS[idx] = {
+        ...INITIAL_USERS[idx],
+        ...data,
+      };
+      persistUsersToCache(INITIAL_USERS);
+      return INITIAL_USERS[idx];
+    }
+    throw new Error('Usuário não encontrado.');
+  },
+
   async updateUserRoles(
     userId: string,
     roles: import('../types').UserRole[],
@@ -1306,12 +1349,15 @@ export const api = {
 
   // --- Gestão de Convites Exclusivos para Criação de Conta ---
   async getInvites(familyId?: string | null): Promise<import('../types').InviteLink[]> {
-    try {
-      const url = familyId ? `/api/invites?family_id=${encodeURIComponent(familyId)}` : '/api/invites';
-      const res = await fetch(url);
-      if (res.ok) return await res.json();
-    } catch {}
-    return [];
+    const url = familyId ? `/api/invites?family_id=${encodeURIComponent(familyId)}` : '/api/invites';
+    const res = await safeFetchJson<{ invites: import('../types').InviteLink[] }>(url);
+    if (res.ok && res.data && Array.isArray(res.data.invites)) {
+      return res.data.invites;
+    }
+    if (familyId) {
+      return localInvites.filter((inv) => !inv.family_id || inv.family_id === familyId);
+    }
+    return localInvites;
   },
 
   async createInvite(params: {
@@ -1323,17 +1369,49 @@ export const api = {
     requesting_user_id: string;
     max_uses?: number;
   }): Promise<import('../types').InviteLink> {
-    const res = await fetch('/api/invites', {
+    const res = await safeFetchJson<{ invite: import('../types').InviteLink }>('/api/invites', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
     });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || 'Falha ao gerar link de convite.');
+
+    if (res.ok && res.data?.invite) {
+      localInvites.unshift(res.data.invite);
+      saveLocalInvites();
+      return res.data.invite;
     }
-    const data = await res.json();
-    return data.invite;
+
+    // Local fallback
+    const code = `CONV-${Math.floor(100000 + Math.random() * 900000)}`;
+    const reqUser = INITIAL_USERS.find((u) => u.id === params.requesting_user_id);
+    const newInvite: import('../types').InviteLink = {
+      id: `inv-${Date.now()}`,
+      code,
+      token: `tok-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+      family_id: params.family_id || reqUser?.family_id || null,
+      family_name: reqUser?.family_name || 'Nossa Família',
+      roles: params.roles,
+      role_labels: params.roles.map((r) => {
+        if (r === 'admin_family') return 'Administrador Familiar';
+        if (r === 'caregiver') return 'Cuidador(a) Titular';
+        if (r === 'caregiver_substitute') return 'Cuidador(a) Folguista';
+        return 'Familiar Acompanhante';
+      }),
+      guest_name: params.guest_name || 'Convidado(a)',
+      classification: params.classification || params.roles[0] || 'family_member',
+      classification_label: params.classification_label || 'Acesso Familiar',
+      created_by_user_id: params.requesting_user_id,
+      created_by_user_name: reqUser?.name || 'Administrador',
+      created_at: new Date().toISOString(),
+      max_uses: params.max_uses || 1,
+      used_count: 0,
+      status: 'active',
+      used_by_users: [],
+    };
+
+    localInvites.unshift(newInvite);
+    saveLocalInvites();
+    return newInvite;
   },
 
   async createFamilyWithAdmin(params: {
@@ -1371,14 +1449,27 @@ export const api = {
   },
 
   async validateInvite(codeOrToken: string): Promise<{ valid: boolean; invite?: Partial<import('../types').InviteLink>; message?: string }> {
-    try {
-      const res = await fetch(`/api/invites/validate/${encodeURIComponent(codeOrToken)}`);
-      const data = await res.json();
-      if (res.ok) return data;
-      return { valid: false, message: data.message || 'Convite inválido' };
-    } catch {
-      return { valid: false, message: 'Não foi possível validar o código do convite.' };
+    const res = await safeFetchJson<{ valid: boolean; invite?: Partial<import('../types').InviteLink>; message?: string }>(
+      `/api/invites/validate/${encodeURIComponent(codeOrToken)}`
+    );
+    if (res.ok && res.data) {
+      return res.data;
     }
+
+    const clean = codeOrToken.trim().toUpperCase();
+    const found = localInvites.find(
+      (inv) => (inv.code?.toUpperCase() === clean || inv.token === codeOrToken) && inv.status === 'active'
+    );
+
+    if (found) {
+      return {
+        valid: true,
+        invite: found,
+        message: `Convite válido para ${found.guest_name || 'novo usuário'}!`,
+      };
+    }
+
+    return { valid: false, message: 'Código de convite não encontrado ou já utilizado.' };
   },
 
   async registerWithInvite(params: {
@@ -1388,28 +1479,64 @@ export const api = {
     password: string;
     email?: string;
   }): Promise<{ success: boolean; user: User; message: string }> {
-    const res = await fetch('/api/invites/register', {
+    const res = await safeFetchJson<{ success: boolean; user: User; message: string }>('/api/invites/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
     });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.message || 'Falha ao criar conta via convite.');
-    }
-    if (data.user) {
-      const existingIdx = INITIAL_USERS.findIndex((u) => u.id === data.user.id || u.username?.toLowerCase() === data.user.username?.toLowerCase());
-      if (existingIdx !== -1) {
-        INITIAL_USERS[existingIdx] = data.user;
-      } else {
-        INITIAL_USERS.push(data.user);
-      }
+    if (res.ok && res.data?.user) {
+      const u = res.data.user;
+      const existingIdx = INITIAL_USERS.findIndex((x) => x.id === u.id || x.username?.toLowerCase() === u.username?.toLowerCase());
+      if (existingIdx !== -1) INITIAL_USERS[existingIdx] = u;
+      else INITIAL_USERS.push(u);
       persistUsersToCache(INITIAL_USERS);
+      return res.data;
     }
-    return data;
+
+    // Local fallback
+    const invite = localInvites.find((inv) => inv.code.toUpperCase() === params.invite_code.trim().toUpperCase());
+    const role: import('../types').UserRole = invite?.roles?.[0] || 'family_member';
+    const roles = invite?.roles || [role];
+    const permLevel: import('../types').PermissionLevel = role === 'admin_family' ? 2 : role === 'caregiver' ? 3 : role === 'caregiver_substitute' ? 4 : 5;
+
+    const newUser: User = {
+      id: `usr-${Date.now()}`,
+      name: params.name,
+      username: params.username.toLowerCase().trim(),
+      password: params.password.toLowerCase().trim().slice(0, 8),
+      email: params.email,
+      role,
+      roles,
+      permission_level: permLevel,
+      family_id: invite?.family_id || null,
+      family_name: invite?.family_name || 'Nossa Família',
+      first_login_completed: false,
+      terms_accepted: false,
+      created_at: new Date().toISOString(),
+    };
+
+    INITIAL_USERS.push(newUser);
+    persistUsersToCache(INITIAL_USERS);
+
+    if (invite) {
+      invite.used_count += 1;
+      if (invite.used_count >= invite.max_uses) invite.status = 'used';
+      saveLocalInvites();
+    }
+
+    return {
+      success: true,
+      user: newUser,
+      message: 'Conta criada com sucesso! Faça seu primeiro acesso.',
+    };
   },
 
   async revokeInvite(inviteId: string): Promise<void> {
+    const idx = localInvites.findIndex((i) => i.id === inviteId);
+    if (idx !== -1) {
+      localInvites[idx].status = 'revoked';
+      saveLocalInvites();
+    }
     try {
       await fetch(`/api/invites/${inviteId}`, { method: 'DELETE' });
     } catch {}

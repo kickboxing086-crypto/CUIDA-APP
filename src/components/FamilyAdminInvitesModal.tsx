@@ -12,10 +12,14 @@ import {
   CheckCircle2,
   Sparkles,
   Trash2,
+  Shield,
+  Stethoscope,
+  Clock,
+  HeartHandshake,
 } from 'lucide-react';
 import { User, InviteLink, UserRole } from '../types';
 import { api } from '../services/api';
-import { CLASSIFICATIONS, getClassificationLabel, ClassificationDefinition } from '../utils/classifications';
+import { ROLE_POWER_PROFILES, RolePowerProfile } from '../utils/classifications';
 
 interface FamilyAdminInvitesModalProps {
   isOpen: boolean;
@@ -37,8 +41,7 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
 
   // Form State
   const [guestName, setGuestName] = useState('');
-  const [selectedClassification, setSelectedClassification] = useState<string>('irmao_irma');
-  const [selectedRoles, setSelectedRoles] = useState<UserRole[]>(['family_member']);
+  const [selectedRole, setSelectedRole] = useState<UserRole>('caregiver');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
 
@@ -66,11 +69,7 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
 
   if (!isOpen) return null;
 
-  // When classification changes, auto-suggest default roles
-  const handleSelectClassification = (item: ClassificationDefinition) => {
-    setSelectedClassification(item.id);
-    setSelectedRoles(item.defaultRoles);
-  };
+  const currentProfile = ROLE_POWER_PROFILES.find((p) => p.id === selectedRole) || ROLE_POWER_PROFILES[1];
 
   const handleCreateInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,13 +80,12 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
 
     try {
       setIsSubmitting(true);
-      const classDef = CLASSIFICATIONS.find((c) => c.id === selectedClassification);
       const newInv = await api.createInvite({
         family_id: familyId,
-        roles: selectedRoles,
+        roles: [selectedRole],
         guest_name: guestName.trim(),
-        classification: selectedClassification,
-        classification_label: classDef ? classDef.label : 'Membro Familiar',
+        classification: selectedRole,
+        classification_label: currentProfile.title,
         requesting_user_id: currentUser.id,
       });
 
@@ -120,16 +118,34 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
     if (!window.confirm(`Deseja revogar o link de convite ${code}?`)) return;
     try {
       await api.revokeInvite(id);
-      setFeedback({ type: 'success', message: `Convite ${code} foi revogado.` });
+      setFeedback({ type: 'success', message: `Convite ${code} foi revogado com sucesso.` });
       await loadInvites();
     } catch (err: any) {
       setFeedback({ type: 'error', message: err.message || 'Erro ao revogar convite.' });
     }
   };
 
+  const getRoleIcon = (role: UserRole) => {
+    switch (role) {
+      case 'admin_family':
+        return <Shield className="w-4 h-4 text-emerald-400" />;
+      case 'caregiver':
+        return <Stethoscope className="w-4 h-4 text-blue-400" />;
+      case 'caregiver_substitute':
+        return <Clock className="w-4 h-4 text-amber-400" />;
+      default:
+        return <HeartHandshake className="w-4 h-4 text-indigo-400" />;
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-6 text-white my-6 text-left">
+    <div
+      className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-6 text-white my-6 text-left animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center gap-3">
@@ -144,13 +160,15 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
                 </span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Gere links exclusivos para que seus <strong>irmãos, irmãs, parentes e cuidadores</strong> entrem e criem seus logins.
+                Escolha a função e os poderes de acesso de quem você deseja convidar para o aplicativo.
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-full bg-slate-800/60 hover:bg-slate-800 cursor-pointer"
+            className="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer"
+            title="Fechar"
           >
             <X className="w-5 h-5" />
           </button>
@@ -180,26 +198,27 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
             <div className="space-y-0.5">
               <p className="text-xs font-bold text-white flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>Precisa convidar mais alguém para a família?</span>
+                <span>Gerar novo link de acesso para a família</span>
               </p>
               <p className="text-[11px] text-slate-400">
-                Você escolhe se é irmão(ã), filho(a), cuidador(a) ou parente e envia o link direto por WhatsApp.
+                Selecione os poderes que a pessoa terá no aplicativo e envie o link direto por WhatsApp.
               </p>
             </div>
             <button
+              type="button"
               onClick={() => setIsCreatingNew(true)}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/25 flex items-center gap-2 cursor-pointer shrink-0 transition-all"
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/25 flex items-center gap-2 cursor-pointer shrink-0 transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>Gerar Novo Convite</span>
             </button>
           </div>
         ) : (
-          /* Form: Create Invite with Classification */
+          /* Form: Create Invite with Roles and Powers */
           <form onSubmit={handleCreateInvite} className="bg-slate-950 border border-emerald-500/30 rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
               <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
-                <Plus className="w-4 h-4 text-emerald-400" /> Novo Link de Convite Familiar
+                <Plus className="w-4 h-4 text-emerald-400" /> Novo Link de Convite
               </span>
               <button
                 type="button"
@@ -213,62 +232,78 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
             {/* Nome do Convidado */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Nome de quem vai receber o convite *
+                Nome da pessoa que receberá o convite *
               </label>
               <input
                 type="text"
                 required
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value)}
-                placeholder="Ex: Minha irmã Ana Paula, Cuidadora Rosa, Irmão Roberto"
+                placeholder="Ex: Clara Mendes, Marcos Silva, Dra. Juliana"
                 className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
             </div>
 
-            {/* Escolha da Classificação Familiar */}
+            {/* Seleção de Função e Poderes no Aplicativo */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-2">
-                Classificação do Membro da Família *:
+                Selecione a Função e o Nível de Acesso no Aplicativo *:
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {CLASSIFICATIONS.map((c) => {
-                  const isSelected = selectedClassification === c.id;
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {ROLE_POWER_PROFILES.map((profile) => {
+                  const isSelected = selectedRole === profile.id;
                   return (
                     <button
-                      key={c.id}
+                      key={profile.id}
                       type="button"
-                      onClick={() => handleSelectClassification(c)}
-                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      onClick={() => setSelectedRole(profile.id)}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                         isSelected
-                          ? 'bg-emerald-950/80 border-emerald-500 text-white shadow-xs'
-                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                          ? `${profile.colorTheme.bg} ${profile.colorTheme.border} ring-2 ring-emerald-500/50`
+                          : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:border-slate-700'
                       }`}
                     >
                       <div className="flex items-center justify-between w-full">
-                        <span className="text-base">{c.emoji}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                        <div className="flex items-center gap-2">
+                          {getRoleIcon(profile.id)}
+                          <span className="text-xs font-bold text-white">{profile.title}</span>
+                        </div>
+                        {isSelected ? (
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        ) : (
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${profile.colorTheme.badgeBg} ${profile.colorTheme.badgeText}`}>
+                            {profile.badge}
+                          </span>
+                        )}
                       </div>
-                      <span className="text-xs font-bold mt-1 leading-tight text-white">{c.label}</span>
+                      <p className="text-[11px] text-slate-400 mt-1.5 line-clamp-2">
+                        {profile.summary}
+                      </p>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Explicação da Classificação Selecionada */}
-            {selectedClassification && (
-              <div className="p-3 bg-slate-900/90 border border-slate-800 rounded-xl text-[11px] text-slate-300 flex items-start gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <div>
-                  <p>
-                    <strong>Acesso Liberado:</strong>{' '}
-                    {selectedRoles.includes('caregiver') || selectedRoles.includes('caregiver_substitute')
-                      ? 'Perfil de Cuidador(a) (Bate ponto eletrônico com selfie, relata sinais vitais e cumpre tarefas diárias)'
-                      : 'Perfil de Membro Familiar (Visualiza boletins, rotina, recados, histórico e fotos do idoso)'}
-                  </p>
-                </div>
+            {/* Card Detalhado dos Poderes da Função Selecionada */}
+            <div className="p-3.5 bg-slate-900 border border-slate-800 rounded-2xl space-y-2">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="text-xs font-bold text-white">
+                  Poderes e Permissões que esta pessoa terá no app:
+                </span>
               </div>
-            )}
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                {currentProfile.powers.map((power, idx) => (
+                  <li key={idx} className="text-[11px] text-slate-300 flex items-start gap-1.5">
+                    <Check className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5 stroke-[2.5]" />
+                    <span>{power}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
@@ -276,12 +311,12 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
                 onClick={() => setIsCreatingNew(false)}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl cursor-pointer"
               >
-                Voltar
+                Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !guestName.trim()}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 cursor-pointer flex items-center gap-1.5"
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 cursor-pointer flex items-center gap-1.5"
               >
                 {isSubmitting ? 'Gerando Link...' : 'Gerar e Exibir Link de Convite'}
               </button>
@@ -307,7 +342,7 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
               <Link2 className="w-8 h-8 text-slate-600 mx-auto" />
               <p className="text-xs font-bold text-slate-400">Nenhum convite gerado ainda</p>
               <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
-                Clique no botão <strong>"Gerar Novo Convite"</strong> acima para criar links de acesso para seus irmãos, irmãs ou cuidadores da casa.
+                Clique no botão <strong>"Gerar Novo Convite"</strong> acima para criar links de acesso para os cuidadores ou familiares.
               </p>
             </div>
           ) : (
@@ -317,8 +352,9 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
                   ? window.location.origin
                   : 'https://cuida-app.vercel.app';
                 const fullInviteUrl = `${hostDomain}${window.location.pathname}?invite=${inv.code}`;
-                const classLabel = inv.classification_label || getClassificationLabel(inv.classification);
-                const whatsappMsg = `Olá ${inv.guest_name || ''}! Como Administrador da Família ${familyName}, gerei seu link de convite exclusivo como ${classLabel} no CUIDA.\n\nPara criar seu login e senha, acesse o link oficial:\n${fullInviteUrl}`;
+                const roleProfile = ROLE_POWER_PROFILES.find((p) => p.id === inv.roles?.[0]) || ROLE_POWER_PROFILES[1];
+                const roleLabel = roleProfile.title;
+                const whatsappMsg = `Olá ${inv.guest_name || ''}! Como Administrador da Família ${familyName}, gerei seu link de acesso exclusivo como ${roleLabel} no aplicativo CUIDA.\n\nPara criar seu login e senha, acesse o link:\n${fullInviteUrl}`;
                 const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappMsg)}`;
 
                 return (
@@ -356,6 +392,7 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
 
                       {inv.status === 'active' && (
                         <button
+                          type="button"
                           onClick={() => handleRevoke(inv.id, inv.code)}
                           className="text-[11px] text-red-400 hover:text-red-300 cursor-pointer flex items-center gap-1"
                           title="Cancelar convite"
@@ -369,10 +406,11 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
                       <div>
                         <p className="font-bold text-white text-sm">{inv.guest_name}</p>
-                        <p className="text-[11px] text-slate-400">
-                          <strong>Classificação:</strong> <span className="text-emerald-300 font-semibold">{classLabel}</span>
-                          {' · '}
-                          <strong>Função:</strong> <span className="text-blue-300">{inv.role_labels?.join(' + ')}</span>
+                        <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                          {getRoleIcon(inv.roles?.[0] || 'caregiver')}
+                          <span className="text-emerald-300 font-semibold">{roleLabel}</span>
+                          <span className="text-slate-600">·</span>
+                          <span className="text-slate-400">{roleProfile.badge}</span>
                         </p>
                       </div>
                     </div>
@@ -434,8 +472,9 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
             </span>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl cursor-pointer"
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl cursor-pointer transition-colors"
           >
             Fechar
           </button>

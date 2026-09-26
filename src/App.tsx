@@ -282,6 +282,12 @@ export default function App() {
         onOpenFamilyInvites={() => setIsFamilyInvitesOpen(true)}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
         onOpenFacialModal={() => setIsFacialRegistrationOpen(true)}
+        onUserUpdated={(updated) => {
+          setCurrentUser(updated);
+          setUsersList((prev) =>
+            prev.map((u) => (u.id === updated.id ? { ...u, ...updated } : u))
+          );
+        }}
         unreadCount={unreadCount}
         categoryUnreadCounts={categoryUnreadCounts}
         onLogout={handleLogout}
