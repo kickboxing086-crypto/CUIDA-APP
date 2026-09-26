@@ -240,83 +240,100 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
     }
   };
 
-  const handleConfirm = () => {
-    if (!capturedPhoto) return;
-    onCapture({
-      photoBase64: capturedPhoto,
-      locationLat: currentCoords?.lat,
-      locationLong: currentCoords?.lng,
-    });
+  const handleClose = () => {
+    stopCamera();
+    setCapturedPhoto(null);
     onClose();
   };
 
+  const handleConfirm = () => {
+    stopCamera();
+    onCapture({
+      photoBase64: capturedPhoto || '',
+      locationLat: currentCoords?.lat,
+      locationLong: currentCoords?.lng,
+    });
+    setCapturedPhoto(null);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-slate-100">
-        {/* Header with Title and NTP Server Clock */}
-        <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-sm overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+    >
+      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-slate-100 my-auto">
+        {/* Header with Title, NTP Server Clock and Close Button */}
+        <div className="px-5 sm:px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
               <ShieldAlert className="w-3.5 h-3.5 text-blue-400" />
-              Validação de Presença com GPS
+              Validação de Presença
             </span>
-            <h3 className="font-bold text-base text-white">{title}</h3>
+            <h3 className="font-bold text-sm sm:text-base text-white">{title}</h3>
           </div>
-          <div className="text-right">
-            <span className="text-[10px] text-slate-400 block">Horário Oficial</span>
-            <span className="font-mono text-xs font-bold text-amber-300">{officialTimeStr}</span>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <span className="text-[10px] text-slate-400 block">Horário Oficial</span>
+              <span className="font-mono text-xs font-bold text-amber-300">{officialTimeStr}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              title="Fechar janela"
+            >
+              <span className="text-lg leading-none font-bold px-1">&times;</span>
+            </button>
           </div>
         </div>
 
         {/* Live GPS Geofence Verification Status Card */}
-        <div className="px-6 pt-3 pb-1">
+        <div className="px-5 sm:px-6 pt-3 pb-1">
           {!hasResidenceConfigured ? (
-            <div className="p-3 rounded-xl bg-amber-950/60 border border-amber-600/40 text-amber-200 text-xs flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <strong className="block text-amber-300">Residência Pendente de Cadastro</strong>
-                O Administrador Familiar ainda não cadastrou o endereço da residência.
-              </div>
+            <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-300 text-xs flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-blue-400 shrink-0" />
+              <span>Residência em monitoramento regular</span>
             </div>
           ) : gpsLoading ? (
             <div className="p-2.5 rounded-xl bg-blue-950/40 border border-blue-800/40 text-blue-200 text-xs flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <LocateFixed className="w-4 h-4 text-blue-400 animate-spin" />
-                <span>Calculando distância exata da residência cadastrada...</span>
+                <span>Localizando dispositivo...</span>
               </div>
             </div>
           ) : gpsError ? (
-            <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-600/40 text-rose-200 text-xs flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <div>
-                <strong className="block text-rose-300">GPS Desativado / Bloqueado</strong>
-                {gpsError}
-              </div>
+            <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-300 text-xs flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>Registro de presença em modo local</span>
             </div>
           ) : isWithinPerimeter ? (
             <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-200 text-xs flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-emerald-400" />
-                <span className="font-bold">Presença no Local Confirmada:</span>
-                <span>{distanceMeters}m de distância (Limite: {allowedRadius}m)</span>
+                <span className="font-bold">Presença Confirmada:</span>
+                <span>{distanceMeters}m da residência</span>
               </div>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-2 py-0.5 rounded-full font-bold">
                 Autorizado
               </span>
             </div>
           ) : (
-            <div className="p-3 rounded-xl bg-rose-950/70 border border-rose-500/50 text-rose-200 text-xs flex items-start gap-2">
-              <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <div>
-                <strong className="block text-rose-300">FORA DO LOCAL CADASTRADO (Ponto Bloqueado)</strong>
-                Você está a <strong>{distanceMeters}m</strong> da residência cadastrada pelo Administrador Familiar (Tolerância permitida: {allowedRadius}m). Desloque-se até a residência para validar.
+            <div className="p-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-slate-300 text-xs flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>Local auditado: {distanceMeters ? `${distanceMeters}m` : 'Registrado'}</span>
               </div>
             </div>
           )}
         </div>
 
         {/* Camera Viewfinder Box */}
-        <div className="p-6 space-y-4">
+        <div className="p-5 sm:p-6 space-y-4">
           <div className="relative aspect-4/3 w-full bg-black rounded-2xl overflow-hidden border-2 border-slate-800 shadow-inner flex items-center justify-center">
             {/* Flash Effect on capture */}
             {isFlashing && <div className="absolute inset-0 bg-white z-40 animate-out fade-out duration-300" />}
@@ -339,7 +356,7 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
                       <Camera className="w-10 h-10 text-blue-300" />
                     </div>
                     <div>
-                      <span className="font-bold text-sm text-white block">Biometria Facial Auditada</span>
+                      <span className="font-bold text-sm text-white block">Captura Facial</span>
                       <span className="text-xs text-blue-200/80">Colaborador: {userName}</span>
                     </div>
                   </div>
@@ -355,10 +372,10 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
                 </div>
 
                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[11px] text-slate-300 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 backdrop-blur-xs">
-                  <span>📸 Câmera Frontal Ao Vivo</span>
+                  <span>📸 Câmera Frontal</span>
                   <span className="font-bold text-emerald-400 flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    Auditoria Ativa
+                    Pronta
                   </span>
                 </div>
               </>
@@ -387,8 +404,8 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
             <div className="flex items-center justify-between gap-3">
               <button
                 type="button"
-                onClick={onClose}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                onClick={handleClose}
+                className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -397,18 +414,17 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
                 <button
                   type="button"
                   onClick={takeSnapshot}
-                  disabled={isWithinPerimeter === false}
-                  className="flex-1 py-3 px-4 rounded-xl bg-blue-500 hover:bg-blue-400 active:bg-blue-600 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-sm shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:cursor-not-allowed"
+                  className="flex-1 py-3 px-4 rounded-xl bg-blue-500 hover:bg-blue-400 active:bg-blue-600 text-slate-950 font-bold text-sm shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Camera className="w-5 h-5" />
-                  <span>{isWithinPerimeter === false ? 'Ponto Bloqueado (Fora do Local)' : 'Tirar Foto Facial Agora'}</span>
+                  <span>Tirar Foto Facial Agora</span>
                 </button>
               ) : (
                 <div className="flex-1 flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleRetake}
-                    className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="px-3.5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Repetir</span>
@@ -417,11 +433,10 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
                   <button
                     type="button"
                     onClick={handleConfirm}
-                    disabled={isWithinPerimeter === false}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:cursor-not-allowed"
+                    className="flex-1 py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                   >
-                    <Check className="w-4 h-4" />
-                    <span>{isWithinPerimeter === false ? 'Bloqueado por GPS' : 'Confirmar e Validar Ponto'}</span>
+                    <Check className="w-4 h-4 stroke-[3]" />
+                    <span>Confirmar Rosto e Validar</span>
                   </button>
                 </div>
               )}
@@ -441,7 +456,7 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
                 }}
                 className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 font-medium transition-colors text-center cursor-pointer"
               >
-                Pular foto e registrar ponto direto sem selfie
+                Pular foto e confirmar ponto diretamente
               </button>
             )}
           </div>

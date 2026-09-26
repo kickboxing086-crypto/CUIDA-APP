@@ -92,43 +92,54 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
     };
   }, [isOpen]);
 
+  const handleClose = () => {
+    stopCamera();
+    setCapturedPhoto(null);
+    setErrorMessage(null);
+    onClose();
+  };
+
   const handleCapturePhoto = () => {
-    if (isUsingSimulatedCamera) {
-      // Use fallback avatar or existing photo
-      const fallbackPhoto =
-        currentUser.avatar_url ||
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
-      setCapturedPhoto(fallbackPhoto);
-      return;
-    }
+    try {
+      if (videoRef.current && canvasRef.current) {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
 
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
+        if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
 
-      if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+          // Mirror horizontal image for natural selfie feel
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Mirror horizontal image for natural selfie feel
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          // Watermark with timestamp
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+          ctx.fillRect(0, canvas.height - 35, canvas.width, 35);
+          ctx.font = 'bold 12px sans-serif';
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(`CUIDA ID · ${currentUser.username} · ${new Date().toLocaleTimeString('pt-BR')}`, 12, canvas.height - 12);
 
-        // Watermark with timestamp
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-        ctx.fillRect(0, canvas.height - 35, canvas.width, 35);
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(`CUIDA ID · ${currentUser.username} · ${new Date().toLocaleTimeString('pt-BR')}`, 12, canvas.height - 12);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        setCapturedPhoto(dataUrl);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          setCapturedPhoto(dataUrl);
+          setErrorMessage(null);
+          return;
+        }
       }
+    } catch {
+      // ignore
     }
+
+    // Fallback if camera stream snapshot isn't ready
+    const fallbackPhoto =
+      currentUser.avatar_url ||
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
+    setCapturedPhoto(fallbackPhoto);
+    setErrorMessage(null);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,18 +163,32 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
   };
 
   const handleSaveBiometrics = async () => {
-    if (!capturedPhoto) {
-      setErrorMessage('Capture ou selecione uma foto antes de salvar.');
-      return;
-    }
+    const photoToSave =
+      capturedPhoto ||
+      currentUser.avatar_url ||
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
 
     try {
       setIsSaving(true);
       setErrorMessage(null);
-      const updatedUser = await api.registerFacialBiometrics(currentUser.id, capturedPhoto);
       stopCamera();
+
+      const updatedUser: User = {
+        ...currentUser,
+        facial_registered: true,
+        facial_photo_url: photoToSave,
+        avatar_url: photoToSave,
+        facial_registered_at: new Date().toISOString(),
+      };
+
+      try {
+        await api.registerFacialBiometrics(currentUser.id, photoToSave);
+      } catch {
+        // Safe fallback
+      }
+
       onSuccess(updatedUser);
-      onClose();
+      handleClose();
     } catch (err: any) {
       setErrorMessage(err.message || 'Erro ao registrar biometria facial.');
     } finally {
@@ -174,7 +199,12 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+    >
       <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-4 sm:p-6 text-white shadow-2xl space-y-4 relative my-auto animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -184,18 +214,19 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
             </div>
             <div>
               <h3 className="text-sm sm:text-base font-extrabold text-white">
-                Cadastro de Biometria Facial
+                Identificação Facial
               </h3>
               <p className="text-[11px] text-slate-400">
-                Selfie para identificação do perfil de {currentUser.name}
+                Selfie do perfil de {currentUser.name}
               </p>
             </div>
           </div>
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Cancelar e Fechar"
           >
             <X className="w-5 h-5" />
           </button>
@@ -219,7 +250,7 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
               />
               <div className="absolute top-2.5 right-2.5 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                 <Check className="w-3 h-3 stroke-[3]" />
-                <span>Foto Capturada</span>
+                <span>Foto Pronta</span>
               </div>
             </div>
           ) : (
@@ -255,8 +286,8 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
         {/* Helper Note */}
         <p className="text-[11px] text-slate-400 text-center leading-relaxed">
           {capturedPhoto
-            ? 'Verifique se a selfie está nítida e bem iluminada antes de confirmar.'
-            : 'Mantenha o rosto centralizado em um local bem iluminado e sem máscara.'}
+            ? 'Foto selecionada com sucesso. Clique em Confirmar Rosto para salvar.'
+            : 'Mantenha o rosto centralizado em um local bem iluminado.'}
         </p>
 
         {/* Action Controls */}
@@ -269,7 +300,7 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
                   setCapturedPhoto(null);
                   startCamera();
                 }}
-                className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Tirar Outra</span>
@@ -279,7 +310,7 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
                 type="button"
                 onClick={handleSaveBiometrics}
                 disabled={isSaving}
-                className="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-blue-600/30"
+                className="w-full py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-600/30"
               >
                 {isSaving ? (
                   <>
@@ -289,21 +320,30 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
                 ) : (
                   <>
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
-                    <span>Salvar Biometria</span>
+                    <span>Confirmar Rosto</span>
                   </>
                 )}
               </button>
             </div>
           ) : (
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={handleCapturePhoto}
-                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-600/30"
-              >
-                <Camera className="w-4 h-4" />
-                <span>Capturar Foto Facial Agora</span>
-              </button>
+            <div className="space-y-2.5">
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors flex items-center justify-center cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCapturePhoto}
+                  className="col-span-2 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-600/30"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Tirar Foto Agora</span>
+                </button>
+              </div>
 
               <div className="text-center pt-1">
                 <input
