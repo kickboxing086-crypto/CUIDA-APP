@@ -714,28 +714,31 @@ export const api = {
     notes?: string;
     photoUrl?: string;
   }): Promise<{ success: boolean; entry: TimeEntry; message: string }> {
-    try {
-      const res = await fetch('/api/time-entries/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: params.userId,
-          elderly_id: params.elderlyId,
-          date_stamp: params.dateStamp,
-          entry_time_str: params.entryTimeStr,
-          exit_time_str: params.exitTimeStr,
-          entry_type: params.entryType,
-          justification: params.justification,
-          notes: params.notes,
-          photo_url: params.photoUrl,
-        }),
-      });
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch {}
+    const res = await safeFetchJson<{ success: boolean; entry: TimeEntry; message: string }>('/api/time-entries/manual', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: params.userId,
+        elderly_id: params.elderlyId,
+        date_stamp: params.dateStamp,
+        entry_time_str: params.entryTimeStr,
+        exit_time_str: params.exitTimeStr,
+        entry_type: params.entryType,
+        justification: params.justification,
+        notes: params.notes,
+        photo_url: params.photoUrl,
+      }),
+    });
 
-    // Fallback in memory
+    if (res.ok && res.data?.entry) {
+      const idx = localTimeEntries.findIndex((e) => e.id === res.data!.entry.id);
+      if (idx >= 0) localTimeEntries[idx] = res.data.entry;
+      else localTimeEntries.unshift(res.data.entry);
+      saveLocalTimeEntries();
+      return res.data;
+    }
+
+    // Fallback in memory with persistent cache
     const user = INITIAL_USERS.find((u) => u.id === params.userId);
     const entryIso = `${params.dateStamp}T${params.entryTimeStr}:00-03:00`;
     const exitIso = params.exitTimeStr ? `${params.dateStamp}T${params.exitTimeStr}:00-03:00` : null;
@@ -762,7 +765,7 @@ export const api = {
       id: `pnt-man-${Date.now()}`,
       user_id: params.userId,
       user_name: user?.name || 'Profissional',
-      elderly_id: params.elderlyId || INITIAL_ELDERLY.id,
+      elderly_id: params.elderlyId || INITIAL_ELDERLY.id || 'eld-01',
       entry_time: entryIso,
       entry_photo_url: params.photoUrl || user?.avatar_url || SAMPLE_SELFIE_CARE,
       exit_time: exitIso,
@@ -777,11 +780,13 @@ export const api = {
       day_of_week: dayOfWeek,
       entry_type: params.entryType,
       justification: params.justification,
-      authorized_by_name: 'Dr. Fernando Silveira (Admin Familiar)',
+      authorized_by_name: user?.name || 'Administrador Familiar',
       notes: params.notes || `Lançamento manual autorizado: ${params.justification}`,
     };
 
     localTimeEntries.unshift(newEntry);
+    saveLocalTimeEntries();
+
     return {
       success: true,
       entry: newEntry,

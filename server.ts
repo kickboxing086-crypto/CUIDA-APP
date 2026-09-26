@@ -1358,31 +1358,35 @@ async function startServer() {
     const dayOfWeek = dayNames[dateObj.getUTCDay()];
 
     const fallbackPhoto = photo_url || (user?.avatar_url || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80');
+    const targetLat = db.elderly?.residence_lat || -23.5505;
+    const targetLng = db.elderly?.residence_long || -46.6333;
+    const targetElderlyId = elderly_id || db.elderly?.id || 'eld-01';
 
     const newEntry = {
       id: `pnt-man-${Date.now()}`,
       user_id,
       user_name: user?.name || 'Profissional',
-      elderly_id: elderly_id || db.elderly.id,
+      elderly_id: targetElderlyId,
       entry_time: entryIso,
       entry_photo_url: fallbackPhoto,
       exit_time: exitIso,
       exit_photo_url: exitIso ? fallbackPhoto : null,
       total_hours: totalHours,
       total_hours_formatted: formattedHours,
-      location_lat: db.elderly.residence_lat,
-      location_long: db.elderly.residence_long,
+      location_lat: targetLat,
+      location_long: targetLng,
       distance_meters: 10,
       is_verified_geofence: true,
       date_stamp,
       day_of_week: dayOfWeek,
       entry_type: entry_type || 'manual_authorized',
       justification,
-      authorized_by_name: 'Dr. Fernando Silveira (Admin Familiar)',
+      authorized_by_name: user?.name || 'Administrador Familiar',
       notes: notes || `Lançamento manual autorizado: ${justification}`,
     };
 
     db.timeEntries.unshift(newEntry);
+    saveDb();
     res.status(201).json({
       success: true,
       message: 'Presença adicionada com sucesso e registrada na folha de auditoria.',

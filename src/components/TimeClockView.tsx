@@ -162,14 +162,18 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
   };
 
   const handleDirectCheckOut = async () => {
-    if (!activeEntry) return;
     setActionError(null);
     setActionSuccess(null);
     setIsSubmittingDirect(true);
 
     try {
+      const currentActive = activeEntry || (await api.getActiveEntry(currentUser.id));
+      if (!currentActive) {
+        setActionError('Não há plantão em aberto no momento para encerrar.');
+        return;
+      }
       const res = await api.checkOut({
-        entryId: activeEntry.id,
+        entryId: currentActive.id,
         locationLat: currentCoords?.lat || elderly.residence_lat,
         locationLong: currentCoords?.lng || elderly.residence_long,
         notes: 'Encerramento de plantão com horário oficial sincronizado.',
@@ -210,16 +214,21 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
           photoBase64: params.photoBase64,
           locationLat: params.locationLat || currentCoords?.lat,
           locationLong: params.locationLong || currentCoords?.lng,
-          notes: 'Registro de ponto com foto em anexo.',
+          notes: 'Registro de ponto com foto facial auditada.',
         });
         setActionSuccess(res.message);
-      } else if (cameraMode === 'check_out' && activeEntry) {
+      } else if (cameraMode === 'check_out') {
+        const currentActive = activeEntry || (await api.getActiveEntry(currentUser.id));
+        if (!currentActive) {
+          setActionError('Não há plantão em andamento para registrar saída.');
+          return;
+        }
         const res = await api.checkOut({
-          entryId: activeEntry.id,
+          entryId: currentActive.id,
           photoBase64: params.photoBase64,
           locationLat: params.locationLat || currentCoords?.lat,
           locationLong: params.locationLong || currentCoords?.lng,
-          notes: 'Encerramento de plantão com foto em anexo.',
+          notes: 'Encerramento de plantão com foto facial auditada.',
         });
         setActionSuccess(res.message);
       }
