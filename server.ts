@@ -285,6 +285,7 @@ async function startServer() {
             permission_level: (u as any).permission_level || 3,
             registration_code: u.registration_code || '',
             avatar_url: u.avatar_url,
+            facial_registered: Boolean((u as any).facial_registered),
           };
           if (includePasswords) {
             item.password = u.password;
@@ -1000,7 +1001,35 @@ async function startServer() {
       user_role: user.role,
       action_type: 'onboarding_completed',
       category: 'Mural',
-      description: `${user.name} completou o perfil obrigatório de primeiro acesso e validou as normas de conduta.`,
+      description: `${user.name} completou o perfil de acesso e validou as normas de conduta.`,
+    });
+
+    const { password: _, ...safeUser } = user;
+    res.json({ success: true, user: safeUser });
+  });
+
+  // Salvar Biometria Facial Registrada Posteriormente (Sem Exigir GPS de Residência)
+  app.put('/api/users/:id/facial-biometrics', (req, res) => {
+    const { id } = req.params;
+    const { facial_photo_url } = req.body;
+
+    const user = db.users.find((u) => u.id === id);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+    (user as any).facial_registered = true;
+    (user as any).facial_photo_url = facial_photo_url || user.avatar_url;
+    (user as any).facial_registered_at = new Date().toISOString();
+
+    saveDb();
+
+    logActivity({
+      family_id: user.family_id || 'fam-01',
+      user_id: user.id,
+      user_name: user.name,
+      user_role: user.role,
+      action_type: 'presence_clock',
+      category: 'Controle de Ponto',
+      description: `${user.name} cadastrou a sua biometria facial com sucesso.`,
     });
 
     const { password: _, ...safeUser } = user;

@@ -16,6 +16,7 @@ import {
   MapPin,
   Bell,
   Link2,
+  Camera,
 } from 'lucide-react';
 import { ElderCaneLogo } from './ElderCaneLogo';
 import { User as UserType } from '../types';
@@ -44,6 +45,7 @@ interface HeaderNavProps {
   onOpenResidenceConfig?: () => void;
   onOpenFamilyInvites?: () => void;
   onOpenNotifications?: () => void;
+  onOpenFacialModal?: () => void;
   unreadCount?: number;
   categoryUnreadCounts?: Record<string, number>;
   onLogout?: () => void;
@@ -67,6 +69,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   onOpenResidenceConfig,
   onOpenFamilyInvites,
   onOpenNotifications,
+  onOpenFacialModal,
   unreadCount = 0,
   categoryUnreadCounts = {},
   onLogout,
@@ -225,7 +228,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             </div>
 
             {/* User switcher */}
-            <div className="relative group">
+            <div className="relative group flex items-center gap-1.5">
               <select
                 value={currentUser.id}
                 onChange={(e) => {
@@ -241,6 +244,25 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                   </option>
                 ))}
               </select>
+
+              {onOpenFacialModal && (
+                <button
+                  type="button"
+                  onClick={onOpenFacialModal}
+                  className={`p-1.5 rounded-xl border transition-colors cursor-pointer shrink-0 ${
+                    currentUser.facial_registered
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                      : 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100 animate-pulse'
+                  }`}
+                  title={
+                    currentUser.facial_registered
+                      ? 'Biometria Facial Cadastrada (Clique para atualizar)'
+                      : 'Biometria Facial Pendente (Clique para cadastrar)'
+                  }
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             {/* Logout button */}

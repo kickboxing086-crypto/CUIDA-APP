@@ -107,6 +107,9 @@ export interface FamilyLoginItem {
   registration_code?: string;
   avatar_url?: string;
   first_login_completed?: boolean;
+  facial_registered?: boolean;
+  facial_photo_url?: string;
+  facial_registered_at?: string;
 }
 
 export interface FamilyWithLogins {
@@ -142,6 +145,9 @@ export interface User {
   classification?: string;
   classification_label?: string;
   first_login_completed?: boolean;
+  facial_registered?: boolean;
+  facial_photo_url?: string;
+  facial_registered_at?: string;
   terms_accepted?: boolean;
   created_at?: string;
 }

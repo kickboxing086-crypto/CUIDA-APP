@@ -1118,6 +1118,34 @@ export const api = {
     throw new Error('Usuário não localizado para conclusão do perfil.');
   },
 
+  async registerFacialBiometrics(userId: string, photoBase64: string): Promise<User> {
+    try {
+      const res = await fetch(`/api/users/${userId}/facial-biometrics`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ facial_photo_url: photoBase64 }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        return result.user;
+      }
+    } catch {
+      // fallback
+    }
+
+    const idx = INITIAL_USERS.findIndex((u) => u.id === userId);
+    if (idx !== -1) {
+      INITIAL_USERS[idx] = {
+        ...INITIAL_USERS[idx],
+        facial_registered: true,
+        facial_photo_url: photoBase64,
+        facial_registered_at: new Date().toISOString(),
+      };
+      return INITIAL_USERS[idx];
+    }
+    throw new Error('Usuário não localizado para cadastro facial.');
+  },
+
   async updateUserLevel(userId: string, level: import('../types').PermissionLevel, requestingUserId: string): Promise<User> {
     const res = await fetch(`/api/users/${userId}/level`, {
       method: 'PUT',

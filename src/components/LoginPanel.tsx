@@ -143,18 +143,18 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
   const cleanPassPreview = regPassword.trim().toLowerCase().slice(0, 8);
 
   return (
-    <div className="min-h-screen bg-slate-950 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 text-slate-100 selection:bg-blue-600 selection:text-white">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen bg-slate-950 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex flex-col items-center justify-center py-6 sm:py-12 px-3 sm:px-6 lg:px-8 text-slate-100 selection:bg-blue-600 selection:text-white">
+      <div className="w-full max-w-md space-y-4 sm:space-y-6">
         {/* Logo e Apresentação do Aplicativo */}
-        <div className="text-center space-y-4 animate-in fade-in duration-300">
-          <div className="inline-flex items-center justify-center p-3.5 bg-blue-600/15 rounded-2xl border border-blue-500/20 shadow-lg">
+        <div className="text-center space-y-3 sm:space-y-4 animate-in fade-in duration-300">
+          <div className="inline-flex items-center justify-center p-3 sm:p-3.5 bg-blue-600/15 rounded-2xl border border-blue-500/20 shadow-lg">
             <ElderCaneLogo size="lg" variant="white-on-blue" />
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
               CUIDA
             </h1>
-            <p className="text-sm font-medium text-slate-300 mt-1">
+            <p className="text-xs sm:text-sm font-medium text-slate-300 mt-0.5 sm:mt-1">
               Plataforma de Gestão de Cuidados e Ponto Seguro
             </p>
           </div>
@@ -166,7 +166,7 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
         </div>
 
         {/* Card de Login */}
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-3xl p-7 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 duration-300">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 sm:space-y-6 animate-in zoom-in-95 duration-300">
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-white tracking-tight">
               Acesse sua conta

@@ -26,6 +26,8 @@ import { ElderlyProfile, User } from './types';
 import { ElderCaneLogo } from './components/ElderCaneLogo';
 import { ShieldCheck } from 'lucide-react';
 import { ResidenceAddressNotice } from './components/ResidenceAddressNotice';
+import { FacialBiometricAlert } from './components/FacialBiometricAlert';
+import { FacialRegistrationModal } from './components/FacialRegistrationModal';
 import { FooterBranding } from './components/FooterBranding';
 
 export default function App() {
@@ -75,6 +77,7 @@ export default function App() {
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
   const [isResidenceModalOpen, setIsResidenceModalOpen] = useState(false);
   const [isFamilyInvitesOpen, setIsFamilyInvitesOpen] = useState(false);
+  const [isFacialRegistrationOpen, setIsFacialRegistrationOpen] = useState(false);
   const [cameraMode, setCameraMode] = useState<'check_in' | 'check_out'>('check_in');
 
   // Load Elderly Profile and Users on refresh
@@ -171,6 +174,16 @@ export default function App() {
     setIsCameraModalOpen(true);
   };
 
+  const handleFacialRegistrationSuccess = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    try {
+      localStorage.setItem('cuida_session_user', JSON.stringify(updatedUser));
+    } catch {
+      // ignore
+    }
+    handleRefreshHistory();
+  };
+
   const handleCameraPhotoCaptured = async (params: {
     photoBase64: string;
     locationLat?: number;
@@ -263,6 +276,7 @@ export default function App() {
         onOpenResidenceConfig={() => setIsResidenceModalOpen(true)}
         onOpenFamilyInvites={() => setIsFamilyInvitesOpen(true)}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
+        onOpenFacialModal={() => setIsFacialRegistrationOpen(true)}
         unreadCount={unreadCount}
         categoryUnreadCounts={categoryUnreadCounts}
         onLogout={handleLogout}
@@ -284,7 +298,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 space-y-3.5 sm:space-y-6">
         {/* Real-time Official Server Clock Banner (Always visible in all operations) */}
         <div className="print:hidden">
           <OfficialClockBadge />
@@ -295,6 +309,12 @@ export default function App() {
           currentUser={currentUser}
           elderly={elderly}
           onOpenResidenceModal={() => setIsResidenceModalOpen(true)}
+        />
+
+        {/* Alerta de Biometria Facial Pendente (Pode ser feito depois) */}
+        <FacialBiometricAlert
+          currentUser={currentUser}
+          onOpenFacialModal={() => setIsFacialRegistrationOpen(true)}
         />
 
         {/* Tab View Routing */}
@@ -420,6 +440,14 @@ export default function App() {
         officialTimeStr={new Date().toLocaleTimeString('pt-BR')}
         userName={currentUser.name}
         elderly={elderly}
+      />
+
+      {/* Modal: Cadastro Posterior de Biometria Facial */}
+      <FacialRegistrationModal
+        isOpen={isFacialRegistrationOpen}
+        onClose={() => setIsFacialRegistrationOpen(false)}
+        currentUser={currentUser}
+        onSuccess={handleFacialRegistrationSuccess}
       />
 
       {/* Footer */}

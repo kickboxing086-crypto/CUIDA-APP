@@ -18,11 +18,9 @@ html, body {
   padding: 0;
 }
 
-/* Prevent auto-zooming on focus in mobile browsers by enforcing minimum 16px font-size */
-@media screen and (max-width: 768px) {
-  input, select, textarea {
-    font-size: 16px !important;
-  }
+/* Prevent unwanted horizontal stretching on mobile devices */
+* {
+  box-sizing: border-box;
 }
 
 button, a {
