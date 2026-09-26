@@ -35,7 +35,12 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
       const saved = localStorage.getItem('cuida_session_user');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && parsed.id && parsed.username) {
+          return parsed;
+        }
+      }
     } catch {
       // fallback
     }
@@ -220,7 +225,7 @@ export default function App() {
   };
 
   // 1. Se não estiver autenticado, exibe o Painel de Login
-  if (!currentUser) {
+  if (!currentUser || !currentUser.id || !currentUser.username) {
     return <LoginPanel onLoginSuccess={handleLoginSuccess} />;
   }
 
