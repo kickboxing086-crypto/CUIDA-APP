@@ -136,6 +136,54 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
     return () => clearInterval(interval);
   }, [activeEntry]);
 
+  const [isSubmittingDirect, setIsSubmittingDirect] = useState(false);
+
+  const handleDirectCheckIn = async () => {
+    setActionError(null);
+    setActionSuccess(null);
+    setIsSubmittingDirect(true);
+
+    try {
+      const res = await api.checkIn({
+        userId: currentUser.id,
+        elderlyId: elderly.id,
+        locationLat: currentCoords?.lat || elderly.residence_lat,
+        locationLong: currentCoords?.lng || elderly.residence_long,
+        notes: 'Registro de ponto com horário oficial sincronizado.',
+      });
+      setActionSuccess(res.message);
+      await loadShiftState();
+      onRefreshHistory();
+    } catch (err: any) {
+      setActionError(err.message || 'Erro ao bater ponto de entrada.');
+    } finally {
+      setIsSubmittingDirect(false);
+    }
+  };
+
+  const handleDirectCheckOut = async () => {
+    if (!activeEntry) return;
+    setActionError(null);
+    setActionSuccess(null);
+    setIsSubmittingDirect(true);
+
+    try {
+      const res = await api.checkOut({
+        entryId: activeEntry.id,
+        locationLat: currentCoords?.lat || elderly.residence_lat,
+        locationLong: currentCoords?.lng || elderly.residence_long,
+        notes: 'Encerramento de plantão com horário oficial sincronizado.',
+      });
+      setActionSuccess(res.message);
+      await loadShiftState();
+      onRefreshHistory();
+    } catch (err: any) {
+      setActionError(err.message || 'Erro ao registrar saída de plantão.');
+    } finally {
+      setIsSubmittingDirect(false);
+    }
+  };
+
   const handleOpenCheckIn = () => {
     setActionError(null);
     setActionSuccess(null);
@@ -162,7 +210,7 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
           photoBase64: params.photoBase64,
           locationLat: params.locationLat || currentCoords?.lat,
           locationLong: params.locationLong || currentCoords?.lng,
-          notes: 'Registro biométrico facial confirmado via câmera frontal.',
+          notes: 'Registro de ponto com foto em anexo.',
         });
         setActionSuccess(res.message);
       } else if (cameraMode === 'check_out' && activeEntry) {
@@ -171,7 +219,7 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
           photoBase64: params.photoBase64,
           locationLat: params.locationLat || currentCoords?.lat,
           locationLong: params.locationLong || currentCoords?.lng,
-          notes: 'Encerramento de plantão validado com selfie facial.',
+          notes: 'Encerramento de plantão com foto em anexo.',
         });
         setActionSuccess(res.message);
       }
@@ -360,40 +408,62 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
 
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
                   <p className="text-xs text-slate-600">
-                    O encerramento do plantão requer <strong>foto frontal de saída</strong> e presença na residência.
+                    O encerramento do plantão será registrado com o <strong>horário oficial auditado</strong>.
                   </p>
-                  <button
-                    type="button"
-                    onClick={handleOpenCheckOut}
-                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-bold text-sm shadow-lg shadow-rose-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    <span>Registrar Saída (Check-out)</span>
-                  </button>
+                  <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={handleDirectCheckOut}
+                      disabled={isSubmittingDirect}
+                      className="flex-1 sm:flex-initial px-6 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-bold text-sm shadow-lg shadow-rose-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      <span>{isSubmittingDirect ? 'Encerrando...' : 'Registrar Saída Agora'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenCheckOut}
+                      className="p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-colors cursor-pointer"
+                      title="Registrar saída com foto opcional"
+                    >
+                      <Camera className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
               <div className="py-8 text-center space-y-4">
                 <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center mx-auto">
-                  <Camera className="w-8 h-8" />
+                  <Clock className="w-8 h-8" />
                 </div>
                 <div className="max-w-md mx-auto space-y-1">
                   <h3 className="font-bold text-base text-slate-900">
                     Iniciar Novo Plantão de Assistência
                   </h3>
                   <p className="text-xs text-slate-600">
-                    O ponto só pode ser registrado com captura fotográfica facial ao vivo e presença física comprovada na residência do idoso.
+                    Registre a sua entrada com validação de horário oficial e confirmação no local.
                   </p>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleDirectCheckIn}
+                    disabled={isSubmittingDirect}
+                    className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-2.5 transition-all cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span>{isSubmittingDirect ? 'Registrando...' : 'Bater Ponto Agora (Entrada)'}</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleOpenCheckIn}
-                    className="px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-sm shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2.5 mx-auto transition-all cursor-pointer"
+                    className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    title="Bater ponto anexando foto frontal"
                   >
-                    <LogIn className="w-5 h-5" />
-                    <span>Bater Ponto com Selfie Facial</span>
+                    <Camera className="w-4 h-4" />
+                    <span>Com Foto (Opcional)</span>
                   </button>
                 </div>
               </div>

@@ -383,46 +383,66 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
-
-            {!capturedPhoto ? (
+          <div className="flex flex-col gap-2 pt-2">
+            <div className="flex items-center justify-between gap-3">
               <button
                 type="button"
-                onClick={takeSnapshot}
-                disabled={isWithinPerimeter === false}
-                className="flex-1 py-3 px-4 rounded-xl bg-blue-500 hover:bg-blue-400 active:bg-blue-600 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-sm shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:cursor-not-allowed"
+                onClick={onClose}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
               >
-                <Camera className="w-5 h-5" />
-                <span>{isWithinPerimeter === false ? 'Ponto Bloqueado (Fora do Local)' : 'Tirar Foto Facial Agora'}</span>
+                Cancelar
               </button>
-            ) : (
-              <div className="flex-1 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleRetake}
-                  className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Repetir</span>
-                </button>
 
+              {!capturedPhoto ? (
                 <button
                   type="button"
-                  onClick={handleConfirm}
+                  onClick={takeSnapshot}
                   disabled={isWithinPerimeter === false}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:cursor-not-allowed"
+                  className="flex-1 py-3 px-4 rounded-xl bg-blue-500 hover:bg-blue-400 active:bg-blue-600 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-sm shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:cursor-not-allowed"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>{isWithinPerimeter === false ? 'Bloqueado por GPS' : 'Confirmar e Validar Ponto'}</span>
+                  <Camera className="w-5 h-5" />
+                  <span>{isWithinPerimeter === false ? 'Ponto Bloqueado (Fora do Local)' : 'Tirar Foto Facial Agora'}</span>
                 </button>
-              </div>
+              ) : (
+                <div className="flex-1 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRetake}
+                    className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Repetir</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleConfirm}
+                    disabled={isWithinPerimeter === false}
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{isWithinPerimeter === false ? 'Bloqueado por GPS' : 'Confirmar e Validar Ponto'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {!capturedPhoto && (
+              <button
+                type="button"
+                onClick={() => {
+                  stopCamera();
+                  onCapture({
+                    photoBase64: '',
+                    locationLat: currentCoords?.lat,
+                    locationLong: currentCoords?.lng,
+                  });
+                  onClose();
+                }}
+                className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 font-medium transition-colors text-center cursor-pointer"
+              >
+                Pular foto e registrar ponto direto sem selfie
+              </button>
             )}
           </div>
         </div>

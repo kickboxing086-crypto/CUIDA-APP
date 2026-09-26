@@ -6,6 +6,7 @@ import {
   Pill,
   Camera,
   CheckCircle2,
+  Check,
   AlertTriangle,
   Calendar,
   Plus,
@@ -64,16 +65,83 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
     elderly.residence_long
   );
 
-  const handleStartCheckIn = () => {
-    if (!hasResidenceConfigured) {
-      if (canManageResidence && onOpenResidenceConfig) {
-        onOpenResidenceConfig();
-      } else {
-        alert('⚠️ Atenção: O Administrador Familiar ainda precisa cadastrar o endereço da residência do idoso antes que o ponto possa ser validado.');
+  const [isRegisteringPoint, setIsRegisteringPoint] = useState(false);
+  const [pointMessage, setPointMessage] = useState<string | null>(null);
+
+  const handleDirectCheckIn = async () => {
+    try {
+      setIsRegisteringPoint(true);
+      setPointMessage(null);
+      let lat = elderly.residence_lat;
+      let lng = elderly.residence_long;
+
+      if (navigator.geolocation) {
+        try {
+          const pos: any = await new Promise((res, rej) =>
+            navigator.geolocation.getCurrentPosition(res, rej, { timeout: 3000 })
+          );
+          if (pos && pos.coords) {
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+          }
+        } catch {
+          // keep fallback
+        }
       }
-      return;
+
+      await api.checkIn({
+        userId: currentUser.id,
+        elderlyId: elderly.id,
+        locationLat: lat,
+        locationLong: lng,
+        notes: 'Ponto de entrada registrado com sucesso.',
+      });
+      await loadData();
+      setPointMessage('Entrada registrada com sucesso!');
+      setTimeout(() => setPointMessage(null), 4000);
+    } catch (err: any) {
+      alert(`⚠️ Erro ao registrar ponto: ${err.message || 'Falha ao bater ponto.'}`);
+    } finally {
+      setIsRegisteringPoint(false);
     }
-    onOpenLiveCamera('check_in');
+  };
+
+  const handleDirectCheckOut = async () => {
+    if (!activeEntry) return;
+    try {
+      setIsRegisteringPoint(true);
+      setPointMessage(null);
+      let lat = elderly.residence_lat;
+      let lng = elderly.residence_long;
+
+      if (navigator.geolocation) {
+        try {
+          const pos: any = await new Promise((res, rej) =>
+            navigator.geolocation.getCurrentPosition(res, rej, { timeout: 3000 })
+          );
+          if (pos && pos.coords) {
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+          }
+        } catch {
+          // keep fallback
+        }
+      }
+
+      await api.checkOut({
+        entryId: activeEntry.id,
+        locationLat: lat,
+        locationLong: lng,
+        notes: 'Encerramento de plantão registrado com sucesso.',
+      });
+      await loadData();
+      setPointMessage('Saída registrada com sucesso!');
+      setTimeout(() => setPointMessage(null), 4000);
+    } catch (err: any) {
+      alert(`⚠️ Erro ao registrar saída: ${err.message || 'Falha ao bater saída.'}`);
+    } finally {
+      setIsRegisteringPoint(false);
+    }
   };
 
   const loadData = async () => {
@@ -197,31 +265,58 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
           </div>
 
           {/* Quick Presence Action Buttons */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
+              type="button"
               onClick={onOpenAddPresence}
-              className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-white text-blue-950 font-bold text-xs shadow-md hover:bg-blue-50 active:scale-98 transition-all"
+              className="inline-flex items-center gap-2 py-2.5 px-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs shadow-xs active:scale-98 transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-blue-600" />
-              Adicionar Presença / Plantão
+              <Plus className="w-4 h-4 text-white" />
+              <span>Plantão Manual</span>
             </button>
 
             {activeEntry ? (
-              <button
-                onClick={() => onOpenLiveCamera('check_out')}
-                className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-rose-500 text-white font-bold text-xs shadow-md hover:bg-rose-600 active:scale-98 transition-all"
-              >
-                <Clock className="w-4 h-4 text-rose-200" />
-                Registrar Saída (Check-out)
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDirectCheckOut}
+                  disabled={isRegisteringPoint}
+                  className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+                >
+                  <Clock className="w-4 h-4 text-white" />
+                  <span>{isRegisteringPoint ? 'Encerrando...' : 'Registrar Saída Agora'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onOpenLiveCamera('check_out')}
+                  className="p-2.5 rounded-xl bg-rose-700/80 hover:bg-rose-700 text-white border border-rose-500/50 transition-colors cursor-pointer"
+                  title="Registrar saída com foto opcional"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+              </div>
             ) : (
-              <button
-                onClick={handleStartCheckIn}
-                className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-blue-500 text-white font-bold text-xs shadow-md hover:bg-blue-400 active:scale-98 transition-all"
-              >
-                <Camera className="w-4 h-4 text-white" />
-                Bater Ponto com Selfie Facial
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDirectCheckIn}
+                  disabled={isRegisteringPoint}
+                  className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-black text-xs shadow-md transition-all cursor-pointer"
+                >
+                  <Check className="w-4 h-4 stroke-[3]" />
+                  <span>{isRegisteringPoint ? 'Registrando...' : 'Bater Ponto Agora (Entrada)'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onOpenLiveCamera('check_in')}
+                  className="p-2.5 rounded-xl bg-blue-600/80 hover:bg-blue-600 text-white border border-blue-400/50 transition-colors cursor-pointer"
+                  title="Bater ponto com foto opcional"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+              </div>
             )}
           </div>
         </div>

@@ -170,11 +170,11 @@ export const api = {
     return found || null;
   },
 
-  // Check-in (Entrada) - Mandatory live selfie & real-time GPS geofence
+  // Check-in (Entrada) - Horário oficial & GPS (Foto Facial Opcional)
   async checkIn(params: {
     userId: string;
     elderlyId: string;
-    photoBase64: string;
+    photoBase64?: string;
     locationLat?: number;
     locationLong?: number;
     notes?: string;
@@ -198,10 +198,10 @@ export const api = {
     return data;
   },
 
-  // Check-out (Saída) - Mandatory exit selfie, geofence & hours calculation
+  // Check-out (Saída) - Cálculo de permanência & geofence (Foto Facial Opcional)
   async checkOut(params: {
     entryId: string;
-    photoBase64: string;
+    photoBase64?: string;
     locationLat?: number;
     locationLong?: number;
     notes?: string;

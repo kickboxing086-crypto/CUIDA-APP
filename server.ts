@@ -1189,20 +1189,13 @@ async function startServer() {
     };
   }
 
-  // 4. Check-in (Entrada) - Mandatory Facial Selfie & Official Time & Inviolable GPS Geofence
+  // 4. Check-in (Entrada) - Official Time & Inviolable GPS Geofence (Foto Facial Opcional)
   app.post('/api/time-entries/check-in', (req, res) => {
     const { user_id, elderly_id, photo_base64, location_lat, location_long, notes } = req.body;
 
-    if (!photo_base64) {
-      return res.status(400).json({
-        error: 'Captura facial obrigatória',
-        message: 'O registro de entrada exige captura fotográfica frontal em tempo real. Seleção de arquivos da galeria é estritamente bloqueada pelo protocolo de segurança.',
-      });
-    }
-
     const user = db.users.find((u) => u.id === user_id);
 
-    // Validação de Geolocalização com confirmação automática de presença
+    // Validação de Geolocalização com confirmação de presença
     const geoValidation = validateGeofence(user, location_lat, location_long);
 
     const officialTime = getOfficialServerTime();
@@ -1219,13 +1212,15 @@ async function startServer() {
       });
     }
 
+    const entryPhoto = photo_base64 || user?.avatar_url || null;
+
     const newEntry = {
       id: `pnt-${Date.now()}`,
       user_id: user_id || 'usr-01',
       user_name: user?.name || 'Cuidador',
       elderly_id: elderly_id || db.elderly?.id || 'eld-01',
       entry_time: officialTime.iso_timestamp,
-      entry_photo_url: photo_base64,
+      entry_photo_url: entryPhoto,
       exit_time: null,
       exit_photo_url: null,
       total_hours: 0,
@@ -1237,7 +1232,7 @@ async function startServer() {
       residence_address: geoValidation.targetAddress,
       date_stamp: officialTime.date_stamp,
       day_of_week: officialTime.day_of_week,
-      notes: notes || `Check-in biométrico validado no local (${geoValidation.distanceMeters}m do ponto central).`,
+      notes: notes || `Check-in de ponto validado com horário oficial (${geoValidation.distanceMeters}m do local).`,
     };
 
     db.timeEntries.unshift(newEntry);
@@ -1250,27 +1245,20 @@ async function startServer() {
       user_role: user?.role || 'caregiver',
       action_type: 'presence_clock',
       category: 'Controle de Ponto',
-      description: `Entrada registrada por ${user?.name || 'Cuidador'}: ponto validado com biometria facial e presença confirmada a ${geoValidation.distanceMeters}m da residência.`,
+      description: `Entrada registrada por ${user?.name || 'Cuidador'}: ponto validado com horário oficial sincronizado (distância: ${geoValidation.distanceMeters}m).`,
       details: `Horário oficial: ${officialTime.formatted_time} | Endereço: ${geoValidation.targetAddress}`,
     });
 
     res.status(201).json({
       success: true,
-      message: `Ponto de entrada validado com sucesso! Presença confirmada no endereço da residência (Distância: ${geoValidation.distanceMeters}m).`,
+      message: `Ponto de entrada registrado com sucesso! Horário oficial: ${officialTime.formatted_time}`,
       entry: newEntry,
     });
   });
 
-  // 5. Check-out (Saída) - Mandatory Exit Selfie & Permanence Calculation & Geofence
+  // 5. Check-out (Saída) - Permanence Calculation & Geofence (Foto Facial Opcional)
   app.post('/api/time-entries/check-out', (req, res) => {
     const { entry_id, photo_base64, location_lat, location_long, notes } = req.body;
-
-    if (!photo_base64) {
-      return res.status(400).json({
-        error: 'Captura facial obrigatória',
-        message: 'O encerramento do turno requer foto facial frontal de saída.',
-      });
-    }
 
     const entry = db.timeEntries.find((e) => e.id === entry_id);
     if (!entry) {
@@ -1298,7 +1286,7 @@ async function startServer() {
     const formattedHours = `${hours}h ${mins.toString().padStart(2, '0')}min`;
 
     entry.exit_time = officialTime.iso_timestamp;
-    entry.exit_photo_url = photo_base64;
+    entry.exit_photo_url = photo_base64 || user?.avatar_url || null;
     entry.total_hours = totalHours;
     entry.total_hours_formatted = formattedHours;
     if (notes) {
@@ -1314,7 +1302,7 @@ async function startServer() {
       user_role: user?.role || 'caregiver',
       action_type: 'presence_clock',
       category: 'Controle de Ponto',
-      description: `Saída registrada por ${user?.name || 'Cuidador'}: turno de ${formattedHours} encerrado com selfie facial e certificação oficial.`,
+      description: `Saída registrada por ${user?.name || 'Cuidador'}: turno de ${formattedHours} encerrado com certificação de horário oficial.`,
       details: `Permanência total: ${formattedHours} (${totalHours}h).`,
     });
 

@@ -311,12 +311,6 @@ export default function App() {
           onOpenResidenceModal={() => setIsResidenceModalOpen(true)}
         />
 
-        {/* Alerta de Biometria Facial Pendente (Pode ser feito depois) */}
-        <FacialBiometricAlert
-          currentUser={currentUser}
-          onOpenFacialModal={() => setIsFacialRegistrationOpen(true)}
-        />
-
         {/* Tab View Routing */}
         {activeTab === 'caregiver_dashboard' && (
           <CaregiverDashboardView

@@ -249,16 +249,8 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                 <button
                   type="button"
                   onClick={onOpenFacialModal}
-                  className={`p-1.5 rounded-xl border transition-colors cursor-pointer shrink-0 ${
-                    currentUser.facial_registered
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                      : 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100 animate-pulse'
-                  }`}
-                  title={
-                    currentUser.facial_registered
-                      ? 'Biometria Facial Cadastrada (Clique para atualizar)'
-                      : 'Biometria Facial Pendente (Clique para cadastrar)'
-                  }
+                  className="p-1.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer shrink-0"
+                  title="Foto de Perfil / Selfie (Opcional)"
                 >
                   <Camera className="w-3.5 h-3.5" />
                 </button>
