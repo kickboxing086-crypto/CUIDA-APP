@@ -268,7 +268,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-blue-100 selection:text-blue-900 font-sans">
+    <div className="min-h-screen min-h-[100dvh] bg-slate-50 flex flex-col selection:bg-blue-100 selection:text-blue-900 font-sans overflow-x-hidden">
       <OfflineIndicator />
       {/* Navigation Header with '+ Adicionar Presença', User Tag, Logout & Notifications */}
       <HeaderNav
@@ -308,8 +308,8 @@ export default function App() {
         currentUserName={currentUser.name}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 space-y-3.5 sm:space-y-6">
+      {/* Main Content Area with complete mobile scrolling */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 space-y-4 sm:space-y-6 pb-20 sm:pb-16 overflow-y-visible">
         {/* Real-time Official Server Clock Banner (Always visible in all operations) */}
         <div className="print:hidden">
           <OfficialClockBadge />

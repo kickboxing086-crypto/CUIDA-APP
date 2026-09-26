@@ -78,8 +78,8 @@ export const AddPresenceModal: React.FC<AddPresenceModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/85 backdrop-blur-sm overflow-y-auto overscroll-contain animate-in fade-in">
+      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 overflow-y-auto max-h-[calc(100dvh-1.5rem)] my-auto flex flex-col">
         {/* Header */}
         <div className="bg-blue-900 text-white p-4 flex items-center justify-between">
           <div>
