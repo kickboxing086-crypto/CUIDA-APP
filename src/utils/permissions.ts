@@ -192,7 +192,7 @@ export function getCombinedPermissions(roles: UserRole[]) {
 }
 
 /**
- * Helper to inspect character breakdown for real-time validation checklist (checkout)
+ * Helper to inspect character breakdown for real-time validation checklist
  */
 export function inspectCredentials(username: string, password: string) {
   const cleanUser = username.trim().toLowerCase();
@@ -227,7 +227,6 @@ export function validateUsername(username: string): { valid: boolean; error?: st
   if (trimmed.length < 3) {
     return { valid: false, error: 'O nome de usuário deve ter pelo menos 3 caracteres.' };
   }
-  // Allow letters, numbers, and special characters (e.g. . _ - @ ! # $ %)
   const regex = /^[a-z0-9._@!#$\-%]+$/;
   if (!regex.test(trimmed)) {
     return {

@@ -80,8 +80,8 @@ export interface PermissionLevelInfo {
 
 export interface Family {
   id: string;
-  name: string; // Ex: 'Família Silveira'
-  elderly_name: string; // Ex: 'Dona Maria de Lourdes Silveira'
+  name: string;
+  elderly_name: string;
   elderly_id?: string;
   residence_address?: string;
   residence_lat?: number;
@@ -158,8 +158,23 @@ export interface FamilyActivityLog {
   user_id: string;
   user_name: string;
   user_role: UserRole;
-  action_type: 'vitals_added' | 'vitals_edited' | 'mission_created' | 'mission_completed' | 'incident_reported' | 'incident_signed' | 'medication_administered' | 'presence_clock' | 'family_notice';
-  category: 'Sinais Vitais' | 'Obrigações Diárias' | 'Boletim do Idoso' | 'Medicamentos' | 'Controle de Ponto' | 'Mural';
+  action_type:
+    | 'vitals_added'
+    | 'vitals_edited'
+    | 'mission_created'
+    | 'mission_completed'
+    | 'incident_reported'
+    | 'incident_signed'
+    | 'medication_administered'
+    | 'presence_clock'
+    | 'family_notice';
+  category:
+    | 'Sinais Vitais'
+    | 'Obrigações Diárias'
+    | 'Boletim do Idoso'
+    | 'Medicamentos'
+    | 'Controle de Ponto'
+    | 'Mural';
   description: string;
   details?: string;
   created_at: string;
@@ -201,7 +216,7 @@ export interface TimeEntry {
   location_long: number;
   distance_meters?: number;
   is_verified_geofence?: boolean;
-  date_stamp: string; // YYYY-MM-DD
+  date_stamp: string;
   day_of_week: string;
   entry_type?: 'biometric_facial' | 'manual_authorized' | 'specialist_visit';
   justification?: string;
@@ -216,10 +231,10 @@ export interface DailyMission {
   id: string;
   elderly_id: string;
   title: string;
-  scheduled_time: string; // HH:mm
+  scheduled_time: string;
   category: MissionCategory;
   priority: MissionPriority;
-  clear_instructions: string; // Instrução clara e concisa do administrador
+  clear_instructions: string;
   created_by_user_id: string;
   created_by_name: string;
   is_active: boolean;
@@ -244,16 +259,16 @@ export interface HealthLog {
   elderly_id: string;
   recorded_by_user_id: string;
   recorded_by_name?: string;
-  systolic_bp: number | null; // Opcional a critério do cuidador ou medição do dia
-  diastolic_bp: number | null; // Opcional
-  heart_rate: number | null; // Opcional
+  systolic_bp: number | null;
+  diastolic_bp: number | null;
+  heart_rate: number | null;
   glucose: number | null;
   glucose_context?: string;
   temperature_c: number | null;
   weight_kg?: number | null;
   status_category?: string;
   is_bp_measured?: boolean;
-  contractor_signed?: boolean; // Assinatura exigida pelo contratante
+  contractor_signed?: boolean;
   caregiver_signed?: boolean;
   notes?: string;
   created_at: string;
@@ -264,7 +279,7 @@ export type GeneralWellbeing = 'otimo' | 'estavel' | 'atencao' | 'mal_estar';
 export interface DailyIncidentReport {
   id: string;
   elderly_id: string;
-  date_stamp: string; // YYYY-MM-DD
+  date_stamp: string;
   day_of_week: string;
   recorded_by_user_id: string;
   recorded_by_name: string;
@@ -289,7 +304,7 @@ export interface MedicationLog {
   elderly_id: string;
   medication_name: string;
   dosage: string;
-  scheduled_time: string; // HH:mm
+  scheduled_time: string;
   instructions?: string;
   administered_at: string | null;
   administered_by_user_id: string | null;

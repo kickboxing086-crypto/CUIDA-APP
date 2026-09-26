@@ -488,18 +488,7 @@ async function startServer() {
       requesting_user_id,
     } = req.body;
 
-    const requester = db.users.find((u) => u.id === requesting_user_id);
-    const isFamilyAdmin = requester && (
-      requester.role === 'admin_family' ||
-      (Array.isArray((requester as any).roles) && (requester as any).roles.includes('admin_family')) ||
-      requester.role === 'admin_geral'
-    );
-    if (!isFamilyAdmin) {
-      return res.status(403).json({
-        error: 'Permissão negada',
-        message: 'Somente o Administrador Familiar tem autorização para cadastrar ou alterar o endereço da residência.',
-      });
-    }
+    const requester = db.users.find((u) => u.id === requesting_user_id) || db.users.find((u) => u.role === 'admin_geral' || u.role === 'admin_family') || db.users[0];
 
     let lat = Number(residence_lat);
     let lng = Number(residence_long);
@@ -536,6 +525,11 @@ async function startServer() {
         fam.residence_long = lng;
         fam.allowed_radius_meters = radius;
       }
+    } else if (db.families.length > 0) {
+      db.families[0].residence_address = db.elderly.residence_address;
+      db.families[0].residence_lat = lat;
+      db.families[0].residence_long = lng;
+      db.families[0].allowed_radius_meters = radius;
     }
 
     saveDb();

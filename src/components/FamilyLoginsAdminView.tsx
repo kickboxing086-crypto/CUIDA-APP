@@ -1,30 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Users,
-  Building2,
-  UserPlus,
-  Plus,
-  ShieldCheck,
-  Trash2,
-  CheckCircle2,
-  AlertCircle,
-  Search,
-  Eye,
-  EyeOff,
-  LogOut,
-  Layers,
-  Activity,
-  Check,
-  X,
-  Copy,
-  KeyRound,
-  Sparkles,
-  Lock,
-  MapPin,
-  Link2,
-  Send,
-  MessageCircle,
-} from 'lucide-react';
+import { Users, Building2, UserPlus, Plus, ShieldCheck, Trash2, CheckCircle2, AlertCircle, Search, Eye, EyeOff, LogOut, Layers, Activity, Check, X, Copy, KeyRound, Lock, MapPin, Link2, Send, MessageCircle, } from "lucide-react";
 import { api } from '../services/api';
 import { User as UserType, Family, UserRole, FamilyActivityLog, InviteLink } from '../types';
 import { AVAILABLE_ROLES, validateUsername, validatePassword, getRoleDefinition } from '../utils/permissions';
@@ -34,1759 +9,1759 @@ import { ElderlyResidenceConfigModal } from './ElderlyResidenceConfigModal';
 import { FooterBranding } from './FooterBranding';
 
 interface FamilyLoginsAdminViewProps {
-  currentUser: UserType;
-  onRefreshDirectory?: () => void;
-  onLogout?: () => void;
+ currentUser: UserType;
+ onRefreshDirectory?: () => void;
+ onLogout?: () => void;
 }
 
 export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
-  currentUser,
-  onRefreshDirectory,
-  onLogout,
+ currentUser,
+ onRefreshDirectory,
+ onLogout,
 }) => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'logins' | 'invites' | 'roles' | 'audit'>('logins');
-  const [families, setFamilies] = useState<Family[]>([]);
-  const [allUsers, setAllUsers] = useState<UserType[]>([]);
-  const [globalAuditLogs, setGlobalAuditLogs] = useState<FamilyActivityLog[]>([]);
-  const [invitesList, setInvitesList] = useState<InviteLink[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  // Password visibility map (userId -> boolean)
-  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
-  const [showAllPasswords, setShowAllPasswords] = useState(false);
-  const [copiedUserId, setCopiedUserId] = useState<string | null>(null);
-
-  // Modals
-  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
-  const [isCreateFamilyModalOpen, setIsCreateFamilyModalOpen] = useState(false);
-  const [isResidenceModalOpen, setIsResidenceModalOpen] = useState(false);
-  const [isCreateInviteModalOpen, setIsCreateInviteModalOpen] = useState(false);
-  const [targetResidenceFamily, setTargetResidenceFamily] = useState<Family | null>(null);
-
-  // Form State: Create Invite Link
-  const [inviteTargetFamilyId, setInviteTargetFamilyId] = useState('');
-  const [inviteSelectedRoles, setInviteSelectedRoles] = useState<UserRole[]>(['caregiver']);
-  const [inviteGuestName, setInviteGuestName] = useState('');
-  const [isSubmittingInvite, setIsSubmittingInvite] = useState(false);
-  const [copiedInviteCode, setCopiedInviteCode] = useState<string | null>(null);
-
-  // Form State: Create User
-  const [targetFamilyId, setTargetFamilyId] = useState('');
-  const [newUserName, setNewUserName] = useState('');
-  const [newUserUsername, setNewUserUsername] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
-  // User can select UP TO TWO roles
-  const [selectedRoles, setSelectedRoles] = useState<UserRole[]>(['admin_family']);
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserCode, setNewUserCode] = useState('');
-  const [showFormPassword, setShowFormPassword] = useState(false);
-  const [isSubmittingUser, setIsSubmittingUser] = useState(false);
-
-  // Form State: Create Family & Family Admin together
-  const [isCreateFamilyAndAdminModalOpen, setIsCreateFamilyAndAdminModalOpen] = useState(false);
-  const [cfaFamilyName, setCfaFamilyName] = useState('');
-  const [cfaElderlyName, setCfaElderlyName] = useState('');
-  const [cfaCep, setCfaCep] = useState('');
-  const [cfaAddress, setCfaAddress] = useState('');
-  const [cfaAdminName, setCfaAdminName] = useState('');
-  const [cfaAdminUsername, setCfaAdminUsername] = useState('');
-  const [cfaAdminPassword, setCfaAdminPassword] = useState('');
-  const [cfaAdminEmail, setCfaAdminEmail] = useState('');
-  const [cfaIsSearchingCep, setCfaIsSearchingCep] = useState(false);
-  const [cfaIsSubmitting, setCfaIsSubmitting] = useState(false);
-  const [cfaShowPassword, setCfaShowPassword] = useState(false);
-
-  // Form State: Create Family
-  const [newFamilyName, setNewFamilyName] = useState('');
-  const [newElderlyName, setNewElderlyName] = useState('');
-  const [newFamilyCep, setNewFamilyCep] = useState('');
-  const [newFamilyAddress, setNewFamilyAddress] = useState('');
-  const [newFamilyNotes, setNewFamilyNotes] = useState('');
-  const [isLoadingFamilyCep, setIsLoadingFamilyCep] = useState(false);
-  const [isSubmittingFamily, setIsSubmittingFamily] = useState(false);
-
-  const handleFamilyCepChange = async (val: string) => {
-    const formatted = formatCep(val);
-    setNewFamilyCep(formatted);
-    const clean = formatted.replace(/\D/g, '');
-    if (clean.length === 8) {
-      setIsLoadingFamilyCep(true);
-      try {
-        const res = await fetchAddressByCep(clean);
-        if (res && res.fullAddress) {
-          setNewFamilyAddress(res.fullAddress);
-        }
-      } catch (err) {
-        console.warn('Erro ao buscar CEP da família:', err);
-      } finally {
-        setIsLoadingFamilyCep(false);
-      }
-    }
-  };
-
-  // Search filter
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      // Fetch users with passwords enabled for the admin account
-      const [famData, usersData, auditData, invitesData] = await Promise.all([
-        api.getFamilies(),
-        api.fetchUsers(true),
-        api.getFamilyActivityLogs('all'),
-        api.getInvites(),
-      ]);
-      setFamilies(famData);
-      setAllUsers(usersData);
-      setGlobalAuditLogs(auditData);
-      setInvitesList(invitesData);
-      if (famData.length > 0) {
-        if (!targetFamilyId) setTargetFamilyId(famData[0].id);
-        if (!inviteTargetFamilyId) setInviteTargetFamilyId(famData[0].id);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const togglePasswordVisibility = (userId: string) => {
-    setVisiblePasswords((prev) => ({
-      ...prev,
-      [userId]: !prev[userId],
-    }));
-  };
-
-  const handleCopyPassword = (userId: string, pass?: string) => {
-    if (!pass) return;
-    navigator.clipboard.writeText(pass);
-    setCopiedUserId(userId);
-    setTimeout(() => setCopiedUserId(null), 2000);
-  };
-
-  const handleToggleRoleSelection = (roleId: UserRole) => {
-    if (selectedRoles.includes(roleId)) {
-      if (selectedRoles.length === 1) {
-        // Must keep at least one role
-        return;
-      }
-      setSelectedRoles(selectedRoles.filter((r) => r !== roleId));
-    } else {
-      if (selectedRoles.length >= 2) {
-        // Replace the second role or alert
-        setSelectedRoles([selectedRoles[0], roleId]);
-      } else {
-        setSelectedRoles([...selectedRoles, roleId]);
-      }
-    }
-  };
-
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFeedback(null);
-
-    // Security Validations
-    const usernameValidation = validateUsername(newUserUsername);
-    if (!usernameValidation.valid) {
-      setFeedback({ type: 'error', message: usernameValidation.error! });
-      return;
-    }
-
-    const passwordValidation = validatePassword(newUserPassword);
-    if (!passwordValidation.valid) {
-      setFeedback({ type: 'error', message: passwordValidation.error! });
-      return;
-    }
-
-    if (!newUserName.trim()) {
-      setFeedback({ type: 'error', message: 'Preencha o nome completo do cliente.' });
-      return;
-    }
-
-    if (selectedRoles.length === 0) {
-      setFeedback({ type: 'error', message: 'Selecione pelo menos uma função para o usuário (até 2 opções permitidas).' });
-      return;
-    }
-
-    const cleanUser = newUserUsername.trim().toLowerCase().replace(/\s+/g, '_');
-    const cleanPass = newUserPassword.trim().toLowerCase().slice(0, 8);
-
-    try {
-      setIsSubmittingUser(true);
-      await api.createUser({
-        name: 'Pendente de Preenchimento',
-        username: cleanUser,
-        password: cleanPass,
-        roles: selectedRoles,
-        role: selectedRoles[0],
-        family_id: targetFamilyId || null,
-        requesting_user_id: currentUser.id,
-      });
-
-      const roleNames = selectedRoles.map((r) => AVAILABLE_ROLES[r]?.name || r).join(' + ');
-
-      setFeedback({
-        type: 'success',
-        message: `Login "${cleanUser}" criado com sucesso! No primeiro acesso, o usuário preencherá seu nome, sobrenome e foto.`,
-      });
-
-      // Reset form
-      setNewUserUsername('');
-      setNewUserPassword('');
-      setSelectedRoles(['caregiver']);
-      setIsCreateUserModalOpen(false);
-
-      await loadData();
-      if (onRefreshDirectory) onRefreshDirectory();
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Erro ao cadastrar login.' });
-    } finally {
-      setIsSubmittingUser(false);
-    }
-  };
-
-  const handleCreateFamily = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFeedback(null);
-
-    if (!newFamilyName.trim() || !newElderlyName.trim()) {
-      setFeedback({ type: 'error', message: 'Preencha o nome da família e o nome do idoso(a).' });
-      return;
-    }
-
-    try {
-      setIsSubmittingFamily(true);
-      const fam = await api.createFamily({
-        name: newFamilyName.trim(),
-        elderly_name: newElderlyName.trim(),
-        residence_address: newFamilyAddress.trim() || undefined,
-        notes: newFamilyNotes.trim() || undefined,
-        requesting_user_id: currentUser.id,
-      });
-
-      setFeedback({
-        type: 'success',
-        message: `Família "${fam.name}" cadastrada com sucesso! Agora você pode criar os logins para ela.`,
-      });
-
-      setNewFamilyName('');
-      setNewElderlyName('');
-      setNewFamilyAddress('');
-      setNewFamilyNotes('');
-      setIsCreateFamilyModalOpen(false);
-      setTargetFamilyId(fam.id);
-
-      await loadData();
-      if (onRefreshDirectory) onRefreshDirectory();
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Erro ao cadastrar família.' });
-    } finally {
-      setIsSubmittingFamily(false);
-    }
-  };
-
-  const handleCfaCepChange = async (val: string) => {
-    const formatted = formatCep(val);
-    setCfaCep(formatted);
-    const clean = formatted.replace(/\D/g, '');
-    if (clean.length === 8) {
-      setCfaIsSearchingCep(true);
-      try {
-        const res = await fetchAddressByCep(clean);
-        if (res && res.fullAddress) {
-          setCfaAddress(res.fullAddress);
-        }
-      } catch (err) {
-        console.warn('Erro ao buscar CEP:', err);
-      } finally {
-        setCfaIsSearchingCep(false);
-      }
-    }
-  };
-
-  const handleCreateFamilyAndAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFeedback(null);
-
-    const cleanUser = cfaAdminUsername.trim().toLowerCase().replace(/\s+/g, '_');
-    const cleanPass = cfaAdminPassword.trim().toLowerCase().slice(0, 8);
-
-    if (!cfaFamilyName.trim()) {
-      setFeedback({ type: 'error', message: 'Informe o nome da Família.' });
-      return;
-    }
-    if (!cfaElderlyName.trim()) {
-      setFeedback({ type: 'error', message: 'Informe o nome do idoso(a) assistido.' });
-      return;
-    }
-    if (cleanUser.length < 3) {
-      setFeedback({ type: 'error', message: 'O usuário do administrador deve ter pelo menos 3 caracteres em minúsculo.' });
-      return;
-    }
-    if (cleanPass.length < 3) {
-      setFeedback({ type: 'error', message: 'A senha do administrador deve ter pelo menos 3 caracteres em minúsculo (máx. 8).' });
-      return;
-    }
-
-    try {
-      setCfaIsSubmitting(true);
-      const res = await api.createFamilyWithAdmin({
-        name: cfaFamilyName.trim(),
-        elderly_name: cfaElderlyName.trim(),
-        residence_address: '',
-        admin_name: 'Pendente de Preenchimento',
-        admin_username: cleanUser,
-        admin_password: cleanPass,
-        requesting_user_id: currentUser.id,
-      });
-
-      setFeedback({
-        type: 'success',
-        message: `Família "${res.family.name}" e Administrador Familiar "@${res.adminUser.username}" criados com sucesso! O administrador preencherá seus dados pessoais e o endereço oficial da residência no seu primeiro login.`,
-      });
-
-      setCfaFamilyName('');
-      setCfaElderlyName('');
-      setCfaAdminUsername('');
-      setCfaAdminPassword('');
-      setIsCreateFamilyAndAdminModalOpen(false);
-      await loadData();
-      if (onRefreshDirectory) onRefreshDirectory();
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Erro ao cadastrar Família e Administrador.' });
-    } finally {
-      setCfaIsSubmitting(false);
-    }
-  };
-
-  const handleCreateInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setIsSubmittingInvite(true);
-      const newInv = await api.createInvite({
-        family_id: inviteTargetFamilyId || null,
-        roles: inviteSelectedRoles,
-        guest_name: inviteGuestName,
-        requesting_user_id: currentUser.id,
-      });
-
-      setFeedback({
-        type: 'success',
-        message: `Link de convite ${newInv.code} criado com sucesso para "${newInv.guest_name}"!`,
-      });
-
-      setInviteGuestName('');
-      setIsCreateInviteModalOpen(false);
-      await loadData();
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Erro ao gerar convite.' });
-    } finally {
-      setIsSubmittingInvite(false);
-    }
-  };
-
-  const handleRevokeInvite = async (inviteId: string, inviteCode: string) => {
-    if (!window.confirm(`Deseja revogar/cancelar o convite ${inviteCode}?`)) return;
-    try {
-      await api.revokeInvite(inviteId);
-      setFeedback({ type: 'success', message: `Convite ${inviteCode} foi revogado com sucesso.` });
-      await loadData();
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Erro ao revogar convite.' });
-    }
-  };
-
-  const handleCopyInviteUrl = (code: string) => {
-    const hostDomain = window.location.origin.includes('cuida-app.vercel.app')
-      ? window.location.origin
-      : 'https://cuida-app.vercel.app';
-    const fullUrl = `${hostDomain}${window.location.pathname}?invite=${code}`;
-    navigator.clipboard.writeText(fullUrl);
-    setCopiedInviteCode(code);
-    setTimeout(() => setCopiedInviteCode(null), 2500);
-  };
-
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!window.confirm(`Tem certeza que deseja excluir o login de ${userName}?`)) {
-      return;
-    }
-
-    try {
-      await api.deleteUser(userId, currentUser.id);
-      setFeedback({ type: 'success', message: `Login de ${userName} foi excluído com sucesso.` });
-      await loadData();
-      if (onRefreshDirectory) onRefreshDirectory();
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Erro ao excluir login.' });
-    }
-  };
-
-  const handleToggleUserRole = async (user: UserType, roleToToggle: UserRole) => {
-    const currentRoles = (user.roles && user.roles.length > 0) ? [...user.roles] : [user.role || 'caregiver'];
-    let updatedRoles: UserRole[];
-
-    if (currentRoles.includes(roleToToggle)) {
-      if (currentRoles.length === 1) {
-        alert('O usuário precisa ter pelo menos 1 função ativa.');
-        return;
-      }
-      updatedRoles = currentRoles.filter((r) => r !== roleToToggle);
-    } else {
-      if (currentRoles.length >= 2) {
-        updatedRoles = [currentRoles[0], roleToToggle];
-      } else {
-        updatedRoles = [...currentRoles, roleToToggle];
-      }
-    }
-
-    try {
-      await api.updateUserRoles(user.id, updatedRoles, currentUser.id);
-      const roleLabels = updatedRoles.map((r) => AVAILABLE_ROLES[r]?.name || r).join(' + ');
-      setFeedback({
-        type: 'success',
-        message: `Funções de ${user.name} atualizadas para: [${roleLabels}].`,
-      });
-      await loadData();
-      if (onRefreshDirectory) onRefreshDirectory();
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Erro ao atualizar funções do usuário.' });
-    }
-  };
-
-  // Filtered families by search
-  const filteredFamilies = families.filter((fam) => {
-    const q = searchQuery.toLowerCase();
-    const matchesFamily = fam.name.toLowerCase().includes(q) || fam.elderly_name.toLowerCase().includes(q);
-    const usersInFamily = allUsers.filter((u) => u.family_id === fam.id);
-    const matchesUser = usersInFamily.some(
-      (u) => u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q)
-    );
-    return matchesFamily || matchesUser;
-  });
-
-  return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white pb-12">
-      {/* Top Admin Master Header */}
-      <header className="bg-slate-950/80 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <ElderCaneLogo size="md" variant="white-on-blue" />
-            <div className="hidden sm:block">
-              <div className="text-xs font-extrabold text-white flex items-center gap-1.5 uppercase tracking-wider">
-                <span>Painel de Administração Geral</span>
-                <span className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] px-1.5 py-0.2 rounded font-mono">
-                  Master
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400">
-                Gestão exclusiva de logins, famílias, funções e senhas
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <span className="text-xs font-bold text-white block">
-                {currentUser.name}
-              </span>
-              <span className="text-[11px] text-purple-400 font-mono">
-                @{currentUser.username} (Administrador Geral)
-              </span>
-            </div>
-
-            {onLogout && (
-              <button
-                onClick={onLogout}
-                className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
-                title="Desconectar do Modo Administrador Geral e voltar ao login"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Sair do Admin</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Admin Navigation Tabs */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-2 border-t border-slate-800/80 py-2">
-          <button
-            onClick={() => setActiveAdminTab('logins')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeAdminTab === 'logins'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Logins, Famílias & Senhas</span>
-            <span className="bg-slate-900/60 text-slate-300 px-1.5 py-0.2 rounded text-[10px]">
-              {allUsers.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveAdminTab('invites')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeAdminTab === 'invites'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            <Link2 className="w-4 h-4 text-emerald-400" />
-            <span>Gerador de Links de Convite</span>
-            <span className="bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.2 rounded text-[10px]">
-              {invitesList.filter((i) => i.status === 'active').length} Ativos
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveAdminTab('roles')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeAdminTab === 'roles'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>Classificação de Funções & Permissões</span>
-          </button>
-
-          <button
-            onClick={() => setActiveAdminTab('audit')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeAdminTab === 'audit'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            <Activity className="w-4 h-4" />
-            <span>Auditoria Geral (Firebase)</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Body */}
-      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1">
-        {/* Feedback alert */}
-        {feedback && (
-          <div
-            className={`p-4 rounded-xl text-xs font-semibold flex items-center justify-between gap-3 shadow-md ${
-              feedback.type === 'success'
-                ? 'bg-emerald-950/80 text-emerald-200 border border-emerald-500/40'
-                : 'bg-red-950/80 text-red-200 border border-red-500/40'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              {feedback.type === 'success' ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              ) : (
-                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-              )}
-              <span>{feedback.message}</span>
-            </div>
-            <button
-              onClick={() => setFeedback(null)}
-              className="text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
-        {/* Tab 1: Logins, Famílias e Senhas */}
-        {activeAdminTab === 'logins' && (
-          <div className="space-y-6">
-            {/* Operação Oficial do Administrador Geral: Cadastro de Família & Admin Familiar */}
-            <div className="bg-gradient-to-r from-blue-950/90 via-slate-900 to-indigo-950/90 border border-blue-500/40 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-              <div className="space-y-1.5">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-xs font-bold text-blue-300">
-                  <ShieldCheck className="w-4 h-4 text-blue-400" />
-                  <span>Logística do Administrador Geral</span>
-                </div>
-                <h3 className="text-lg sm:text-xl font-black text-white">
-                  Cadastrar Família & Administrador Familiar
-                </h3>
-                <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-                  Como Administrador Geral, você cria a <strong>Família</strong> e o login do <strong>Administrador Familiar</strong>.
-                  Com esse acesso, o próprio administrador familiar é quem gera os links de convite para os <strong>irmãos, irmãs, parentes e cuidadores</strong> entrarem no CUIDA com sua classificação.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsCreateFamilyAndAdminModalOpen(true)}
-                className="w-full md:w-auto px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ Cadastrar Família & Admin Familiar</span>
-              </button>
-            </div>
-
-            {/* Action Bar */}
-            <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="relative w-full sm:w-80">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar por família, idoso, login ou função..."
-                  className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-medium text-white placeholder-slate-500 focus:outline-blue-500"
-                />
-              </div>
-
-              <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap">
-                {/* Global Password Toggle for Administrator */}
-                <button
-                  onClick={() => setShowAllPasswords(!showAllPasswords)}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
-                    showAllPasswords
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                      : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                  }`}
-                  title="Exibir ou ocultar senhas de todos os usuários no painel"
-                >
-                  {showAllPasswords ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  <span>{showAllPasswords ? 'Ocultar Senhas' : 'Exibir Todas Senhas'}</span>
-                </button>
-
-                <button
-                  onClick={() => setIsCreateFamilyModalOpen(true)}
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Building2 className="w-4 h-4 text-blue-400" />
-                  <span>+ Nova Família</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (families.length > 0 && !targetFamilyId) {
-                      setTargetFamilyId(families[0].id);
-                    }
-                    setIsCreateUserModalOpen(true);
-                  }}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-blue-600/20"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>+ Criar Login de Cliente</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Families and Logins List */}
-            {loading ? (
-              <div className="bg-slate-950/40 rounded-2xl p-12 border border-slate-800 text-center text-slate-400 text-xs">
-                <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <span>Carregando dados sincronizados do Firebase e servidor...</span>
-              </div>
-            ) : filteredFamilies.length === 0 ? (
-              <div className="bg-slate-950/40 rounded-2xl p-12 border border-slate-800 text-center text-slate-400 text-sm space-y-3">
-                <Building2 className="w-10 h-10 text-slate-600 mx-auto" />
-                <p className="font-semibold text-slate-300">Nenhuma família encontrada para o filtro atual.</p>
-                <button
-                  onClick={() => setIsCreateFamilyModalOpen(true)}
-                  className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl cursor-pointer"
-                >
-                  Cadastrar Primeira Família
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {filteredFamilies.map((family) => {
-                  const familyUsers = allUsers.filter((u) => u.family_id === family.id);
-
-                  return (
-                    <div
-                      key={family.id}
-                      className="bg-slate-950/60 rounded-2xl border border-slate-800 shadow-xl overflow-hidden"
-                    >
-                      {/* Family Header */}
-                      <div className="bg-slate-900/90 border-b border-slate-800 p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
-                            <Building2 className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <h3 className="text-base font-bold text-white flex items-center gap-2">
-                              {family.name}
-                              <span className="text-xs font-normal text-slate-400">
-                                (Idoso: <strong className="text-blue-300">{family.elderly_name}</strong>)
-                              </span>
-                            </h3>
-                            <p className="text-xs text-slate-400">
-                              {family.residence_address || 'Endereço cadastrado'}
-                              {family.notes && ` · ${family.notes}`}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setTargetResidenceFamily(family);
-                              setIsResidenceModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                            title="Cadastrar ou editar o endereço e as coordenadas GPS da residência desta família"
-                          >
-                            <MapPin className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Residência & Geofence</span>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setTargetFamilyId(family.id);
-                              setIsCreateUserModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>Novo Login nesta Família</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Logins inside this Family */}
-                      <div className="p-4 sm:p-6">
-                        {familyUsers.length === 0 ? (
-                          <div className="p-6 text-center border border-dashed border-slate-800 rounded-xl text-xs text-slate-500">
-                            Nenhum login cadastrado para esta família ainda. Clique no botão acima para adicionar.
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {familyUsers.map((user) => {
-                              const userRoles: UserRole[] =
-                                user.roles && user.roles.length > 0 ? user.roles : [user.role || 'caregiver'];
-                              const isPasswordVisible = showAllPasswords || visiblePasswords[user.id];
-
-                              return (
-                                <div
-                                  key={user.id}
-                                  className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition-colors"
-                                >
-                                  <div className="space-y-3">
-                                    <div className="flex items-start justify-between gap-2">
-                                      <div className="flex items-center gap-2.5">
-                                        <img
-                                          src={
-                                            user.avatar_url ||
-                                            'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'
-                                          }
-                                          alt={user.name}
-                                          className="w-10 h-10 rounded-full object-cover border border-slate-700 shrink-0"
-                                        />
-                                        <div>
-                                          <h4 className="text-xs font-bold text-white leading-tight">
-                                            {user.name}
-                                          </h4>
-                                          {/* Multi-role badges */}
-                                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                            {userRoles.map((r) => {
-                                              const def = AVAILABLE_ROLES[r];
-                                              return (
-                                                <span
-                                                  key={r}
-                                                  className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                                                >
-                                                  {def?.name || r}
-                                                </span>
-                                              );
-                                            })}
-                                          </div>
-                                        </div>
-                                      </div>
-
-                                      {user.id !== 'usr-admin-samuel' && (
-                                        <button
-                                          onClick={() => handleDeleteUser(user.id, user.name)}
-                                          className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
-                                          title="Remover este login"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                      )}
-                                    </div>
-
-                                    {/* Credentials Box (Username + Password Visible for Admin) */}
-                                    <div className="space-y-2 text-xs text-slate-300 bg-slate-950/80 p-3 rounded-lg border border-slate-800/80">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-slate-500">Usuário:</span>
-                                        <code className="text-emerald-400 font-mono font-bold">
-                                          @{user.username}
-                                        </code>
-                                      </div>
-
-                                      {/* Password Field Visible with Eye & Copy Button */}
-                                      <div className="flex items-center justify-between pt-1 border-t border-slate-900">
-                                        <span className="text-slate-500 flex items-center gap-1">
-                                          <KeyRound className="w-3 h-3 text-amber-400" />
-                                          <span>Senha:</span>
-                                        </span>
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="font-mono text-xs font-bold text-amber-300 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                                            {isPasswordVisible ? (user.password || '••••••••') : '••••••••'}
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={() => togglePasswordVisibility(user.id)}
-                                            className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors cursor-pointer"
-                                            title={isPasswordVisible ? 'Ocultar senha' : 'Ver senha'}
-                                          >
-                                            {isPasswordVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleCopyPassword(user.id, user.password)}
-                                            className="p-1 text-slate-400 hover:text-emerald-400 rounded hover:bg-slate-800 transition-colors cursor-pointer"
-                                            title="Copiar senha"
-                                          >
-                                            {copiedUserId === user.id ? (
-                                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                            ) : (
-                                              <Copy className="w-3.5 h-3.5" />
-                                            )}
-                                          </button>
-                                        </div>
-                                      </div>
-
-                                      <div className="flex items-center justify-between pt-1 border-t border-slate-900 text-[11px]">
-                                        <span className="text-slate-500">Matrícula:</span>
-                                        <span className="font-mono text-slate-400">
-                                          {user.registration_code || '---'}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    {/* Multi-role Options Selector (Allows selecting up to 2 options) */}
-                                    <div className="pt-2 border-t border-slate-800 space-y-1.5">
-                                      <label className="text-[10px] uppercase font-bold text-slate-400 flex items-center justify-between">
-                                        <span>Funções do Usuário (Até 2):</span>
-                                        <span className="text-slate-500">{userRoles.length}/2 ativas</span>
-                                      </label>
-                                      
-                                      <div className="grid grid-cols-2 gap-1.5">
-                                        {(['caregiver', 'admin_family', 'family_member', 'caregiver_substitute'] as UserRole[]).map((rId) => {
-                                          const isSelected = userRoles.includes(rId);
-                                          const def = AVAILABLE_ROLES[rId];
-                                          return (
-                                            <button
-                                              key={rId}
-                                              type="button"
-                                              onClick={() => handleToggleUserRole(user, rId)}
-                                              className={`px-2 py-1.5 rounded-lg text-[11px] font-bold text-left flex items-center justify-between transition-all cursor-pointer border ${
-                                                isSelected
-                                                  ? 'bg-blue-600/30 text-blue-200 border-blue-500/60 shadow-xs'
-                                                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-300'
-                                              }`}
-                                            >
-                                              <span className="truncate">{def.name}</span>
-                                              {isSelected && <Check className="w-3 h-3 text-blue-400 shrink-0 ml-1" />}
-                                            </button>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tab: Gerador de Links de Convite */}
-        {activeAdminTab === 'invites' && (
-          <div className="space-y-6">
-            <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-xs font-semibold text-emerald-300">
-                  <Link2 className="w-4 h-4 text-emerald-400" />
-                  <span>Fluxo Exclusivo de Cadastro via Convite</span>
-                </div>
-                <h3 className="text-xl font-extrabold text-white">
-                  Gerador de Links de Convite
-                </h3>
-                <p className="text-xs text-slate-400 max-w-2xl">
-                  Como Administrador, envie um Link de Convite exclusivo para que cuidadores e familiares possam criar seu login e senha com segurança.
-                </p>
-              </div>
-
-              <button
-                onClick={() => setIsCreateInviteModalOpen(true)}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-2 cursor-pointer shrink-0"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Gerar Novo Link de Convite</span>
-              </button>
-            </div>
-
-            {/* List of Convites */}
-            <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-5 space-y-4">
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>Histórico de Links de Convite Gerados</span>
-                <span className="text-xs font-mono text-slate-500">({invitesList.length})</span>
-              </h4>
-
-              {invitesList.length === 0 ? (
-                <div className="p-8 text-center bg-slate-900/50 rounded-xl border border-slate-800 space-y-3">
-                  <Link2 className="w-8 h-8 text-slate-600 mx-auto" />
-                  <p className="text-xs text-slate-400">
-                    Nenhum link de convite gerado ainda. Clique em "Gerar Novo Link de Convite" acima para convidar um novo cuidador ou familiar.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {invitesList.map((inv) => {
-                    const hostDomain = window.location.origin.includes('cuida-app.vercel.app')
-                      ? window.location.origin
-                      : 'https://cuida-app.vercel.app';
-                    const fullInviteUrl = `${hostDomain}${window.location.pathname}?invite=${inv.code}`;
-                    const whatsappMsg = `Olá ${inv.guest_name || ''}! Você foi convidado(a) para acessar o sistema CUIDA (${inv.family_name}).\nPara criar sua conta e senha, acesse o link de convite exclusivo:\n${fullInviteUrl}`;
-                    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappMsg)}`;
-
-                    return (
-                      <div
-                        key={inv.id}
-                        className={`p-4 rounded-2xl border transition-all space-y-3 ${
-                          inv.status === 'active'
-                            ? 'bg-slate-900 border-slate-800 hover:border-blue-500/40'
-                            : inv.status === 'used'
-                            ? 'bg-slate-950/80 border-slate-800/80 opacity-80'
-                            : 'bg-red-950/20 border-red-900/40 opacity-60'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-black text-blue-400 bg-blue-950/80 px-2.5 py-1 rounded-lg border border-blue-800">
-                              {inv.code}
-                            </span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                              inv.status === 'active'
-                                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
-                                : inv.status === 'used'
-                                ? 'bg-blue-950/80 text-blue-300 border-blue-500/40'
-                                : 'bg-red-950/80 text-red-300 border-red-500/40'
-                            }`}>
-                              {inv.status === 'active' ? '🟢 Ativo (Aguardando uso)' : inv.status === 'used' ? '🔵 Conta Criada' : '⚪ Revogado'}
-                            </span>
-                          </div>
-
-                          {inv.status === 'active' && (
-                            <button
-                              onClick={() => handleRevokeInvite(inv.id, inv.code)}
-                              className="text-[11px] text-red-400 hover:text-red-300 font-medium cursor-pointer"
-                              title="Cancelar este convite"
-                            >
-                              Revogar
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="text-xs space-y-1">
-                          <p className="font-extrabold text-white text-sm">{inv.guest_name}</p>
-                          <p className="text-slate-400">
-                            <strong>Família:</strong> {inv.family_name}
-                          </p>
-                          <p className="text-slate-400">
-                            <strong>Funções Liberadas:</strong>{' '}
-                            <span className="text-blue-300 font-semibold">{inv.role_labels?.join(' + ')}</span>
-                          </p>
-                        </div>
-
-                        {/* Quick Action Buttons for Active Invite */}
-                        {inv.status === 'active' && (
-                          <div className="pt-2 border-t border-slate-800/80 flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleCopyInviteUrl(inv.code)}
-                              className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                            >
-                              {copiedInviteCode === inv.code ? (
-                                <>
-                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                  <span className="text-emerald-300">Copiado!</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3.5 h-3.5 text-blue-400" />
-                                  <span>Copiar Link</span>
-                                </>
-                              )}
-                            </button>
-
-                            <a
-                              href={whatsappUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex-1 py-2 px-3 rounded-xl bg-emerald-700/80 hover:bg-emerald-600 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                            >
-                              <MessageCircle className="w-3.5 h-3.5" />
-                              <span>Enviar no WhatsApp</span>
-                            </a>
-                          </div>
-                        )}
-
-                        {inv.status === 'used' && inv.used_by_users && inv.used_by_users.length > 0 && (
-                          <div className="text-[11px] text-emerald-400 bg-emerald-950/40 p-2 rounded-xl border border-emerald-500/20">
-                            ✓ Conta criada pelo usuário: <strong>@{inv.used_by_users[0].username}</strong>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Tab 2: Classificação Organizada por Nomes & Permissões */}
-        {activeAdminTab === 'roles' && (
-          <div className="space-y-6">
-            <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-6 space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-500/20 border border-purple-400/30 rounded-full text-xs font-semibold text-purple-300">
-                <ShieldCheck className="w-4 h-4 text-purple-400" />
-                <span>Classificação Organizada por Nomes de Função</span>
-              </div>
-              <h3 className="text-xl font-extrabold text-white">
-                Funções do Sistema CUIDA (Suporte a até 2 opções por usuário)
-              </h3>
-              <p className="text-xs text-slate-400 max-w-3xl">
-                Agora qualquer usuário pode receber até 2 funções simultâneas (ex: <strong>Cuidador + Administrador Familiar</strong>), permitindo gerenciar o plano com máxima flexibilidade.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {Object.values(AVAILABLE_ROLES).map((roleDef) => (
-                <div
-                  key={roleDef.id}
-                  className="bg-slate-950/60 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
-                      {roleDef.name}
-                    </span>
-                    <span className="text-xs font-mono text-slate-500">
-                      {roleDef.id}
-                    </span>
-                  </div>
-
-                  <div>
-                    <h4 className="font-extrabold text-base text-white">
-                      {roleDef.name}
-                    </h4>
-                    <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                      {roleDef.description}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2 pt-3 border-t border-slate-800 text-xs">
-                    <div className="text-[11px] uppercase font-bold text-slate-500">
-                      Permissões e Acessos:
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-slate-300">
-                        {roleDef.permissions.can_edit_missions ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        ) : (
-                          <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                        )}
-                        <span className={roleDef.permissions.can_edit_missions ? 'font-semibold text-emerald-300' : 'text-slate-500'}>
-                          Criar / Editar Missões Diárias (POP)
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-slate-300">
-                        {roleDef.permissions.can_clock_in ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        ) : (
-                          <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                        )}
-                        <span className={roleDef.permissions.can_clock_in ? 'font-semibold text-amber-300' : 'text-slate-500'}>
-                          Bater Ponto Facial com Câmera ao Vivo
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-slate-300">
-                        {roleDef.permissions.can_edit_vitals ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        ) : (
-                          <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                        )}
-                        <span className={roleDef.permissions.can_edit_vitals ? 'font-semibold text-rose-300' : 'text-slate-500'}>
-                          Registrar / Editar Aferição de Pressão (PA)
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-slate-300">
-                        {roleDef.permissions.can_sign_contractor ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        ) : (
-                          <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                        )}
-                        <span className={roleDef.permissions.can_sign_contractor ? 'font-semibold text-blue-300' : 'text-slate-500'}>
-                          Assinar Visto Oficial no Boletim
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-slate-300">
-                        {roleDef.permissions.can_manage_logins ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        ) : (
-                          <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                        )}
-                        <span className={roleDef.permissions.can_manage_logins ? 'font-semibold text-purple-300' : 'text-slate-500'}>
-                          Criar Logins e Ver Senhas
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Tab 3: Auditoria Geral */}
-        {activeAdminTab === 'audit' && (
-          <div className="space-y-6">
-            <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-xl font-extrabold text-white">
-                  Auditoria de Atividades em Tempo Real (Firebase)
-                </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Trilha global de alterações em todas as famílias para controle total do Administrador Geral.
-                </p>
-              </div>
-              <button
-                onClick={loadData}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors"
-              >
-                Recarregar Auditoria
-              </button>
-            </div>
-
-            {globalAuditLogs.length === 0 ? (
-              <div className="bg-slate-950/40 rounded-2xl p-12 border border-slate-800 text-center text-slate-500 text-xs">
-                Nenhum evento registrado na auditoria até o momento.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {globalAuditLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="bg-slate-950/70 border border-slate-800 p-4 rounded-xl flex items-start justify-between gap-4"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-white">
-                          {log.user_name}
-                        </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                          {log.category}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-300 mt-1">{log.description}</p>
-                      {log.details && (
-                        <p className="text-[11px] text-slate-500 font-mono mt-1">{log.details}</p>
-                      )}
-                    </div>
-
-                    <div className="text-right text-[11px] text-slate-500 shrink-0">
-                      {new Date(log.created_at).toLocaleTimeString('pt-BR')} ·{' '}
-                      {new Date(log.created_at).toLocaleDateString('pt-BR')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        <FooterBranding theme="dark" className="border-t border-slate-800/80 mt-10 pt-6" />
-      </main>
-
-      {/* Modal: Criar Login de Cliente com Suporte a até 2 Opções e Validação de Segurança */}
-      {isCreateUserModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-white my-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-blue-400 font-bold text-base">
-                <UserPlus className="w-5 h-5" />
-                <span>Criar Novo Login de Cliente</span>
-              </div>
-              <button
-                onClick={() => setIsCreateUserModalOpen(false)}
-                className="text-slate-400 hover:text-white text-sm font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Família do Cliente *
-                </label>
-                <select
-                  required
-                  value={targetFamilyId}
-                  onChange={(e) => setTargetFamilyId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-semibold text-white focus:outline-blue-500 cursor-pointer"
-                >
-                  {families.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name} ({f.elderly_name})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200">
-                <p className="font-semibold text-blue-300">
-                  ℹ️ Como Administrador Geral, você gera apenas o login e a função. O usuário completará seu nome completo, sobrenome e foto de perfil no seu primeiro acesso.
-                </p>
-              </div>
-
-              {/* Security: Username & Password with Real-Time Validation Checkout */}
-              <div className="space-y-3 bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-300">
-                  <span className="flex items-center gap-1.5 text-blue-400">
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Checkout de Validação das Credenciais</span>
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-mono">
-                    Padrão: Minúsculo &amp; Máx. 8 chars
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Usuário (Login em minúsculo) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newUserUsername}
-                      onChange={(e) => setNewUserUsername(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
-                      placeholder="ex: joao_cuidador"
-                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-blue-500 lowercase"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Senha de Acesso (Máx. 8 caracteres) *
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showFormPassword ? 'text' : 'password'}
-                        required
-                        maxLength={8}
-                        value={newUserPassword}
-                        onChange={(e) => setNewUserPassword(e.target.value.toLowerCase().slice(0, 8))}
-                        placeholder="máx 8 minúsculos"
-                        className="w-full px-3 py-2 pr-9 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-blue-500 lowercase"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowFormPassword(!showFormPassword)}
-                        className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-white cursor-pointer"
-                      >
-                        {showFormPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Checkout Checklist Badges */}
-                <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
-                  <div className={`p-1.5 rounded-lg border flex items-center gap-1 font-semibold ${
-                    newUserUsername.length >= 3 && newUserPassword.length >= 3
-                      ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
-                      : 'bg-slate-900 border-slate-800 text-slate-500'
-                  }`}>
-                    <span>{newUserUsername.length >= 3 && newUserPassword.length >= 3 ? '✓' : '○'}</span>
-                    <span>Tudo Minúsculo</span>
-                  </div>
-
-                  <div className={`p-1.5 rounded-lg border flex items-center gap-1 font-semibold ${
-                    newUserPassword.length > 0 && newUserPassword.length <= 8
-                      ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
-                      : 'bg-slate-900 border-slate-800 text-slate-500'
-                  }`}>
-                    <span>{newUserPassword.length > 0 && newUserPassword.length <= 8 ? '✓' : '○'}</span>
-                    <span>Senha: {newUserPassword.length}/8 chars</span>
-                  </div>
-
-                  <div className={`p-1.5 rounded-lg border flex items-center gap-1 font-semibold ${
-                    /[a-z]/i.test(newUserPassword)
-                      ? 'bg-blue-950/40 border-blue-500/40 text-blue-300'
-                      : 'bg-slate-900 border-slate-800 text-slate-500'
-                  }`}>
-                    <span>{/[a-z]/i.test(newUserPassword) ? '✓' : '○'}</span>
-                    <span>Letras (a-z)</span>
-                  </div>
-
-                  <div className={`p-1.5 rounded-lg border flex items-center gap-1 font-semibold ${
-                    /[0-9]/.test(newUserPassword)
-                      ? 'bg-purple-950/40 border-purple-500/40 text-purple-300'
-                      : 'bg-slate-900 border-slate-800 text-slate-500'
-                  }`}>
-                    <span>{/[0-9]/.test(newUserPassword) ? '✓' : '○'}</span>
-                    <span>Números (0-9)</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Multi-role Selector (Choose up to 2 options) */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-300">
-                  Funções do Usuário (Selecione até 2 opções) *
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {(['caregiver', 'admin_family', 'family_member', 'caregiver_substitute'] as UserRole[]).map((rId) => {
-                    const isSelected = selectedRoles.includes(rId);
-                    const def = AVAILABLE_ROLES[rId];
-                    return (
-                      <div
-                        key={rId}
-                        onClick={() => handleToggleRoleSelection(rId)}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-2.5 ${
-                          isSelected
-                            ? 'bg-blue-600/20 border-blue-500 text-white shadow-xs'
-                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                        }`}
-                      >
-                        <div
-                          className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center border shrink-0 ${
-                            isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-slate-600'
-                          }`}
-                        >
-                          {isSelected && <Check className="w-3 h-3" />}
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold text-slate-200">
-                            {def.name}
-                          </div>
-                          <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">
-                            {def.description}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="text-[11px] text-blue-300">
-                  Selecionado: <strong>{selectedRoles.map((r) => AVAILABLE_ROLES[r]?.name).join(' + ')}</strong>
-                </p>
-              </div>
-
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateUserModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingUser}
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold cursor-pointer shadow-lg"
-                >
-                  {isSubmittingUser ? 'Criando...' : 'Salvar no Firebase & Gerar Login'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Criar Nova Família */}
-      {isCreateFamilyModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-white">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-blue-400 font-bold text-base">
-                <Building2 className="w-5 h-5" />
-                <span>Cadastrar Nova Família</span>
-              </div>
-              <button
-                onClick={() => setIsCreateFamilyModalOpen(false)}
-                className="text-slate-400 hover:text-white text-sm font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateFamily} className="space-y-4">
-              <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200">
-                <p className="font-semibold text-blue-300">
-                  ℹ️ O endereço oficial da residência será cadastrado exclusivamente pelo Administrador da Família após o login.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Nome da Família *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newFamilyName}
-                  onChange={(e) => setNewFamilyName(e.target.value)}
-                  placeholder="Ex: Família Albuquerque"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Nome do Idoso(a) Assistido *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newElderlyName}
-                  onChange={(e) => setNewElderlyName(e.target.value)}
-                  placeholder="Ex: Dona Helena Albuquerque (88 anos)"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateFamilyModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingFamily}
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold cursor-pointer shadow-lg"
-                >
-                  {isSubmittingFamily ? 'Cadastrando...' : 'Cadastrar Família no Firebase'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Configurar Residência da Família */}
-      {isResidenceModalOpen && targetResidenceFamily && (
-        <ElderlyResidenceConfigModal
-          isOpen={isResidenceModalOpen}
-          onClose={() => {
-            setIsResidenceModalOpen(false);
-            setTargetResidenceFamily(null);
-          }}
-          currentUser={currentUser}
-          familyId={targetResidenceFamily.id}
-          familyName={targetResidenceFamily.name}
-          currentElderly={{
-            id: targetResidenceFamily.elderly_id || 'eld-01',
-            full_name: targetResidenceFamily.elderly_name,
-            birth_date: '',
-            blood_type: 'Não informado',
-            allergies: [],
-            residence_address: targetResidenceFamily.residence_address || '',
-            residence_lat: targetResidenceFamily.residence_lat || -23.5505,
-            residence_long: targetResidenceFamily.residence_long || -46.6333,
-            allowed_radius_meters: targetResidenceFamily.allowed_radius_meters || 150,
-            emergency_contacts: [],
-            created_at: new Date().toISOString(),
-          }}
-          onSaved={() => {
-            loadData();
-            if (onRefreshDirectory) onRefreshDirectory();
-          }}
-        />
-      )}
-
-      {/* Modal: Cadastrar Família & Administrador Familiar em Etapa Única */}
-      {isCreateFamilyAndAdminModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl space-y-5 text-white my-6 text-left">
-            <div className="flex items-start justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 bg-emerald-500/20 rounded-xl text-emerald-400 border border-emerald-500/30">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-bold text-white">
-                    Cadastrar Família & Administrador Familiar
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    O administrador familiar terá a conta inicial para convidar irmãos, irmãs e cuidadores.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsCreateFamilyAndAdminModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateFamilyAndAdmin} className="space-y-4">
-              <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200 space-y-1">
-                <p className="font-bold flex items-center gap-1.5 text-blue-300">
-                  <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
-                  <span>Missão do Administrador Geral</span>
-                </p>
-                <p className="text-slate-300 leading-relaxed">
-                  Você apenas cria a Família e as credenciais de acesso. O próprio Administrador Familiar preencherá seu nome, sobrenome, foto e cadastrará o endereço oficial da residência no primeiro login.
-                </p>
-              </div>
-
-              {/* Seção 1: Dados da Família e do Idoso */}
-              <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-3">
-                <span className="text-[11px] font-black uppercase text-blue-400 tracking-wider flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5" /> 1. Família & Idoso Assistido
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Nome da Família *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={cfaFamilyName}
-                      onChange={(e) => setCfaFamilyName(e.target.value)}
-                      placeholder="Ex: Família Silveira"
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Nome do Idoso(a) Assistido *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={cfaElderlyName}
-                      onChange={(e) => setCfaElderlyName(e.target.value)}
-                      placeholder="Ex: Dona Maria Silveira"
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Seção 2: Login do Administrador Familiar Contratante */}
-              <div className="p-3.5 bg-slate-950/70 border border-emerald-500/30 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase text-emerald-400 tracking-wider flex items-center gap-1.5">
-                    <UserPlus className="w-3.5 h-3.5" /> 2. Login de Acesso do Administrador Familiar
-                  </span>
-                  <span className="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/40 font-bold">
-                    admin_family
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-semibold text-slate-300">
-                        Usuário (Login) *
-                      </label>
-                      <span className="text-[10px] text-slate-500 font-mono">minúsculo</span>
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      value={cfaAdminUsername}
-                      onChange={(e) => setCfaAdminUsername(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
-                      placeholder="ex: silveira_admin"
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-blue-500 lowercase"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-semibold text-slate-300">
-                        Senha (Máx. 8 caracteres) *
-                      </label>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        {cfaAdminPassword.length}/8 chars
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type={cfaShowPassword ? 'text' : 'password'}
-                        required
-                        maxLength={8}
-                        value={cfaAdminPassword}
-                        onChange={(e) => setCfaAdminPassword(e.target.value.toLowerCase().slice(0, 8))}
-                        placeholder="senha (máx 8)"
-                        className="w-full px-3 py-2 pr-10 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-blue-500 lowercase"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setCfaShowPassword(!cfaShowPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white cursor-pointer"
-                      >
-                        {cfaShowPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-800 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateFamilyAndAdminModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={cfaIsSubmitting || !cfaFamilyName.trim() || !cfaElderlyName.trim() || !cfaAdminUsername.trim() || !cfaAdminPassword.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold cursor-pointer shadow-lg shadow-emerald-600/30 flex items-center gap-1.5"
-                >
-                  {cfaIsSubmitting ? 'Cadastrando Família...' : 'Criar Família & Administrador'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Gerar Novo Link de Convite */}
-      {isCreateInviteModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-white">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-base">
-                <Link2 className="w-5 h-5" />
-                <span>Gerar Link de Convite para Novo Usuário</span>
-              </div>
-              <button
-                onClick={() => setIsCreateInviteModalOpen(false)}
-                className="text-slate-400 hover:text-white text-sm font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateInvite} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Nome do Convidado(a) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={inviteGuestName}
-                  onChange={(e) => setInviteGuestName(e.target.value)}
-                  placeholder="Ex: Cuidadora Ana Paula ou Filho Marcos"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Vincular à Família do Idoso *
-                </label>
-                <select
-                  value={inviteTargetFamilyId}
-                  onChange={(e) => setInviteTargetFamilyId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
-                >
-                  {families.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name} ({f.elderly_name})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-2">
-                  Funções Liberadas para este Convite (Até 2):
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {Object.values(AVAILABLE_ROLES).map((roleDef) => {
-                    const isSelected = inviteSelectedRoles.includes(roleDef.id);
-                    return (
-                      <button
-                        key={roleDef.id}
-                        type="button"
-                        onClick={() => {
-                          if (isSelected) {
-                            if (inviteSelectedRoles.length > 1) {
-                              setInviteSelectedRoles(inviteSelectedRoles.filter((r) => r !== roleDef.id));
-                            }
-                          } else {
-                            if (inviteSelectedRoles.length >= 2) {
-                              setInviteSelectedRoles([inviteSelectedRoles[0], roleDef.id]);
-                            } else {
-                              setInviteSelectedRoles([...inviteSelectedRoles, roleDef.id]);
-                            }
-                          }
-                        }}
-                        className={`p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer flex items-center justify-between ${
-                          isSelected
-                            ? 'bg-emerald-950/60 border-emerald-500 text-white font-bold'
-                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                        }`}
-                      >
-                        <span>{roleDef.name}</span>
-                        {isSelected && <Check className="w-4 h-4 text-emerald-400" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateInviteModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingInvite || !inviteGuestName.trim()}
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer shadow-lg flex items-center gap-1.5"
-                >
-                  {isSubmittingInvite ? 'Gerando Link...' : 'Gerar Link de Convite'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+ const [activeAdminTab, setActiveAdminTab] = useState<'logins' 'invites' 'roles' 'audit'>('logins');
+ const [families, setFamilies] = useState<Family[]>([]);
+ const [allUsers, setAllUsers] = useState<UserType[]>([]);
+ const [globalAuditLogs, setGlobalAuditLogs] = useState<FamilyActivityLog[]>([]);
+ const [invitesList, setInvitesList] = useState<InviteLink[]>([]);
+ const [loading, setLoading] = useState(true);
+ const [feedback, setFeedback] = useState<{ type: 'success' 'error'; message: string } null>(null);
+
+ // Password visibility map (userId -> boolean)
+ const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+ const [showAllPasswords, setShowAllPasswords] = useState(false);
+ const [copiedUserId, setCopiedUserId] = useState<string null>(null);
+
+ // Modals
+ const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+ const [isCreateFamilyModalOpen, setIsCreateFamilyModalOpen] = useState(false);
+ const [isResidenceModalOpen, setIsResidenceModalOpen] = useState(false);
+ const [isCreateInviteModalOpen, setIsCreateInviteModalOpen] = useState(false);
+ const [targetResidenceFamily, setTargetResidenceFamily] = useState<Family null>(null);
+
+ // Form State: Create Invite Link
+ const [inviteTargetFamilyId, setInviteTargetFamilyId] = useState('');
+ const [inviteSelectedRoles, setInviteSelectedRoles] = useState<UserRole[]>(['caregiver']);
+ const [inviteGuestName, setInviteGuestName] = useState('');
+ const [isSubmittingInvite, setIsSubmittingInvite] = useState(false);
+ const [copiedInviteCode, setCopiedInviteCode] = useState<string null>(null);
+
+ // Form State: Create User
+ const [targetFamilyId, setTargetFamilyId] = useState('');
+ const [newUserName, setNewUserName] = useState('');
+ const [newUserUsername, setNewUserUsername] = useState('');
+ const [newUserPassword, setNewUserPassword] = useState('');
+ // User can select UP TO TWO roles
+ const [selectedRoles, setSelectedRoles] = useState<UserRole[]>(['admin_family']);
+ const [newUserEmail, setNewUserEmail] = useState('');
+ const [newUserCode, setNewUserCode] = useState('');
+ const [showFormPassword, setShowFormPassword] = useState(false);
+ const [isSubmittingUser, setIsSubmittingUser] = useState(false);
+
+ // Form State: Create Family & Family Admin together
+ const [isCreateFamilyAndAdminModalOpen, setIsCreateFamilyAndAdminModalOpen] = useState(false);
+ const [cfaFamilyName, setCfaFamilyName] = useState('');
+ const [cfaElderlyName, setCfaElderlyName] = useState('');
+ const [cfaCep, setCfaCep] = useState('');
+ const [cfaAddress, setCfaAddress] = useState('');
+ const [cfaAdminName, setCfaAdminName] = useState('');
+ const [cfaAdminUsername, setCfaAdminUsername] = useState('');
+ const [cfaAdminPassword, setCfaAdminPassword] = useState('');
+ const [cfaAdminEmail, setCfaAdminEmail] = useState('');
+ const [cfaIsSearchingCep, setCfaIsSearchingCep] = useState(false);
+ const [cfaIsSubmitting, setCfaIsSubmitting] = useState(false);
+ const [cfaShowPassword, setCfaShowPassword] = useState(false);
+
+ // Form State: Create Family
+ const [newFamilyName, setNewFamilyName] = useState('');
+ const [newElderlyName, setNewElderlyName] = useState('');
+ const [newFamilyCep, setNewFamilyCep] = useState('');
+ const [newFamilyAddress, setNewFamilyAddress] = useState('');
+ const [newFamilyNotes, setNewFamilyNotes] = useState('');
+ const [isLoadingFamilyCep, setIsLoadingFamilyCep] = useState(false);
+ const [isSubmittingFamily, setIsSubmittingFamily] = useState(false);
+
+ const handleFamilyCepChange = async (val: string) => {
+ const formatted = formatCep(val);
+ setNewFamilyCep(formatted);
+ const clean = formatted.replace(/\D/g, '');
+ if (clean.length === 8) {
+ setIsLoadingFamilyCep(true);
+ try {
+ const res = await fetchAddressByCep(clean);
+ if (res && res.fullAddress) {
+ setNewFamilyAddress(res.fullAddress);
+ }
+ } catch (err) {
+ console.warn('Erro ao buscar CEP da família:', err);
+ } finally {
+ setIsLoadingFamilyCep(false);
+ }
+ }
+ };
+
+ // Search filter
+ const [searchQuery, setSearchQuery] = useState('');
+
+ const loadData = async () => {
+ try {
+ setLoading(true);
+ // Fetch users with passwords enabled for the admin account
+ const [famData, usersData, auditData, invitesData] = await Promise.all([
+ api.getFamilies(),
+ api.fetchUsers(true),
+ api.getFamilyActivityLogs('all'),
+ api.getInvites(),
+ ]);
+ setFamilies(famData);
+ setAllUsers(usersData);
+ setGlobalAuditLogs(auditData);
+ setInvitesList(invitesData);
+ if (famData.length > 0) {
+ if (!targetFamilyId) setTargetFamilyId(famData[0].id);
+ if (!inviteTargetFamilyId) setInviteTargetFamilyId(famData[0].id);
+ }
+ } catch (err) {
+ console.error(err);
+ } finally {
+ setLoading(false);
+ }
+ };
+
+ useEffect(() => {
+ loadData();
+ }, []);
+
+ const togglePasswordVisibility = (userId: string) => {
+ setVisiblePasswords((prev) => ({
+ ...prev,
+ [userId]: !prev[userId],
+ }));
+ };
+
+ const handleCopyPassword = (userId: string, pass?: string) => {
+ if (!pass) return;
+ navigator.clipboard.writeText(pass);
+ setCopiedUserId(userId);
+ setTimeout(() => setCopiedUserId(null), 2000);
+ };
+
+ const handleToggleRoleSelection = (roleId: UserRole) => {
+ if (selectedRoles.includes(roleId)) {
+ if (selectedRoles.length === 1) {
+ // Must keep at least one role
+ return;
+ }
+ setSelectedRoles(selectedRoles.filter((r) => r !== roleId));
+ } else {
+ if (selectedRoles.length >= 2) {
+ // Replace the second role or alert
+ setSelectedRoles([selectedRoles[0], roleId]);
+ } else {
+ setSelectedRoles([...selectedRoles, roleId]);
+ }
+ }
+ };
+
+ const handleCreateUser = async (e: React.FormEvent) => {
+ e.preventDefault();
+ setFeedback(null);
+
+ // Security Validations
+ const usernameValidation = validateUsername(newUserUsername);
+ if (!usernameValidation.valid) {
+ setFeedback({ type: 'error', message: usernameValidation.error! });
+ return;
+ }
+
+ const passwordValidation = validatePassword(newUserPassword);
+ if (!passwordValidation.valid) {
+ setFeedback({ type: 'error', message: passwordValidation.error! });
+ return;
+ }
+
+ if (!newUserName.trim()) {
+ setFeedback({ type: 'error', message: 'Preencha o nome completo do cliente.' });
+ return;
+ }
+
+ if (selectedRoles.length === 0) {
+ setFeedback({ type: 'error', message: 'Selecione pelo menos uma função para o usuário (até 2 opções permitidas).' });
+ return;
+ }
+
+ const cleanUser = newUserUsername.trim().toLowerCase().replace(/\s+/g, '_');
+ const cleanPass = newUserPassword.trim().toLowerCase().slice(0, 8);
+
+ try {
+ setIsSubmittingUser(true);
+ await api.createUser({
+ name: 'Pendente de Preenchimento',
+ username: cleanUser,
+ password: cleanPass,
+ roles: selectedRoles,
+ role: selectedRoles[0],
+ family_id: targetFamilyId null,
+ requesting_user_id: currentUser.id,
+ });
+
+ const roleNames = selectedRoles.map((r) => AVAILABLE_ROLES[r]?.name r).join(' + ');
+
+ setFeedback({
+ type: 'success',
+ message: `Login "${cleanUser}" criado com sucesso! No primeiro acesso, o usuário preencherá seu nome, sobrenome e foto.`,
+ });
+
+ // Reset form
+ setNewUserUsername('');
+ setNewUserPassword('');
+ setSelectedRoles(['caregiver']);
+ setIsCreateUserModalOpen(false);
+
+ await loadData();
+ if (onRefreshDirectory) onRefreshDirectory();
+ } catch (err: any) {
+ setFeedback({ type: 'error', message: err.message 'Erro ao cadastrar login.' });
+ } finally {
+ setIsSubmittingUser(false);
+ }
+ };
+
+ const handleCreateFamily = async (e: React.FormEvent) => {
+ e.preventDefault();
+ setFeedback(null);
+
+ if (!newFamilyName.trim() !newElderlyName.trim()) {
+ setFeedback({ type: 'error', message: 'Preencha o nome da família e o nome do idoso(a).' });
+ return;
+ }
+
+ try {
+ setIsSubmittingFamily(true);
+ const fam = await api.createFamily({
+ name: newFamilyName.trim(),
+ elderly_name: newElderlyName.trim(),
+ residence_address: newFamilyAddress.trim() undefined,
+ notes: newFamilyNotes.trim() undefined,
+ requesting_user_id: currentUser.id,
+ });
+
+ setFeedback({
+ type: 'success',
+ message: `Família "${fam.name}" cadastrada com sucesso! Agora você pode criar os logins para ela.`,
+ });
+
+ setNewFamilyName('');
+ setNewElderlyName('');
+ setNewFamilyAddress('');
+ setNewFamilyNotes('');
+ setIsCreateFamilyModalOpen(false);
+ setTargetFamilyId(fam.id);
+
+ await loadData();
+ if (onRefreshDirectory) onRefreshDirectory();
+ } catch (err: any) {
+ setFeedback({ type: 'error', message: err.message 'Erro ao cadastrar família.' });
+ } finally {
+ setIsSubmittingFamily(false);
+ }
+ };
+
+ const handleCfaCepChange = async (val: string) => {
+ const formatted = formatCep(val);
+ setCfaCep(formatted);
+ const clean = formatted.replace(/\D/g, '');
+ if (clean.length === 8) {
+ setCfaIsSearchingCep(true);
+ try {
+ const res = await fetchAddressByCep(clean);
+ if (res && res.fullAddress) {
+ setCfaAddress(res.fullAddress);
+ }
+ } catch (err) {
+ console.warn('Erro ao buscar CEP:', err);
+ } finally {
+ setCfaIsSearchingCep(false);
+ }
+ }
+ };
+
+ const handleCreateFamilyAndAdmin = async (e: React.FormEvent) => {
+ e.preventDefault();
+ setFeedback(null);
+
+ const cleanUser = cfaAdminUsername.trim().toLowerCase().replace(/\s+/g, '_');
+ const cleanPass = cfaAdminPassword.trim().toLowerCase().slice(0, 8);
+
+ if (!cfaFamilyName.trim()) {
+ setFeedback({ type: 'error', message: 'Informe o nome da Família.' });
+ return;
+ }
+ if (!cfaElderlyName.trim()) {
+ setFeedback({ type: 'error', message: 'Informe o nome do idoso(a) assistido.' });
+ return;
+ }
+ if (cleanUser.length < 3) {
+ setFeedback({ type: 'error', message: 'O usuário do administrador deve ter pelo menos 3 caracteres em minúsculo.' });
+ return;
+ }
+ if (cleanPass.length < 3) {
+ setFeedback({ type: 'error', message: 'A senha do administrador deve ter pelo menos 3 caracteres em minúsculo (máx. 8).' });
+ return;
+ }
+
+ try {
+ setCfaIsSubmitting(true);
+ const res = await api.createFamilyWithAdmin({
+ name: cfaFamilyName.trim(),
+ elderly_name: cfaElderlyName.trim(),
+ residence_address: '',
+ admin_name: 'Pendente de Preenchimento',
+ admin_username: cleanUser,
+ admin_password: cleanPass,
+ requesting_user_id: currentUser.id,
+ });
+
+ setFeedback({
+ type: 'success',
+ message: `Família "${res.family.name}" e Administrador Familiar "@${res.adminUser.username}" criados com sucesso! O administrador preencherá seus dados pessoais e o endereço oficial da residência no seu primeiro login.`,
+ });
+
+ setCfaFamilyName('');
+ setCfaElderlyName('');
+ setCfaAdminUsername('');
+ setCfaAdminPassword('');
+ setIsCreateFamilyAndAdminModalOpen(false);
+ await loadData();
+ if (onRefreshDirectory) onRefreshDirectory();
+ } catch (err: any) {
+ setFeedback({ type: 'error', message: err.message 'Erro ao cadastrar Família e Administrador.' });
+ } finally {
+ setCfaIsSubmitting(false);
+ }
+ };
+
+ const handleCreateInvite = async (e: React.FormEvent) => {
+ e.preventDefault();
+ try {
+ setIsSubmittingInvite(true);
+ const newInv = await api.createInvite({
+ family_id: inviteTargetFamilyId null,
+ roles: inviteSelectedRoles,
+ guest_name: inviteGuestName,
+ requesting_user_id: currentUser.id,
+ });
+
+ setFeedback({
+ type: 'success',
+ message: `Link de convite ${newInv.code} criado com sucesso para "${newInv.guest_name}"!`,
+ });
+
+ setInviteGuestName('');
+ setIsCreateInviteModalOpen(false);
+ await loadData();
+ } catch (err: any) {
+ setFeedback({ type: 'error', message: err.message 'Erro ao gerar convite.' });
+ } finally {
+ setIsSubmittingInvite(false);
+ }
+ };
+
+ const handleRevokeInvite = async (inviteId: string, inviteCode: string) => {
+ if (!window.confirm(`Deseja revogar/cancelar o convite ${inviteCode}?`)) return;
+ try {
+ await api.revokeInvite(inviteId);
+ setFeedback({ type: 'success', message: `Convite ${inviteCode} foi revogado com sucesso.` });
+ await loadData();
+ } catch (err: any) {
+ setFeedback({ type: 'error', message: err.message 'Erro ao revogar convite.' });
+ }
+ };
+
+ const handleCopyInviteUrl = (code: string) => {
+ const hostDomain = window.location.origin.includes('cuida-app.vercel.app')
+ ? window.location.origin
+ : 'https://cuida-app.vercel.app';
+ const fullUrl = `${hostDomain}${window.location.pathname}?invite=${code}`;
+ navigator.clipboard.writeText(fullUrl);
+ setCopiedInviteCode(code);
+ setTimeout(() => setCopiedInviteCode(null), 2500);
+ };
+
+ const handleDeleteUser = async (userId: string, userName: string) => {
+ if (!window.confirm(`Tem certeza que deseja excluir o login de ${userName}?`)) {
+ return;
+ }
+
+ try {
+ await api.deleteUser(userId, currentUser.id);
+ setFeedback({ type: 'success', message: `Login de ${userName} foi excluído com sucesso.` });
+ await loadData();
+ if (onRefreshDirectory) onRefreshDirectory();
+ } catch (err: any) {
+ setFeedback({ type: 'error', message: err.message 'Erro ao excluir login.' });
+ }
+ };
+
+ const handleToggleUserRole = async (user: UserType, roleToToggle: UserRole) => {
+ const currentRoles = (user.roles && user.roles.length > 0) ? [...user.roles] : [user.role 'caregiver'];
+ let updatedRoles: UserRole[];
+
+ if (currentRoles.includes(roleToToggle)) {
+ if (currentRoles.length === 1) {
+ alert('O usuário precisa ter pelo menos 1 função ativa.');
+ return;
+ }
+ updatedRoles = currentRoles.filter((r) => r !== roleToToggle);
+ } else {
+ if (currentRoles.length >= 2) {
+ updatedRoles = [currentRoles[0], roleToToggle];
+ } else {
+ updatedRoles = [...currentRoles, roleToToggle];
+ }
+ }
+
+ try {
+ await api.updateUserRoles(user.id, updatedRoles, currentUser.id);
+ const roleLabels = updatedRoles.map((r) => AVAILABLE_ROLES[r]?.name r).join(' + ');
+ setFeedback({
+ type: 'success',
+ message: `Funções de ${user.name} atualizadas para: [${roleLabels}].`,
+ });
+ await loadData();
+ if (onRefreshDirectory) onRefreshDirectory();
+ } catch (err: any) {
+ setFeedback({ type: 'error', message: err.message 'Erro ao atualizar funções do usuário.' });
+ }
+ };
+
+ // Filtered families by search
+ const filteredFamilies = families.filter((fam) => {
+ const q = searchQuery.toLowerCase();
+ const matchesFamily = fam.name.toLowerCase().includes(q) fam.elderly_name.toLowerCase().includes(q);
+ const usersInFamily = allUsers.filter((u) => u.family_id === fam.id);
+ const matchesUser = usersInFamily.some(
+ (u) => u.name.toLowerCase().includes(q) u.username.toLowerCase().includes(q)
+ );
+ return matchesFamily matchesUser;
+ });
+
+ return (
+ <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white pb-12">
+ {/* Top Admin Master Header */}
+ <header className="bg-slate-950/80 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
+ <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+ <div className="flex items-center gap-3">
+ <ElderCaneLogo size="md" variant="white-on-blue" />
+ <div className="hidden sm:block">
+ <div className="text-xs font-extrabold text-white flex items-center gap-1.5 uppercase tracking-wider">
+ <span>Painel de Administração Geral</span>
+ <span className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] px-1.5 py-0.2 rounded font-mono">
+ Master
+ </span>
+ </div>
+ <p className="text-[11px] text-slate-400">
+ Gestão exclusiva de logins, famílias, funções e senhas
+ </p>
+ </div>
+ </div>
+
+ <div className="flex items-center gap-3">
+ <div className="text-right hidden sm:block">
+ <span className="text-xs font-bold text-white block">
+ {currentUser.name}
+ </span>
+ <span className="text-[11px] text-purple-400 font-mono">
+ @{currentUser.username} (Administrador Geral)
+ </span>
+ </div>
+
+ {onLogout && (
+ <button
+ onClick={onLogout}
+ className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+ title="Desconectar do Modo Administrador Geral e voltar ao login"
+ >
+ <LogOut className="w-3.5 h-3.5" />
+ <span>Sair do Admin</span>
+ </button>
+ )}
+ </div>
+ </div>
+
+ {/* Admin Navigation Tabs */}
+ <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-2 border-t border-slate-800/80 py-2">
+ <button
+ onClick={() => setActiveAdminTab('logins')}
+ className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+ activeAdminTab === 'logins'
+ ? 'bg-blue-600 text-white shadow-xs'
+ : 'text-slate-400 hover:text-white hover:bg-slate-800'
+ }`}
+ >
+ <Users className="w-4 h-4" />
+ <span>Logins, Famílias & Senhas</span>
+ <span className="bg-slate-900/60 text-slate-300 px-1.5 py-0.2 rounded text-[10px]">
+ {allUsers.length}
+ </span>
+ </button>
+
+ <button
+ onClick={() => setActiveAdminTab('invites')}
+ className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+ activeAdminTab === 'invites'
+ ? 'bg-blue-600 text-white shadow-xs'
+ : 'text-slate-400 hover:text-white hover:bg-slate-800'
+ }`}
+ >
+ <Link2 className="w-4 h-4 text-emerald-400" />
+ <span>Gerador de Links de Convite</span>
+ <span className="bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.2 rounded text-[10px]">
+ {invitesList.filter((i) => i.status === 'active').length} Ativos
+ </span>
+ </button>
+
+ <button
+ onClick={() => setActiveAdminTab('roles')}
+ className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+ activeAdminTab === 'roles'
+ ? 'bg-blue-600 text-white shadow-xs'
+ : 'text-slate-400 hover:text-white hover:bg-slate-800'
+ }`}
+ >
+ <Layers className="w-4 h-4" />
+ <span>Classificação de Funções & Permissões</span>
+ </button>
+
+ <button
+ onClick={() => setActiveAdminTab('audit')}
+ className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+ activeAdminTab === 'audit'
+ ? 'bg-blue-600 text-white shadow-xs'
+ : 'text-slate-400 hover:text-white hover:bg-slate-800'
+ }`}
+ >
+ <Activity className="w-4 h-4" />
+ <span>Auditoria Geral (Firebase)</span>
+ </button>
+ </div>
+ </header>
+
+ {/* Main Body */}
+ <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1">
+ {/* Feedback alert */}
+ {feedback && (
+ <div
+ className={`p-4 rounded-xl text-xs font-semibold flex items-center justify-between gap-3 shadow-md ${
+ feedback.type === 'success'
+ ? 'bg-emerald-950/80 text-emerald-200 border border-emerald-500/40'
+ : 'bg-red-950/80 text-red-200 border border-red-500/40'
+ }`}
+ >
+ <div className="flex items-center gap-2">
+ {feedback.type === 'success' ? (
+ <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+ ) : (
+ <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+ )}
+ <span>{feedback.message}</span>
+ </div>
+ <button
+ onClick={() => setFeedback(null)}
+ className="text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
+ >
+ 
+ </button>
+ </div>
+ )}
+
+ {/* Tab 1: Logins, Famílias e Senhas */}
+ {activeAdminTab === 'logins' && (
+ <div className="space-y-6">
+ {/* Operação Oficial do Administrador Geral: Cadastro de Família & Admin Familiar */}
+ <div className="bg-gradient-to-r from-blue-950/90 via-slate-900 to-indigo-950/90 border border-blue-500/40 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+ <div className="space-y-1.5">
+ <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-xs font-bold text-blue-300">
+ <ShieldCheck className="w-4 h-4 text-blue-400" />
+ <span>Logística do Administrador Geral</span>
+ </div>
+ <h3 className="text-lg sm:text-xl font-black text-white">
+ Cadastrar Família & Administrador Familiar
+ </h3>
+ <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+ Como Administrador Geral, você cria a <strong>Família</strong> e o login do <strong>Administrador Familiar</strong>.
+ Com esse acesso, o próprio administrador familiar é quem gera os links de convite para os <strong>irmãos, irmãs, parentes e cuidadores</strong> entrarem no CUIDA com sua classificação.
+ </p>
+ </div>
+
+ <button
+ type="button"
+ onClick={() => setIsCreateFamilyAndAdminModalOpen(true)}
+ className="w-full md:w-auto px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+ >
+ <Plus className="w-4 h-4" />
+ <span>+ Cadastrar Família & Admin Familiar</span>
+ </button>
+ </div>
+
+ {/* Action Bar */}
+ <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+ <div className="relative w-full sm:w-80">
+ <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+ <input
+ type="text"
+ value={searchQuery}
+ onChange={(e) => setSearchQuery(e.target.value)}
+ placeholder="Buscar por família, idoso, login ou função..."
+ className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-medium text-white placeholder-slate-500 focus:outline-blue-500"
+ />
+ </div>
+
+ <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap">
+ {/* Global Password Toggle for Administrator */}
+ <button
+ onClick={() => setShowAllPasswords(!showAllPasswords)}
+ className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+ showAllPasswords
+ ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+ : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+ }`}
+ title="Exibir ou ocultar senhas de todos os usuários no painel"
+ >
+ {showAllPasswords ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+ <span>{showAllPasswords ? 'Ocultar Senhas' : 'Exibir Todas Senhas'}</span>
+ </button>
+
+ <button
+ onClick={() => setIsCreateFamilyModalOpen(true)}
+ className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+ >
+ <Building2 className="w-4 h-4 text-blue-400" />
+ <span>+ Nova Família</span>
+ </button>
+
+ <button
+ onClick={() => {
+ if (families.length > 0 && !targetFamilyId) {
+ setTargetFamilyId(families[0].id);
+ }
+ setIsCreateUserModalOpen(true);
+ }}
+ className="px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-blue-600/20"
+ >
+ <UserPlus className="w-4 h-4" />
+ <span>+ Criar Login de Cliente</span>
+ </button>
+ </div>
+ </div>
+
+ {/* Families and Logins List */}
+ {loading ? (
+ <div className="bg-slate-950/40 rounded-2xl p-12 border border-slate-800 text-center text-slate-400 text-xs">
+ <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+ <span>Carregando dados sincronizados do Firebase e servidor...</span>
+ </div>
+ ) : filteredFamilies.length === 0 ? (
+ <div className="bg-slate-950/40 rounded-2xl p-12 border border-slate-800 text-center text-slate-400 text-sm space-y-3">
+ <Building2 className="w-10 h-10 text-slate-600 mx-auto" />
+ <p className="font-semibold text-slate-300">Nenhuma família encontrada para o filtro atual.</p>
+ <button
+ onClick={() => setIsCreateFamilyModalOpen(true)}
+ className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl cursor-pointer"
+ >
+ Cadastrar Primeira Família
+ </button>
+ </div>
+ ) : (
+ <div className="space-y-6">
+ {filteredFamilies.map((family) => {
+ const familyUsers = allUsers.filter((u) => u.family_id === family.id);
+
+ return (
+ <div
+ key={family.id}
+ className="bg-slate-950/60 rounded-2xl border border-slate-800 shadow-xl overflow-hidden"
+ >
+ {/* Family Header */}
+ <div className="bg-slate-900/90 border-b border-slate-800 p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+ <div className="flex items-center gap-3">
+ <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+ <Building2 className="w-5 h-5" />
+ </div>
+ <div>
+ <h3 className="text-base font-bold text-white flex items-center gap-2">
+ {family.name}
+ <span className="text-xs font-normal text-slate-400">
+ (Idoso: <strong className="text-blue-300">{family.elderly_name}</strong>)
+ </span>
+ </h3>
+ <p className="text-xs text-slate-400">
+ {family.residence_address 'Endereço cadastrado'}
+ {family.notes && ` · ${family.notes}`}
+ </p>
+ </div>
+ </div>
+
+ <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+ <button
+ type="button"
+ onClick={() => {
+ setTargetResidenceFamily(family);
+ setIsResidenceModalOpen(true);
+ }}
+ className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold transition-all cursor-pointer"
+ title="Cadastrar ou editar o endereço e as coordenadas GPS da residência desta família"
+ >
+ <MapPin className="w-3.5 h-3.5 text-amber-400" />
+ <span>Residência & Geofence</span>
+ </button>
+
+ <button
+ onClick={() => {
+ setTargetFamilyId(family.id);
+ setIsCreateUserModalOpen(true);
+ }}
+ className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-bold transition-all cursor-pointer"
+ >
+ <Plus className="w-3.5 h-3.5" />
+ <span>Novo Login nesta Família</span>
+ </button>
+ </div>
+ </div>
+
+ {/* Logins inside this Family */}
+ <div className="p-4 sm:p-6">
+ {familyUsers.length === 0 ? (
+ <div className="p-6 text-center border border-dashed border-slate-800 rounded-xl text-xs text-slate-500">
+ Nenhum login cadastrado para esta família ainda. Clique no botão acima para adicionar.
+ </div>
+ ) : (
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+ {familyUsers.map((user) => {
+ const userRoles: UserRole[] =
+ user.roles && user.roles.length > 0 ? user.roles : [user.role 'caregiver'];
+ const isPasswordVisible = showAllPasswords visiblePasswords[user.id];
+
+ return (
+ <div
+ key={user.id}
+ className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition-colors"
+ >
+ <div className="space-y-3">
+ <div className="flex items-start justify-between gap-2">
+ <div className="flex items-center gap-2.5">
+ <img
+ src={
+ user.avatar_url 
+ 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'
+ }
+ alt={user.name}
+ className="w-10 h-10 rounded-full object-cover border border-slate-700 shrink-0"
+ />
+ <div>
+ <h4 className="text-xs font-bold text-white leading-tight">
+ {user.name}
+ </h4>
+ {/* Multi-role badges */}
+ <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+ {userRoles.map((r) => {
+ const def = AVAILABLE_ROLES[r];
+ return (
+ <span
+ key={r}
+ className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30"
+ >
+ {def?.name r}
+ </span>
+ );
+ })}
+ </div>
+ </div>
+ </div>
+
+ {user.id !== 'usr-admin-samuel' && (
+ <button
+ onClick={() => handleDeleteUser(user.id, user.name)}
+ className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+ title="Remover este login"
+ >
+ <Trash2 className="w-3.5 h-3.5" />
+ </button>
+ )}
+ </div>
+
+ {/* Credentials Box (Username + Password Visible for Admin) */}
+ <div className="space-y-2 text-xs text-slate-300 bg-slate-950/80 p-3 rounded-lg border border-slate-800/80">
+ <div className="flex items-center justify-between">
+ <span className="text-slate-500">Usuário:</span>
+ <code className="text-emerald-400 font-mono font-bold">
+ @{user.username}
+ </code>
+ </div>
+
+ {/* Password Field Visible with Eye & Copy Button */}
+ <div className="flex items-center justify-between pt-1 border-t border-slate-900">
+ <span className="text-slate-500 flex items-center gap-1">
+ <KeyRound className="w-3 h-3 text-amber-400" />
+ <span>Senha:</span>
+ </span>
+ <div className="flex items-center gap-1.5">
+ <span className="font-mono text-xs font-bold text-amber-300 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+ {isPasswordVisible ? (user.password '••••••••') : '••••••••'}
+ </span>
+ <button
+ type="button"
+ onClick={() => togglePasswordVisibility(user.id)}
+ className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors cursor-pointer"
+ title={isPasswordVisible ? 'Ocultar senha' : 'Ver senha'}
+ >
+ {isPasswordVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+ </button>
+ <button
+ type="button"
+ onClick={() => handleCopyPassword(user.id, user.password)}
+ className="p-1 text-slate-400 hover:text-emerald-400 rounded hover:bg-slate-800 transition-colors cursor-pointer"
+ title="Copiar senha"
+ >
+ {copiedUserId === user.id ? (
+ <Check className="w-3.5 h-3.5 text-emerald-400" />
+ ) : (
+ <Copy className="w-3.5 h-3.5" />
+ )}
+ </button>
+ </div>
+ </div>
+
+ <div className="flex items-center justify-between pt-1 border-t border-slate-900 text-[11px]">
+ <span className="text-slate-500">Matrícula:</span>
+ <span className="font-mono text-slate-400">
+ {user.registration_code '---'}
+ </span>
+ </div>
+ </div>
+
+ {/* Multi-role Options Selector (Allows selecting up to 2 options) */}
+ <div className="pt-2 border-t border-slate-800 space-y-1.5">
+ <label className="text-[10px] uppercase font-bold text-slate-400 flex items-center justify-between">
+ <span>Funções do Usuário (Até 2):</span>
+ <span className="text-slate-500">{userRoles.length}/2 ativas</span>
+ </label>
+ 
+ <div className="grid grid-cols-2 gap-1.5">
+ {(['caregiver', 'admin_family', 'family_member', 'caregiver_substitute'] as UserRole[]).map((rId) => {
+ const isSelected = userRoles.includes(rId);
+ const def = AVAILABLE_ROLES[rId];
+ return (
+ <button
+ key={rId}
+ type="button"
+ onClick={() => handleToggleUserRole(user, rId)}
+ className={`px-2 py-1.5 rounded-lg text-[11px] font-bold text-left flex items-center justify-between transition-all cursor-pointer border ${
+ isSelected
+ ? 'bg-blue-600/30 text-blue-200 border-blue-500/60 shadow-xs'
+ : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-300'
+ }`}
+ >
+ <span className="truncate">{def.name}</span>
+ {isSelected && <Check className="w-3 h-3 text-blue-400 shrink-0 ml-1" />}
+ </button>
+ );
+ })}
+ </div>
+ </div>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+ </div>
+ )}
+
+ {/* Tab: Gerador de Links de Convite */}
+ {activeAdminTab === 'invites' && (
+ <div className="space-y-6">
+ <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+ <div className="space-y-1">
+ <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-xs font-semibold text-emerald-300">
+ <Link2 className="w-4 h-4 text-emerald-400" />
+ <span>Fluxo Exclusivo de Cadastro via Convite</span>
+ </div>
+ <h3 className="text-xl font-extrabold text-white">
+ Gerador de Links de Convite
+ </h3>
+ <p className="text-xs text-slate-400 max-w-2xl">
+ Como Administrador, envie um Link de Convite exclusivo para que cuidadores e familiares possam criar seu login e senha com segurança.
+ </p>
+ </div>
+
+ <button
+ onClick={() => setIsCreateInviteModalOpen(true)}
+ className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-2 cursor-pointer shrink-0"
+ >
+ <Plus className="w-4 h-4" />
+ <span>Gerar Novo Link de Convite</span>
+ </button>
+ </div>
+
+ {/* List of Convites */}
+ <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-5 space-y-4">
+ <h4 className="text-sm font-bold text-white flex items-center gap-2">
+ <span>Histórico de Links de Convite Gerados</span>
+ <span className="text-xs font-mono text-slate-500">({invitesList.length})</span>
+ </h4>
+
+ {invitesList.length === 0 ? (
+ <div className="p-8 text-center bg-slate-900/50 rounded-xl border border-slate-800 space-y-3">
+ <Link2 className="w-8 h-8 text-slate-600 mx-auto" />
+ <p className="text-xs text-slate-400">
+ Nenhum link de convite gerado ainda. Clique em "Gerar Novo Link de Convite" acima para convidar um novo cuidador ou familiar.
+ </p>
+ </div>
+ ) : (
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+ {invitesList.map((inv) => {
+ const hostDomain = window.location.origin.includes('cuida-app.vercel.app')
+ ? window.location.origin
+ : 'https://cuida-app.vercel.app';
+ const fullInviteUrl = `${hostDomain}${window.location.pathname}?invite=${inv.code}`;
+ const whatsappMsg = `Olá ${inv.guest_name ''}! Você foi convidado(a) para acessar o sistema CUIDA (${inv.family_name}).\nPara criar sua conta e senha, acesse o link de convite exclusivo:\n${fullInviteUrl}`;
+ const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappMsg)}`;
+
+ return (
+ <div
+ key={inv.id}
+ className={`p-4 rounded-2xl border transition-all space-y-3 ${
+ inv.status === 'active'
+ ? 'bg-slate-900 border-slate-800 hover:border-blue-500/40'
+ : inv.status === 'used'
+ ? 'bg-slate-950/80 border-slate-800/80 opacity-80'
+ : 'bg-red-950/20 border-red-900/40 opacity-60'
+ }`}
+ >
+ <div className="flex items-center justify-between gap-2">
+ <div className="flex items-center gap-2">
+ <span className="font-mono text-xs font-black text-blue-400 bg-blue-950/80 px-2.5 py-1 rounded-lg border border-blue-800">
+ {inv.code}
+ </span>
+ <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+ inv.status === 'active'
+ ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+ : inv.status === 'used'
+ ? 'bg-blue-950/80 text-blue-300 border-blue-500/40'
+ : 'bg-red-950/80 text-red-300 border-red-500/40'
+ }`}>
+ {inv.status === 'active' ? ' Ativo (Aguardando uso)' : inv.status === 'used' ? ' Conta Criada' : ' Revogado'}
+ </span>
+ </div>
+
+ {inv.status === 'active' && (
+ <button
+ onClick={() => handleRevokeInvite(inv.id, inv.code)}
+ className="text-[11px] text-red-400 hover:text-red-300 font-medium cursor-pointer"
+ title="Cancelar este convite"
+ >
+ Revogar
+ </button>
+ )}
+ </div>
+
+ <div className="text-xs space-y-1">
+ <p className="font-extrabold text-white text-sm">{inv.guest_name}</p>
+ <p className="text-slate-400">
+ <strong>Família:</strong> {inv.family_name}
+ </p>
+ <p className="text-slate-400">
+ <strong>Funções Liberadas:</strong>{' '}
+ <span className="text-blue-300 font-semibold">{inv.role_labels?.join(' + ')}</span>
+ </p>
+ </div>
+
+ {/* Quick Action Buttons for Active Invite */}
+ {inv.status === 'active' && (
+ <div className="pt-2 border-t border-slate-800/80 flex items-center gap-2">
+ <button
+ type="button"
+ onClick={() => handleCopyInviteUrl(inv.code)}
+ className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+ >
+ {copiedInviteCode === inv.code ? (
+ <>
+ <Check className="w-3.5 h-3.5 text-emerald-400" />
+ <span className="text-emerald-300">Copiado!</span>
+ </>
+ ) : (
+ <>
+ <Copy className="w-3.5 h-3.5 text-blue-400" />
+ <span>Copiar Link</span>
+ </>
+ )}
+ </button>
+
+ <a
+ href={whatsappUrl}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="flex-1 py-2 px-3 rounded-xl bg-emerald-700/80 hover:bg-emerald-600 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+ >
+ <MessageCircle className="w-3.5 h-3.5" />
+ <span>Enviar no WhatsApp</span>
+ </a>
+ </div>
+ )}
+
+ {inv.status === 'used' && inv.used_by_users && inv.used_by_users.length > 0 && (
+ <div className="text-[11px] text-emerald-400 bg-emerald-950/40 p-2 rounded-xl border border-emerald-500/20">
+ Conta criada pelo usuário: <strong>@{inv.used_by_users[0].username}</strong>
+ </div>
+ )}
+ </div>
+ );
+ })}
+ </div>
+ )}
+ </div>
+ </div>
+ )}
+
+ {/* Tab 2: Classificação Organizada por Nomes & Permissões */}
+ {activeAdminTab === 'roles' && (
+ <div className="space-y-6">
+ <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-6 space-y-2">
+ <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-500/20 border border-purple-400/30 rounded-full text-xs font-semibold text-purple-300">
+ <ShieldCheck className="w-4 h-4 text-purple-400" />
+ <span>Classificação Organizada por Nomes de Função</span>
+ </div>
+ <h3 className="text-xl font-extrabold text-white">
+ Funções do Sistema CUIDA (Suporte a até 2 opções por usuário)
+ </h3>
+ <p className="text-xs text-slate-400 max-w-3xl">
+ Agora qualquer usuário pode receber até 2 funções simultâneas (ex: <strong>Cuidador + Administrador Familiar</strong>), permitindo gerenciar o plano com máxima flexibilidade.
+ </p>
+ </div>
+
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+ {Object.values(AVAILABLE_ROLES).map((roleDef) => (
+ <div
+ key={roleDef.id}
+ className="bg-slate-950/60 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl"
+ >
+ <div className="flex items-center justify-between">
+ <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+ {roleDef.name}
+ </span>
+ <span className="text-xs font-mono text-slate-500">
+ {roleDef.id}
+ </span>
+ </div>
+
+ <div>
+ <h4 className="font-extrabold text-base text-white">
+ {roleDef.name}
+ </h4>
+ <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+ {roleDef.description}
+ </p>
+ </div>
+
+ <div className="space-y-2 pt-3 border-t border-slate-800 text-xs">
+ <div className="text-[11px] uppercase font-bold text-slate-500">
+ Permissões e Acessos:
+ </div>
+
+ <div className="space-y-1.5">
+ <div className="flex items-center gap-2 text-slate-300">
+ {roleDef.permissions.can_edit_missions ? (
+ <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+ ) : (
+ <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+ )}
+ <span className={roleDef.permissions.can_edit_missions ? 'font-semibold text-emerald-300' : 'text-slate-500'}>
+ Criar / Editar Missões Diárias (POP)
+ </span>
+ </div>
+
+ <div className="flex items-center gap-2 text-slate-300">
+ {roleDef.permissions.can_clock_in ? (
+ <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+ ) : (
+ <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+ )}
+ <span className={roleDef.permissions.can_clock_in ? 'font-semibold text-amber-300' : 'text-slate-500'}>
+ Bater Ponto Facial com Câmera ao Vivo
+ </span>
+ </div>
+
+ <div className="flex items-center gap-2 text-slate-300">
+ {roleDef.permissions.can_edit_vitals ? (
+ <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+ ) : (
+ <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+ )}
+ <span className={roleDef.permissions.can_edit_vitals ? 'font-semibold text-rose-300' : 'text-slate-500'}>
+ Registrar / Editar Aferição de Pressão (PA)
+ </span>
+ </div>
+
+ <div className="flex items-center gap-2 text-slate-300">
+ {roleDef.permissions.can_sign_contractor ? (
+ <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+ ) : (
+ <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+ )}
+ <span className={roleDef.permissions.can_sign_contractor ? 'font-semibold text-blue-300' : 'text-slate-500'}>
+ Assinar Visto Oficial no Boletim
+ </span>
+ </div>
+
+ <div className="flex items-center gap-2 text-slate-300">
+ {roleDef.permissions.can_manage_logins ? (
+ <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+ ) : (
+ <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+ )}
+ <span className={roleDef.permissions.can_manage_logins ? 'font-semibold text-purple-300' : 'text-slate-500'}>
+ Criar Logins e Ver Senhas
+ </span>
+ </div>
+ </div>
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
+ )}
+
+ {/* Tab 3: Auditoria Geral */}
+ {activeAdminTab === 'audit' && (
+ <div className="space-y-6">
+ <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+ <div>
+ <h3 className="text-xl font-extrabold text-white">
+ Auditoria de Atividades em Tempo Real (Firebase)
+ </h3>
+ <p className="text-xs text-slate-400 mt-1">
+ Trilha global de alterações em todas as famílias para controle total do Administrador Geral.
+ </p>
+ </div>
+ <button
+ onClick={loadData}
+ className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors"
+ >
+ Recarregar Auditoria
+ </button>
+ </div>
+
+ {globalAuditLogs.length === 0 ? (
+ <div className="bg-slate-950/40 rounded-2xl p-12 border border-slate-800 text-center text-slate-500 text-xs">
+ Nenhum evento registrado na auditoria até o momento.
+ </div>
+ ) : (
+ <div className="space-y-3">
+ {globalAuditLogs.map((log) => (
+ <div
+ key={log.id}
+ className="bg-slate-950/70 border border-slate-800 p-4 rounded-xl flex items-start justify-between gap-4"
+ >
+ <div>
+ <div className="flex items-center gap-2">
+ <span className="font-bold text-xs text-white">
+ {log.user_name}
+ </span>
+ <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+ {log.category}
+ </span>
+ </div>
+ <p className="text-xs text-slate-300 mt-1">{log.description}</p>
+ {log.details && (
+ <p className="text-[11px] text-slate-500 font-mono mt-1">{log.details}</p>
+ )}
+ </div>
+
+ <div className="text-right text-[11px] text-slate-500 shrink-0">
+ {new Date(log.created_at).toLocaleTimeString('pt-BR')} ·{' '}
+ {new Date(log.created_at).toLocaleDateString('pt-BR')}
+ </div>
+ </div>
+ ))}
+ </div>
+ )}
+ </div>
+ )}
+
+ <FooterBranding theme="dark" className="border-t border-slate-800/80 mt-10 pt-6" />
+ </main>
+
+ {/* Modal: Criar Login de Cliente com Suporte a até 2 Opções e Validação de Segurança */}
+ {isCreateUserModalOpen && (
+ <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+ <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-white my-6">
+ <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+ <div className="flex items-center gap-2 text-blue-400 font-bold text-base">
+ <UserPlus className="w-5 h-5" />
+ <span>Criar Novo Login de Cliente</span>
+ </div>
+ <button
+ onClick={() => setIsCreateUserModalOpen(false)}
+ className="text-slate-400 hover:text-white text-sm font-bold cursor-pointer"
+ >
+ 
+ </button>
+ </div>
+
+ <form onSubmit={handleCreateUser} className="space-y-4">
+ <div>
+ <label className="block text-xs font-semibold text-slate-300 mb-1">
+ Família do Cliente *
+ </label>
+ <select
+ required
+ value={targetFamilyId}
+ onChange={(e) => setTargetFamilyId(e.target.value)}
+ className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-semibold text-white focus:outline-blue-500 cursor-pointer"
+ >
+ {families.map((f) => (
+ <option key={f.id} value={f.id}>
+ {f.name} ({f.elderly_name})
+ </option>
+ ))}
+ </select>
+ </div>
+
+ <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200">
+ <p className="font-semibold text-blue-300">
+ ℹ️ Como Administrador Geral, você gera apenas o login e a função. O usuário completará seu nome completo, sobrenome e foto de perfil no seu primeiro acesso.
+ </p>
+ </div>
+
+ {/* Security: Username & Password with Real-Time Validation Checkout */}
+ <div className="space-y-3 bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
+ <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+ <span className="flex items-center gap-1.5 text-blue-400">
+ <ShieldCheck className="w-4 h-4" />
+ <span>Checkout de Validação das Credenciais</span>
+ </span>
+ <span className="text-[10px] text-slate-500 font-mono">
+ Padrão: Minúsculo &amp; Máx. 8 chars
+ </span>
+ </div>
+
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+ <div>
+ <label className="block text-xs font-semibold text-slate-300 mb-1">
+ Usuário (Login em minúsculo) *
+ </label>
+ <input
+ type="text"
+ required
+ value={newUserUsername}
+ onChange={(e) => setNewUserUsername(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+ placeholder="ex: joao_cuidador"
+ className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-blue-500 lowercase"
+ />
+ </div>
+
+ <div>
+ <label className="block text-xs font-semibold text-slate-300 mb-1">
+ Senha de Acesso (Máx. 8 caracteres) *
+ </label>
+ <div className="relative">
+ <input
+ type={showFormPassword ? 'text' : 'password'}
+ required
+ maxLength={8}
+ value={newUserPassword}
+ onChange={(e) => setNewUserPassword(e.target.value.toLowerCase().slice(0, 8))}
+ placeholder="máx 8 minúsculos"
+ className="w-full px-3 py-2 pr-9 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-blue-500 lowercase"
+ />
+ <button
+ type="button"
+ onClick={() => setShowFormPassword(!showFormPassword)}
+ className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-white cursor-pointer"
+ >
+ {showFormPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+ </button>
+ </div>
+ </div>
+ </div>
+
+ {/* Checkout Checklist Badges */}
+ <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+ <div className={`p-1.5 rounded-lg border flex items-center gap-1 font-semibold ${
+ newUserUsername.length >= 3 && newUserPassword.length >= 3
+ ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+ : 'bg-slate-900 border-slate-800 text-slate-500'
+ }`}>
+ <span>{newUserUsername.length >= 3 && newUserPassword.length >= 3 ? '' : '○'}</span>
+ <span>Tudo Minúsculo</span>
+ </div>
+
+ <div className={`p-1.5 rounded-lg border flex items-center gap-1 font-semibold ${
+ newUserPassword.length > 0 && newUserPassword.length <= 8
+ ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+ : 'bg-slate-900 border-slate-800 text-slate-500'
+ }`}>
+ <span>{newUserPassword.length > 0 && newUserPassword.length <= 8 ? '' : '○'}</span>
+ <span>Senha: {newUserPassword.length}/8 chars</span>
+ </div>
+
+ <div className={`p-1.5 rounded-lg border flex items-center gap-1 font-semibold ${
+ /[a-z]/i.test(newUserPassword)
+ ? 'bg-blue-950/40 border-blue-500/40 text-blue-300'
+ : 'bg-slate-900 border-slate-800 text-slate-500'
+ }`}>
+ <span>{/[a-z]/i.test(newUserPassword) ? '' : '○'}</span>
+ <span>Letras (a-z)</span>
+ </div>
+
+ <div className={`p-1.5 rounded-lg border flex items-center gap-1 font-semibold ${
+ /[0-9]/.test(newUserPassword)
+ ? 'bg-purple-950/40 border-purple-500/40 text-purple-300'
+ : 'bg-slate-900 border-slate-800 text-slate-500'
+ }`}>
+ <span>{/[0-9]/.test(newUserPassword) ? '' : '○'}</span>
+ <span>Números (0-9)</span>
+ </div>
+ </div>
+ </div>
+
+ {/* Multi-role Selector (Choose up to 2 options) */}
+ <div className="space-y-2">
+ <label className="block text-xs font-semibold text-slate-300">
+ Funções do Usuário (Selecione até 2 opções) *
+ </label>
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+ {(['caregiver', 'admin_family', 'family_member', 'caregiver_substitute'] as UserRole[]).map((rId) => {
+ const isSelected = selectedRoles.includes(rId);
+ const def = AVAILABLE_ROLES[rId];
+ return (
+ <div
+ key={rId}
+ onClick={() => handleToggleRoleSelection(rId)}
+ className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-2.5 ${
+ isSelected
+ ? 'bg-blue-600/20 border-blue-500 text-white shadow-xs'
+ : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+ }`}
+ >
+ <div
+ className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center border shrink-0 ${
+ isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-slate-600'
+ }`}
+ >
+ {isSelected && <Check className="w-3 h-3" />}
+ </div>
+ <div>
+ <div className="text-xs font-bold text-slate-200">
+ {def.name}
+ </div>
+ <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+ {def.description}
+ </div>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ <p className="text-[11px] text-blue-300">
+ Selecionado: <strong>{selectedRoles.map((r) => AVAILABLE_ROLES[r]?.name).join(' + ')}</strong>
+ </p>
+ </div>
+
+ <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
+ <button
+ type="button"
+ onClick={() => setIsCreateUserModalOpen(false)}
+ className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+ >
+ Cancelar
+ </button>
+ <button
+ type="submit"
+ disabled={isSubmittingUser}
+ className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold cursor-pointer shadow-lg"
+ >
+ {isSubmittingUser ? 'Criando...' : 'Salvar no Firebase & Gerar Login'}
+ </button>
+ </div>
+ </form>
+ </div>
+ </div>
+ )}
+
+ {/* Modal: Criar Nova Família */}
+ {isCreateFamilyModalOpen && (
+ <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+ <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-white">
+ <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+ <div className="flex items-center gap-2 text-blue-400 font-bold text-base">
+ <Building2 className="w-5 h-5" />
+ <span>Cadastrar Nova Família</span>
+ </div>
+ <button
+ onClick={() => setIsCreateFamilyModalOpen(false)}
+ className="text-slate-400 hover:text-white text-sm font-bold cursor-pointer"
+ >
+ 
+ </button>
+ </div>
+
+ <form onSubmit={handleCreateFamily} className="space-y-4">
+ <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200">
+ <p className="font-semibold text-blue-300">
+ ℹ️ O endereço oficial da residência será cadastrado exclusivamente pelo Administrador da Família após o login.
+ </p>
+ </div>
+
+ <div>
+ <label className="block text-xs font-semibold text-slate-300 mb-1">
+ Nome da Família *
+ </label>
+ <input
+ type="text"
+ required
+ value={newFamilyName}
+ onChange={(e) => setNewFamilyName(e.target.value)}
+ placeholder="Ex: Família Albuquerque"
+ className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
+ />
+ </div>
+
+ <div>
+ <label className="block text-xs font-semibold text-slate-300 mb-1">
+ Nome do Idoso(a) Assistido *
+ </label>
+ <input
+ type="text"
+ required
+ value={newElderlyName}
+ onChange={(e) => setNewElderlyName(e.target.value)}
+ placeholder="Ex: Dona Helena Albuquerque (88 anos)"
+ className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
+ />
+ </div>
+
+ <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
+ <button
+ type="button"
+ onClick={() => setIsCreateFamilyModalOpen(false)}
+ className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+ >
+ Cancelar
+ </button>
+ <button
+ type="submit"
+ disabled={isSubmittingFamily}
+ className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold cursor-pointer shadow-lg"
+ >
+ {isSubmittingFamily ? 'Cadastrando...' : 'Cadastrar Família no Firebase'}
+ </button>
+ </div>
+ </form>
+ </div>
+ </div>
+ )}
+
+ {/* Modal: Configurar Residência da Família */}
+ {isResidenceModalOpen && targetResidenceFamily && (
+ <ElderlyResidenceConfigModal
+ isOpen={isResidenceModalOpen}
+ onClose={() => {
+ setIsResidenceModalOpen(false);
+ setTargetResidenceFamily(null);
+ }}
+ currentUser={currentUser}
+ familyId={targetResidenceFamily.id}
+ familyName={targetResidenceFamily.name}
+ currentElderly={{
+ id: targetResidenceFamily.elderly_id 'eld-01',
+ full_name: targetResidenceFamily.elderly_name,
+ birth_date: '',
+ blood_type: 'Não informado',
+ allergies: [],
+ residence_address: targetResidenceFamily.residence_address '',
+ residence_lat: targetResidenceFamily.residence_lat -23.5505,
+ residence_long: targetResidenceFamily.residence_long -46.6333,
+ allowed_radius_meters: targetResidenceFamily.allowed_radius_meters 150,
+ emergency_contacts: [],
+ created_at: new Date().toISOString(),
+ }}
+ onSaved={() => {
+ loadData();
+ if (onRefreshDirectory) onRefreshDirectory();
+ }}
+ />
+ )}
+
+ {/* Modal: Cadastrar Família & Administrador Familiar em Etapa Única */}
+ {isCreateFamilyAndAdminModalOpen && (
+ <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+ <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl space-y-5 text-white my-6 text-left">
+ <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+ <div className="flex items-center gap-2.5">
+ <div className="p-2.5 bg-emerald-500/20 rounded-xl text-emerald-400 border border-emerald-500/30">
+ <ShieldCheck className="w-5 h-5" />
+ </div>
+ <div>
+ <h3 className="text-base sm:text-lg font-bold text-white">
+ Cadastrar Família & Administrador Familiar
+ </h3>
+ <p className="text-xs text-slate-400">
+ O administrador familiar terá a conta inicial para convidar irmãos, irmãs e cuidadores.
+ </p>
+ </div>
+ </div>
+ <button
+ onClick={() => setIsCreateFamilyAndAdminModalOpen(false)}
+ className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
+ >
+ 
+ </button>
+ </div>
+
+ <form onSubmit={handleCreateFamilyAndAdmin} className="space-y-4">
+ <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200 space-y-1">
+ <p className="font-bold flex items-center gap-1.5 text-blue-300">
+ <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
+ <span>Missão do Administrador Geral</span>
+ </p>
+ <p className="text-slate-300 leading-relaxed">
+ Você apenas cria a Família e as credenciais de acesso. O próprio Administrador Familiar preencherá seu nome, sobrenome, foto e cadastrará o endereço oficial da residência no primeiro login.
+ </p>
+ </div>
+
+ {/* Seção 1: Dados da Família e do Idoso */}
+ <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-3">
+ <span className="text-[11px] font-black uppercase text-blue-400 tracking-wider flex items-center gap-1.5">
+ <Building2 className="w-3.5 h-3.5" /> 1. Família & Idoso Assistido
+ </span>
+
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+ <div>
+ <label className="block text-xs font-semibold text-slate-300 mb-1">
+ Nome da Família *
+ </label>
+ <input
+ type="text"
+ required
+ value={cfaFamilyName}
+ onChange={(e) => setCfaFamilyName(e.target.value)}
+ placeholder="Ex: Família Silveira"
+ className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-blue-500"
+ />
+ </div>
+
+ <div>
+ <label className="block text-xs font-semibold text-slate-300 mb-1">
+ Nome do Idoso(a) Assistido *
+ </label>
+ <input
+ type="text"
+ required
+ value={cfaElderlyName}
+ onChange={(e) => setCfaElderlyName(e.target.value)}
+ placeholder="Ex: Dona Maria Silveira"
+ className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-blue-500"
+ />
+ </div>
+ </div>
+ </div>
+
+ {/* Seção 2: Login do Administrador Familiar Contratante */}
+ <div className="p-3.5 bg-slate-950/70 border border-emerald-500/30 rounded-2xl space-y-3">
+ <div className="flex items-center justify-between">
+ <span className="text-[11px] font-black uppercase text-emerald-400 tracking-wider flex items-center gap-1.5">
+ <UserPlus className="w-3.5 h-3.5" /> 2. Login de Acesso do Administrador Familiar
+ </span>
+ <span className="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/40 font-bold">
+ admin_family
+ </span>
+ </div>
+
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+ <div>
+ <div className="flex items-center justify-between mb-1">
+ <label className="block text-xs font-semibold text-slate-300">
+ Usuário (Login) *
+ </label>
+ <span className="text-[10px] text-slate-500 font-mono">minúsculo</span>
+ </div>
+ <input
+ type="text"
+ required
+ value={cfaAdminUsername}
+ onChange={(e) => setCfaAdminUsername(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+ placeholder="ex: silveira_admin"
+ className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-blue-500 lowercase"
+ />
+ </div>
+
+ <div>
+ <div className="flex items-center justify-between mb-1">
+ <label className="block text-xs font-semibold text-slate-300">
+ Senha (Máx. 8 caracteres) *
+ </label>
+ <span className="text-[10px] text-slate-500 font-mono">
+ {cfaAdminPassword.length}/8 chars
+ </span>
+ </div>
+ <div className="relative">
+ <input
+ type={cfaShowPassword ? 'text' : 'password'}
+ required
+ maxLength={8}
+ value={cfaAdminPassword}
+ onChange={(e) => setCfaAdminPassword(e.target.value.toLowerCase().slice(0, 8))}
+ placeholder="senha (máx 8)"
+ className="w-full px-3 py-2 pr-10 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-blue-500 lowercase"
+ />
+ <button
+ type="button"
+ onClick={() => setCfaShowPassword(!cfaShowPassword)}
+ className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white cursor-pointer"
+ >
+ {cfaShowPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+ </button>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <div className="pt-2 border-t border-slate-800 flex items-center justify-end gap-2.5">
+ <button
+ type="button"
+ onClick={() => setIsCreateFamilyAndAdminModalOpen(false)}
+ className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+ >
+ Cancelar
+ </button>
+ <button
+ type="submit"
+ disabled={cfaIsSubmitting !cfaFamilyName.trim() !cfaElderlyName.trim() !cfaAdminUsername.trim() !cfaAdminPassword.trim()}
+ className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold cursor-pointer shadow-lg shadow-emerald-600/30 flex items-center gap-1.5"
+ >
+ {cfaIsSubmitting ? 'Cadastrando Família...' : 'Criar Família & Administrador'}
+ </button>
+ </div>
+ </form>
+ </div>
+ </div>
+ )}
+
+ {/* Modal: Gerar Novo Link de Convite */}
+ {isCreateInviteModalOpen && (
+ <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+ <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-white">
+ <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+ <div className="flex items-center gap-2 text-emerald-400 font-bold text-base">
+ <Link2 className="w-5 h-5" />
+ <span>Gerar Link de Convite para Novo Usuário</span>
+ </div>
+ <button
+ onClick={() => setIsCreateInviteModalOpen(false)}
+ className="text-slate-400 hover:text-white text-sm font-bold cursor-pointer"
+ >
+ 
+ </button>
+ </div>
+
+ <form onSubmit={handleCreateInvite} className="space-y-4">
+ <div>
+ <label className="block text-xs font-semibold text-slate-300 mb-1">
+ Nome do Convidado(a) *
+ </label>
+ <input
+ type="text"
+ required
+ value={inviteGuestName}
+ onChange={(e) => setInviteGuestName(e.target.value)}
+ placeholder="Ex: Cuidadora Ana Paula ou Filho Marcos"
+ className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
+ />
+ </div>
+
+ <div>
+ <label className="block text-xs font-semibold text-slate-300 mb-1">
+ Vincular à Família do Idoso *
+ </label>
+ <select
+ value={inviteTargetFamilyId}
+ onChange={(e) => setInviteTargetFamilyId(e.target.value)}
+ className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
+ >
+ {families.map((f) => (
+ <option key={f.id} value={f.id}>
+ {f.name} ({f.elderly_name})
+ </option>
+ ))}
+ </select>
+ </div>
+
+ <div>
+ <label className="block text-xs font-semibold text-slate-300 mb-2">
+ Funções Liberadas para este Convite (Até 2):
+ </label>
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+ {Object.values(AVAILABLE_ROLES).map((roleDef) => {
+ const isSelected = inviteSelectedRoles.includes(roleDef.id);
+ return (
+ <button
+ key={roleDef.id}
+ type="button"
+ onClick={() => {
+ if (isSelected) {
+ if (inviteSelectedRoles.length > 1) {
+ setInviteSelectedRoles(inviteSelectedRoles.filter((r) => r !== roleDef.id));
+ }
+ } else {
+ if (inviteSelectedRoles.length >= 2) {
+ setInviteSelectedRoles([inviteSelectedRoles[0], roleDef.id]);
+ } else {
+ setInviteSelectedRoles([...inviteSelectedRoles, roleDef.id]);
+ }
+ }
+ }}
+ className={`p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer flex items-center justify-between ${
+ isSelected
+ ? 'bg-emerald-950/60 border-emerald-500 text-white font-bold'
+ : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+ }`}
+ >
+ <span>{roleDef.name}</span>
+ {isSelected && <Check className="w-4 h-4 text-emerald-400" />}
+ </button>
+ );
+ })}
+ </div>
+ </div>
+
+ <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
+ <button
+ type="button"
+ onClick={() => setIsCreateInviteModalOpen(false)}
+ className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+ >
+ Cancelar
+ </button>
+ <button
+ type="submit"
+ disabled={isSubmittingInvite !inviteGuestName.trim()}
+ className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer shadow-lg flex items-center gap-1.5"
+ >
+ {isSubmittingInvite ? 'Gerando Link...' : 'Gerar Link de Convite'}
+ </button>
+ </div>
+ </form>
+ </div>
+ </div>
+ )}
+ </div>
+ );
 };

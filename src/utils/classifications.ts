@@ -113,7 +113,6 @@ export const CLASSIFICATIONS = ROLE_POWER_PROFILES.map((p) => ({
   category: p.id === 'caregiver' || p.id === 'caregiver_substitute' ? 'cuidador' : 'familiar',
   defaultRoles: [p.id],
   description: p.summary,
-  emoji: p.id === 'admin_family' ? '🛡️' : p.id === 'caregiver' ? '🩺' : p.id === 'caregiver_substitute' ? '⏱️' : '👨‍👩‍👧‍👦',
 }));
 
 export function getClassificationById(id: string) {
