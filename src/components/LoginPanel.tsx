@@ -174,6 +174,31 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
  </p>
  </div>
 
+ {/* Atalho Rápido para Conta de Administrador Geral */}
+ <div className="bg-blue-950/40 border border-blue-500/30 rounded-2xl p-3 flex items-center justify-between gap-2">
+ <div className="text-left space-y-0.5 min-w-0">
+ <div className="flex items-center gap-1.5 text-blue-300 font-bold text-xs">
+ <ShieldCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+ <span>Administrador Geral</span>
+ </div>
+ <p className="text-[11px] text-slate-300 font-mono truncate">
+ <strong className="text-white">adm1234@</strong> · Senha: <strong className="text-white">072131sa</strong>
+ </p>
+ </div>
+ <button
+ type="button"
+ onClick={() => {
+ setUsername('adm1234@');
+ setPassword('072131sa');
+ setErrorMessage(null);
+ }}
+ className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer shadow-sm"
+ title="Preencher credenciais do Administrador"
+ >
+ Preencher
+ </button>
+ </div>
+
  {errorMessage && (
  <div className="bg-red-950/60 border border-red-500/30 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-red-200 animate-in fade-in">
  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />

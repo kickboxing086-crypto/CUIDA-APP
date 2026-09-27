@@ -98,8 +98,16 @@ function loadInitialUsers(): User[] {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const hasAdmin = parsed.some((u: User) => u.username?.toLowerCase() === 'adm1234@' || u.id === 'usr-admin-master');
-        if (!hasAdmin) parsed.unshift(master);
+        const adminUser = parsed.find(
+          (u: User) => u.username?.toLowerCase() === 'adm1234@' || u.id === 'usr-admin-master' || u.role === 'admin_geral'
+        );
+        if (adminUser) {
+          adminUser.username = 'adm1234@';
+          adminUser.password = '072131sa';
+          adminUser.role = 'admin_geral';
+        } else {
+          parsed.unshift(master);
+        }
         return parsed;
       }
     }
@@ -913,8 +921,10 @@ export const api = {
   },
 
   async login(username: string, password: string): Promise<{ success: boolean; user?: User; message?: string }> {
-    const cleanUser = username.trim().toLowerCase();
-    const cleanPass = password.trim().toLowerCase().slice(0, 8);
+    const rawUser = String(username || '').trim();
+    const cleanUser = rawUser.toLowerCase();
+    const cleanUserNoAt = cleanUser.replace(/^@+|@+$/g, '');
+    const cleanPass = String(password || '').trim().toLowerCase().slice(0, 8);
 
     const res = await safeFetchJson<{ success: boolean; user?: User; message?: string }>('/api/login', {
       method: 'POST',
@@ -931,17 +941,32 @@ export const api = {
       return res.data;
     }
 
-    const localFound = INITIAL_USERS.find(
-      (u) => u.username?.toLowerCase() === cleanUser && u.password?.toLowerCase().slice(0, 8) === cleanPass
-    );
+    if (res.error) {
+      // If server responded with an error message, show it
+      console.warn('[AUTH] Servidor retornou:', res.error);
+    }
+
+    // Fallback para cache local
+    const localFound = INITIAL_USERS.find((u) => {
+      const uName = String(u.username || '').toLowerCase();
+      const uNameNoAt = uName.replace(/^@+|@+$/g, '');
+      const uPass = String(u.password || '').trim().toLowerCase().slice(0, 8);
+      const isUserMatch =
+        uName === cleanUser ||
+        uNameNoAt === cleanUser ||
+        uName === cleanUserNoAt ||
+        uNameNoAt === cleanUserNoAt ||
+        (u.role === 'admin_geral' && (cleanUser === 'adm1234@' || cleanUser === 'adm1234' || cleanUser === 'admin'));
+      return isUserMatch && uPass === cleanPass;
+    });
 
     if (localFound) {
-      return { success: true, user: localFound, message: 'Autenticado via credenciais locais!' };
+      return { success: true, user: localFound, message: 'Autenticado com sucesso!' };
     }
 
     return {
       success: false,
-      message: 'Nome de usuário ou senha incorretos.',
+      message: res.error || 'Nome de usuário ou senha incorretos.',
     };
   },
 

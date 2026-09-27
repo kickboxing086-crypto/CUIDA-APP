@@ -552,7 +552,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  <Users className="w-4 h-4" />
  <span>Logins, Famílias & Senhas</span>
  <span className="bg-slate-900/60 text-slate-300 px-1.5 py-0.2 rounded text-[10px]">
- {allUsers.length}
+ {allUsers.filter((u) => u.role !== 'admin_geral' && (u.family_id || (u.roles && !u.roles.includes('admin_geral')))).length}
  </span>
  </button>
 
