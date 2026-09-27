@@ -298,47 +298,23 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  </button>
 
             {activeEntry ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => onOpenLiveCamera('check_out')}
-                  className="inline-flex items-center gap-1.5 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
-                >
-                  <Scan className="w-4 h-4 text-white" />
-                  <span>Registrar Saída com Face App</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleDirectCheckOut}
-                  disabled={isRegisteringPoint}
-                  className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors cursor-pointer"
-                  title="Saída direta sem câmera"
-                >
-                  <Clock className="w-4 h-4" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => onOpenLiveCamera('check_out')}
+                className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-black text-xs shadow-md transition-all cursor-pointer"
+              >
+                <Camera className="w-4 h-4 text-white" />
+                <span>Tirar Foto do Ponto (Saída)</span>
+              </button>
             ) : (
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => onOpenLiveCamera('check_in')}
-                  className="inline-flex items-center gap-1.5 py-2.5 px-4 rounded-xl bg-emerald-400 hover:bg-emerald-300 active:bg-emerald-500 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
-                >
-                  <Scan className="w-4 h-4 text-slate-950" />
-                  <span>Bater Ponto com Face App</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleDirectCheckIn}
-                  disabled={isRegisteringPoint}
-                  className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors cursor-pointer"
-                  title="Entrada direta sem câmera"
-                >
-                  <Clock className="w-4 h-4" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => onOpenLiveCamera('check_in')}
+                className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-400 hover:bg-emerald-300 active:bg-emerald-500 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+              >
+                <Camera className="w-4 h-4 text-slate-950" />
+                <span>Tirar Foto do Ponto (Entrada)</span>
+              </button>
             )}
  </div>
  </div>

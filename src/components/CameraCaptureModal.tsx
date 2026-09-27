@@ -237,11 +237,11 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
         <div className="px-4 sm:px-6 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-blue-400">
-              <Scan className="w-4 h-4" />
+              <Camera className="w-4 h-4" />
             </div>
             <div>
               <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5 font-mono">
-                Face App · Ponto Digital
+                Registro de Ponto com Foto
               </span>
               <h3 className="font-extrabold text-sm sm:text-base text-white">{title}</h3>
             </div>
@@ -260,6 +260,30 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
               <X className="w-4 h-4" />
             </button>
           </div>
+        </div>
+
+        {/* Residence Geofence Status Bar */}
+        <div className="px-4 sm:px-6 py-2.5 bg-slate-950/90 border-b border-slate-800/80 flex items-center justify-between text-xs gap-2">
+          <div className="flex items-center gap-1.5 text-slate-300 truncate">
+            <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span className="truncate">
+              {currentCoords
+                ? `GPS: ${currentCoords.lat.toFixed(4)}, ${currentCoords.lng.toFixed(4)}${distanceMeters !== null ? ` (${distanceMeters}m)` : ''}`
+                : 'Obtendo GPS da residência...'}
+            </span>
+          </div>
+
+          <span
+            className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border shrink-0 ${
+              isWithinPerimeter === true
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+            }`}
+          >
+            {isWithinPerimeter === true
+              ? 'No Raio da Residência'
+              : `Raio do Local (${allowedRadius}m)`}
+          </span>
         </div>
 
         {/* Mode Switcher Tabs */}

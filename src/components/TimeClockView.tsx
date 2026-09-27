@@ -398,24 +398,14 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  <p className="text-xs text-slate-600">
  O encerramento do plantão será registrado com o <strong>horário oficial auditado</strong>.
  </p>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+            <div className="w-full sm:w-auto">
               <button
                 type="button"
                 onClick={handleOpenCheckOut}
                 className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:from-rose-700 active:to-red-700 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
-                <Scan className="w-4 h-4 text-white" />
-                <span>Registrar Saída com Face App</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleDirectCheckOut}
-                disabled={isSubmittingDirect}
-                className="w-full sm:w-auto px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                title="Encerrar plantão sem câmera"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>{isSubmittingDirect ? 'Encerrando...' : 'Saída Direta'}</span>
+                <Camera className="w-4 h-4 text-white" />
+                <span>Tirar Foto do Ponto (Saída de Plantão)</span>
               </button>
             </div>
  </div>
@@ -434,25 +424,14 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  </p>
  </div>
 
-          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 max-w-lg mx-auto w-full">
+          <div className="pt-2 flex justify-center max-w-lg mx-auto w-full">
             <button
               type="button"
               onClick={handleOpenCheckIn}
-              className="w-full sm:w-auto flex-1 px-6 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 active:from-emerald-700 active:to-teal-700 text-white font-black text-sm sm:text-base shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-2.5 transition-all cursor-pointer"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 active:from-emerald-700 active:to-teal-700 text-white font-black text-sm sm:text-base shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-2.5 transition-all cursor-pointer"
             >
-              <Scan className="w-5 h-5 text-white animate-pulse" />
-              <span>Bater Ponto com Face App</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleDirectCheckIn}
-              disabled={isSubmittingDirect}
-              className="w-full sm:w-auto px-4 py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-              title="Bater ponto sem câmera fotográfica"
-            >
-              <Clock className="w-4 h-4" />
-              <span>{isSubmittingDirect ? 'Registrando...' : 'Ponto sem Câmera'}</span>
+              <Camera className="w-5 h-5 text-white animate-pulse" />
+              <span>Tirar Foto do Ponto (Entrada)</span>
             </button>
           </div>
  </div>
