@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, CheckCheck, Clock, ExternalLink, Heart, Pill, CheckSquare, FileText, MessageSquare, MapPin, X, AlertCircle, ShieldCheck, UserCheck, } from "lucide-react";
+import { Bell, CheckCheck, Clock, ExternalLink, Heart, Pill, CheckSquare, FileText, MessageSquare, MapPin, X, AlertCircle, ShieldCheck, UserCheck } from "lucide-react";
 import { FamilyActivityLog } from '../types';
 import { AppTabType } from './HeaderNav';
 
@@ -22,10 +22,9 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
  onMarkAsRead,
  onMarkAllAsRead,
  onNavigateTab,
- currentUserName,
-}) => {
- const dropdownRef = useRef<HTMLDivElement null>(null);
- const [filter, setFilter] = useState<'all' 'unread'>('all');
+ currentUserName }) => {
+ const dropdownRef = useRef<HTMLDivElement | null>(null);
+ const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
  // Close on escape key
  useEffect(() => {
@@ -55,8 +54,7 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
 
  const unreadCount = unreadIds.length;
 
- const filteredLogs = filter === 'unread'
- ? logs.filter((log) => unreadIds.includes(log.id))
+ const filteredLogs = filter === 'unread' ? logs.filter((log) => unreadIds.includes(log.id))
  : logs;
 
  const getCategoryIcon = (category: string) => {
@@ -79,7 +77,7 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
  };
 
  const getCategoryTab = (category: string, description: string): AppTabType => {
- if (description.toLowerCase().includes('residência') description.toLowerCase().includes('geofence') description.toLowerCase().includes('perímetro')) {
+ if (description.toLowerCase().includes('residência') || description.toLowerCase().includes('geofence') || description.toLowerCase().includes('perímetro')) {
  return 'caregiver_dashboard';
  }
  switch (category) {
@@ -165,8 +163,7 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
  type="button"
  onClick={() => setFilter('all')}
  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
- filter === 'all'
- ? 'bg-slate-900 text-white'
+ filter === 'all' ? 'bg-slate-900 text-white'
  : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
  }`}
  >
@@ -176,8 +173,7 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
  type="button"
  onClick={() => setFilter('unread')}
  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 ${
- filter === 'unread'
- ? 'bg-red-600 text-white'
+ filter === 'unread' ? 'bg-red-600 text-white'
  : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
  }`}
  >
@@ -210,8 +206,7 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
  <Bell className="w-6 h-6" />
  </div>
  <p className="text-xs font-semibold text-slate-600">
- {filter === 'unread'
- ? 'Nenhuma notificação não lida no momento.'
+ {filter === 'unread' ? 'Nenhuma notificação não lida no momento.'
  : 'Nenhuma atividade registrada ainda.'}
  </p>
  <span className="text-[11px] text-slate-400 block">
@@ -251,7 +246,7 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
  </div>
 
  <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
- {log.formatted_time new Date(log.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+ {log.formatted_time || new Date(log.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
  </span>
  </div>
 

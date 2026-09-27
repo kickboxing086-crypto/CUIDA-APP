@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { CheckSquare, ShieldCheck, Plus, Edit3, Trash2, Clock, Pill, Heart, AlertCircle, CheckCircle2, Lock, User, Info, Calendar, } from "lucide-react";
+import { CheckSquare, ShieldCheck, Plus, Edit3, Trash2, Clock, Pill, Heart, AlertCircle, CheckCircle2, Lock, User, Info, Calendar } from "lucide-react";
 import { DailyMission, ElderlyProfile, User as UserType, MissionCategory, MissionPriority } from '../types';
 import { api } from '../services/api';
+import { AnimatedSelect, AnimatedSegmentedControl } from './AnimatedChoiceSelect';
 
 interface DailyMissionsAdminViewProps {
  currentUser: UserType;
@@ -10,12 +11,11 @@ interface DailyMissionsAdminViewProps {
 
 export const DailyMissionsAdminView: React.FC<DailyMissionsAdminViewProps> = ({
  currentUser,
- elderly,
-}) => {
+ elderly }) => {
  const [missions, setMissions] = useState<DailyMission[]>([]);
  const [isLoading, setIsLoading] = useState(false);
  const [isModalOpen, setIsModalOpen] = useState(false);
- const [editingMission, setEditingMission] = useState<DailyMission null>(null);
+ const [editingMission, setEditingMission] = useState<DailyMission | null>(null);
 
  // Form states
  const [title, setTitle] = useState('');
@@ -24,13 +24,13 @@ export const DailyMissionsAdminView: React.FC<DailyMissionsAdminViewProps> = ({
  const [priority, setPriority] = useState<MissionPriority>('mandatory');
  const [clearInstructions, setClearInstructions] = useState('');
  const [isSubmitting, setIsSubmitting] = useState(false);
- const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' 'error'; text: string } null>(null);
+ const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
  // Execution notes prompt modal
- const [executingMission, setExecutingMission] = useState<DailyMission null>(null);
+ const [executingMission, setExecutingMission] = useState<DailyMission | null>(null);
  const [executionNote, setExecutionNote] = useState('');
 
- const isAdmin = currentUser.role === 'admin_geral' currentUser.role === 'admin_family';
+ const isAdmin = currentUser.role === 'admin_geral' || currentUser.role === 'admin_family';
 
  const loadMissions = async () => {
  setIsLoading(true);
@@ -73,8 +73,7 @@ export const DailyMissionsAdminView: React.FC<DailyMissionsAdminViewProps> = ({
  if (!isAdmin) {
  setFeedbackMsg({
  type: 'error',
- text: 'Apenas o Administrador Geral da família pode criar ou alterar missões diárias.',
- });
+ text: 'Apenas o Administrador Geral da família pode criar ou alterar missões diárias.' });
  return;
  }
 
@@ -89,8 +88,7 @@ export const DailyMissionsAdminView: React.FC<DailyMissionsAdminViewProps> = ({
  category,
  priority,
  clear_instructions: clearInstructions,
- user_id: currentUser.id,
- });
+ created_by_user_id: currentUser.id });
  setFeedbackMsg({ type: 'success', text: 'Missão atualizada com sucesso!' });
  } else {
  await api.createDailyMission({
@@ -99,14 +97,13 @@ export const DailyMissionsAdminView: React.FC<DailyMissionsAdminViewProps> = ({
  category,
  priority,
  clear_instructions: clearInstructions,
- user_id: currentUser.id,
- });
+ created_by_user_id: currentUser.id });
  setFeedbackMsg({ type: 'success', text: 'Nova missão diária cadastrada no protocolo do cuidador!' });
  }
  setIsModalOpen(false);
  await loadMissions();
  } catch (err: any) {
- setFeedbackMsg({ type: 'error', text: err.message 'Erro ao salvar missão.' });
+ setFeedbackMsg({ type: 'error', text: err.message || 'Erro ao salvar missão.' });
  } finally {
  setIsSubmitting(false);
  }
@@ -120,7 +117,7 @@ export const DailyMissionsAdminView: React.FC<DailyMissionsAdminViewProps> = ({
  await loadMissions();
  setFeedbackMsg({ type: 'success', text: 'Missão removida com sucesso.' });
  } catch (err: any) {
- setFeedbackMsg({ type: 'error', text: err.message 'Erro ao excluir.' });
+ setFeedbackMsg({ type: 'error', text: err.message || 'Erro ao excluir.' });
  }
  };
 
@@ -193,8 +190,7 @@ export const DailyMissionsAdminView: React.FC<DailyMissionsAdminViewProps> = ({
  {feedbackMsg && (
  <div
  className={`mt-4 p-3 rounded-xl text-xs flex items-center gap-2 ${
- feedbackMsg.type === 'success'
- ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+ feedbackMsg.type === 'success' ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
  : 'bg-rose-50 text-rose-900 border border-rose-200'
  }`}
  >
@@ -328,7 +324,7 @@ export const DailyMissionsAdminView: React.FC<DailyMissionsAdminViewProps> = ({
  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
  <span>
  Missão cumprida às <strong>{mission.completed_at}</strong> por{' '}
- <strong>{mission.completed_by_name 'Cuidadora'}</strong>.
+ <strong>{mission.completed_by_name || 'Cuidadora'}</strong>.
  {mission.execution_notes && (
  <span className="italic ml-1">Obs: "{mission.execution_notes}"</span>
  )}
@@ -420,38 +416,38 @@ export const DailyMissionsAdminView: React.FC<DailyMissionsAdminViewProps> = ({
  </div>
 
  <div>
- <label className="block text-xs font-semibold text-slate-700 mb-1">
- Categoria do Cuidado
- </label>
- <select
+ <AnimatedSelect
+ label="Categoria do Cuidado *"
  value={category}
- onChange={(e: any) => setCategory(e.target.value)}
- className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-blue-600"
- >
- <option value="medication">Medicamento / Remédio</option>
- <option value="vitals">Sinais Vitais (Pressão, Glicemia)</option>
- <option value="meals">Alimentação & Dieta</option>
- <option value="hygiene">Higiene Pessoal & Banho</option>
- <option value="activity">Fisioterapia / Exercício</option>
- <option value="special">Cuidado Especial</option>
- </select>
+ onChange={(val) => setCategory(val as MissionCategory)}
+ options={[
+ { value: 'medication', label: 'Medicamento / Remédio', icon: Pill },
+ { value: 'vitals', label: 'Sinais Vitais (Pressão, Glicemia)', icon: Heart },
+ { value: 'meals', label: 'Alimentação & Dieta', icon: Calendar },
+ { value: 'hygiene', label: 'Higiene Pessoal & Banho', icon: User },
+ { value: 'activity', label: 'Fisioterapia / Exercício', icon: Clock },
+ { value: 'special', label: 'Cuidado Especial', icon: ShieldCheck },
+ ]}
+ />
  </div>
  </div>
 
- {/* Priority */}
+ {/* Priority - Animated Segmented Control */}
  <div>
- <label className="block text-xs font-semibold text-slate-700 mb-1">
- Nível de Exigência / Prioridade
+ <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+ Nível de Exigência / Prioridade *
  </label>
- <select
+ <AnimatedSegmentedControl
  value={priority}
- onChange={(e: any) => setPriority(e.target.value)}
- className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-blue-600"
- >
- <option value="mandatory">Obrigação Inegociável (Alerta vermelho se não cumprida)</option>
- <option value="urgent">Atenção Especial / Específica</option>
- <option value="routine">Rotina Padrão Diária</option>
- </select>
+ onChange={(val) => setPriority(val as MissionPriority)}
+ layoutId="missionPrioritySegmented"
+ className="w-full justify-between"
+ options={[
+ { value: 'mandatory', label: 'Obrigação Inegociável', badge: 'Alta' },
+ { value: 'urgent', label: 'Atenção Especial' },
+ { value: 'routine', label: 'Rotina Padrão' },
+ ]}
+ />
  </div>
 
  {/* Clear and concise instructions (Crucial feature) */}

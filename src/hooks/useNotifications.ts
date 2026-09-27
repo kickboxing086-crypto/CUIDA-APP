@@ -57,8 +57,7 @@ export function useNotifications(userId?: string, familyId: string = 'fam-01') {
  'Medicamentos': unreadLogs.filter((l) => l.category === 'Medicamentos').length,
  'Boletim do Idoso': unreadLogs.filter((l) => l.category === 'Boletim do Idoso').length,
  'Controle de Ponto': unreadLogs.filter((l) => l.category === 'Controle de Ponto').length,
- 'Mural': unreadLogs.filter((l) => l.category === 'Mural').length,
- };
+ 'Mural': unreadLogs.filter((l) => l.category === 'Mural').length };
 
  const markAsRead = useCallback(
  (logId: string) => {
@@ -95,6 +94,5 @@ export function useNotifications(userId?: string, familyId: string = 'fam-01') {
  markAsRead,
  markAllAsRead,
  refreshNotifications: fetchLogs,
- isLoading,
- };
+ isLoading };
 }

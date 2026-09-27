@@ -21,7 +21,7 @@ import { FamilyAdminInvitesModal } from './components/FamilyAdminInvitesModal';
 import { NotificationsDropdown } from './components/NotificationsDropdown';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { useNotifications } from './hooks/useNotifications';
-import { api } from './services/api';
+import { api, loadInitialElderly, persistElderlyCache } from './services/api';
 import { ElderlyProfile, User } from './types';
 import { ElderCaneLogo } from './components/ElderCaneLogo';
 import { ShieldCheck } from "lucide-react";
@@ -32,12 +32,12 @@ import { FooterBranding } from './components/FooterBranding';
 
 export default function App() {
  // Session User (Null indicates login screen)
- const [currentUser, setCurrentUser] = useState<User null>(() => {
+ const [currentUser, setCurrentUser] = useState<User | null>(() => {
  try {
  const saved = localStorage.getItem('cuida_session_user');
  if (saved) {
  const parsed = JSON.parse(saved);
- if (parsed && typeof parsed === 'object' && parsed.id && parsed.username) {
+ if (parsed && typeof  parsed === 'object' && parsed.id && parsed.username) {
  return parsed;
  }
  }
@@ -48,19 +48,7 @@ export default function App() {
  });
 
  const [usersList, setUsersList] = useState<User[]>(api.getUsers());
- const [elderly, setElderly] = useState<ElderlyProfile>({
- id: 'eld-01',
- full_name: 'Dona Maria Silveira',
- birth_date: '1945-05-12',
- blood_type: 'O+',
- allergies: ['Dipirona'],
- residence_address: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP',
- residence_lat: -23.5505,
- residence_long: -46.6333,
- allowed_radius_meters: 300,
- emergency_contacts: [],
- created_at: new Date().toISOString(),
- });
+ const [elderly, setElderly] = useState<ElderlyProfile>(() => loadInitialElderly());
  const [activeTab, setActiveTab] = useState<AppTabType>('caregiver_dashboard');
  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -74,8 +62,7 @@ export default function App() {
  categoryUnreadCounts,
  markAsRead,
  markAllAsRead,
- refreshNotifications,
- } = useNotifications(currentUser?.id, currentUser?.family_id 'fam-01');
+ refreshNotifications } = useNotifications(currentUser?.id, currentUser?.family_id || 'fam-01');
 
  // Presence Modals
  const [isAddPresenceModalOpen, setIsAddPresenceModalOpen] = useState(false);
@@ -83,7 +70,7 @@ export default function App() {
  const [isResidenceModalOpen, setIsResidenceModalOpen] = useState(false);
  const [isFamilyInvitesOpen, setIsFamilyInvitesOpen] = useState(false);
  const [isFacialRegistrationOpen, setIsFacialRegistrationOpen] = useState(false);
- const [cameraMode, setCameraMode] = useState<'check_in' 'check_out'>('check_in');
+ const [cameraMode, setCameraMode] = useState<'check_in' | 'check_out'>('check_in');
 
  // Load Elderly Profile and Users on refresh
  useEffect(() => {
@@ -91,10 +78,10 @@ export default function App() {
  try {
  const [eldData, usersData] = await Promise.all([
  api.getElderlyProfile(),
- api.fetchUsers(),
- ]);
+ api.fetchUsers() ]);
  if (eldData && eldData.full_name) {
  setElderly(eldData);
+ persistElderlyCache(eldData);
  }
  if (usersData && usersData.length > 0) {
  setUsersList(usersData);
@@ -156,12 +143,11 @@ export default function App() {
  try {
  await api.updateElderlyResidence({
  residence_address: residenceData.address,
- residence_lat: residenceData.lat -23.5505,
- residence_long: residenceData.long -46.6333,
- allowed_radius_meters: residenceData.radius 150,
- family_id: updatedUser.family_id null,
- requesting_user_id: updatedUser.id,
- });
+ residence_lat: residenceData.lat || -23.5505,
+ residence_long: residenceData.long || -46.6333,
+ allowed_radius_meters: residenceData.radius || 150,
+ family_id: updatedUser.family_id || null,
+ requesting_user_id: updatedUser.id });
  } catch (resErr) {
  console.warn('Erro ao atualizar residência no onboarding:', resErr);
  }
@@ -174,7 +160,7 @@ export default function App() {
  }
  };
 
- const handleOpenLiveCamera = (mode: 'check_in' 'check_out' = 'check_in') => {
+ const handleOpenLiveCamera = (mode: 'check_in' | 'check_out' = 'check_in') => {
  setCameraMode(mode);
  setIsCameraModalOpen(true);
  };
@@ -194,7 +180,7 @@ export default function App() {
  locationLat?: number;
  locationLong?: number;
  }) => {
- if (!elderly !currentUser) return;
+ if (!elderly || !currentUser) return;
  try {
  if (cameraMode === 'check_in') {
  await api.checkIn({
@@ -203,8 +189,7 @@ export default function App() {
  photoBase64: params.photoBase64,
  locationLat: params.locationLat,
  locationLong: params.locationLong,
- notes: 'Registro biométrico facial confirmado via câmera frontal com geolocalização.',
- });
+ notes: 'Registro biométrico facial confirmado via câmera frontal com geolocalização.' });
  } else {
  const active = await api.getActiveEntry(currentUser.id);
  if (active) {
@@ -213,19 +198,19 @@ export default function App() {
  photoBase64: params.photoBase64,
  locationLat: params.locationLat,
  locationLong: params.locationLong,
- notes: 'Encerramento de plantão validado com selfie facial e geolocalização.',
- });
+ userId: currentUser.id,
+notes: 'Encerramento de plantão validado com selfie facial e geolocalização.' });
  }
  }
  handleRefreshHistory();
  } catch (err: any) {
  console.error('Erro ao validar ponto:', err);
- alert(`️ Erro na validação de ponto:\n\n${err.message 'Falha ao registrar ponto.'}`);
+ alert(`️ Erro na validação de ponto:\n\n${err.message || 'Falha ao registrar ponto.'}`);
  }
  };
 
  // 1. Se não estiver autenticado, exibe o Painel de Login
- if (!currentUser !currentUser.id !currentUser.username) {
+ if (!currentUser || !currentUser.id || !currentUser.username) {
  return <LoginPanel onLoginSuccess={handleLoginSuccess} />;
  }
 
@@ -270,7 +255,7 @@ export default function App() {
  return (
  <div className="min-h-screen min-h-[100dvh] bg-slate-50 flex flex-col selection:bg-blue-100 selection:text-blue-900 font-sans overflow-x-hidden">
  <OfflineIndicator />
- {/* Navigation Header with '+ Adicionar Presença', User Tag, Logout & Notifications */}
+ {/* Navigation Header with || '+ Adicionar Presença', User Tag, Logout & Notifications */}
  <HeaderNav
  activeTab={activeTab}
  setActiveTab={setActiveTab}
@@ -342,8 +327,8 @@ export default function App() {
  {activeTab === 'family_history' && (
  <FamilyActivityHistoryView
  currentUser={currentUser}
- familyId={currentUser.family_id undefined}
- familyName={currentUser.family_name undefined}
+ familyId={currentUser.family_id || undefined}
+ familyName={currentUser.family_name || undefined}
  />
  )}
 
@@ -414,11 +399,12 @@ export default function App() {
  isOpen={isResidenceModalOpen}
  onClose={() => setIsResidenceModalOpen(false)}
  currentUser={currentUser}
- familyId={currentUser.family_id}
- familyName={currentUser.family_name}
+ familyId={currentUser.family_id || "fam-01"}
+ familyName={currentUser.family_name || "Família Silveira"}
  currentElderly={elderly}
  onSaved={(updatedElderly) => {
  setElderly(updatedElderly);
+ persistElderlyCache(updatedElderly);
  handleRefreshHistory();
  }}
  />
@@ -438,13 +424,13 @@ export default function App() {
  onCapture={handleCameraPhotoCaptured}
  title={cameraMode === 'check_in' ? 'Check-in de Entrada' : 'Check-out de Saída'}
  subtitle={
- cameraMode === 'check_in'
- ? 'Tire uma selfie frontal nítida para comprovar presença no endereço cadastrado'
+ cameraMode === 'check_in' ? 'Tire uma selfie frontal nítida para comprovar presença no endereço cadastrado'
  : 'Tire uma selfie frontal para validar e encerrar seu turno'
  }
  officialTimeStr={new Date().toLocaleTimeString('pt-BR')}
  userName={currentUser.name}
  elderly={elderly}
+ currentUser={currentUser}
  />
 
  {/* Modal: Cadastro Posterior de Biometria Facial */}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Activity, Thermometer, Scale, Plus, AlertCircle, CheckCircle2, Calendar, User as UserIcon, ShieldCheck, FileCheck, Edit3, RotateCcw, } from "lucide-react";
+import { Heart, Activity, Thermometer, Scale, Plus, AlertCircle, CheckCircle2, Calendar, User as UserIcon, ShieldCheck, FileCheck, Edit3, RotateCcw } from "lucide-react";
 import { HealthLog, User } from '../types';
 import { api } from '../services/api';
+import { AnimatedSelect } from './AnimatedChoiceSelect';
 
 interface HealthLogsViewProps {
  currentUser: User;
@@ -10,7 +11,7 @@ interface HealthLogsViewProps {
 export const HealthLogsView: React.FC<HealthLogsViewProps> = ({ currentUser }) => {
  const [logs, setLogs] = useState<HealthLog[]>([]);
  const [isModalOpen, setIsModalOpen] = useState(false);
- const [editingLog, setEditingLog] = useState<HealthLog null>(null);
+ const [editingLog, setEditingLog] = useState<HealthLog | null>(null);
  const [isSubmitting, setIsSubmitting] = useState(false);
 
  // Form states: ALL START BLANK/EMPTY as requested by user!
@@ -37,58 +38,51 @@ export const HealthLogsView: React.FC<HealthLogsViewProps> = ({ currentUser }) =
  loadLogs();
  }, []);
 
- const calculateBPStatus = (sysNum?: number null, diaNum?: number null) => {
- if (!sysNum !diaNum) {
+ const calculateBPStatus = (sysNum?: number | null, diaNum?: number | null) => {
+ if (!sysNum || !diaNum) {
  return {
  label: 'Pressão Não Aferida (Opcional)',
  color: 'text-slate-600 bg-slate-100 border-slate-200',
- alert: false,
- };
+ alert: false };
  }
 
  const sys = Number(sysNum);
  const dia = Number(diaNum);
 
- if (sys >= 180 dia >= 120) {
+ if (sys >= 180 || dia >= 120) {
  return {
  label: 'Crise Hipertensiva (Alerta Médico)',
  color: 'text-rose-700 bg-rose-50 border-rose-200',
- alert: true,
- };
+ alert: true };
  }
- if (sys >= 140 dia >= 90) {
+ if (sys >= 140 || dia >= 90) {
  return {
  label: 'Hipertensão Estágio 2',
  color: 'text-amber-800 bg-amber-50 border-amber-200',
- alert: true,
- };
+ alert: true };
  }
- if (sys >= 130 dia >= 80) {
+ if (sys >= 130 || dia >= 80) {
  return {
  label: 'Hipertensão Estágio 1',
  color: 'text-yellow-800 bg-yellow-50 border-yellow-200',
- alert: false,
- };
+ alert: false };
  }
  if (sys >= 120 && dia < 80) {
  return {
  label: 'Pré-hipertensão (Atenção)',
  color: 'text-blue-800 bg-blue-50 border-blue-200',
- alert: false,
- };
+ alert: false };
  }
- if (sys < 90 dia < 60) {
+ if (sys < 90 || dia < 60) {
  return {
  label: 'Hipotensão (Pressão Baixa)',
  color: 'text-indigo-800 bg-indigo-50 border-indigo-200',
- alert: true,
- };
+ alert: true };
  }
  return {
  label: 'Pressão Normal / Ótima',
  color: 'text-emerald-800 bg-emerald-50 border-emerald-200',
- alert: false,
- };
+ alert: false };
  };
 
  const handleOpenModal = () => {
@@ -112,10 +106,10 @@ export const HealthLogsView: React.FC<HealthLogsViewProps> = ({ currentUser }) =
  setDiastolic(log.diastolic_bp ? String(log.diastolic_bp) : '');
  setHeartRate(log.heart_rate ? String(log.heart_rate) : '');
  setGlucose(log.glucose ? String(log.glucose) : '');
- setGlucoseContext(log.glucose_context 'Jejum matinal');
+ setGlucoseContext(log.glucose_context || 'Jejum matinal');
  setTemperature(log.temperature_c ? String(log.temperature_c) : '');
  setWeight(log.weight_kg ? String(log.weight_kg) : '');
- setNotes(log.notes '');
+ setNotes(log.notes || '');
  setContractorSigned(log.contractor_signed ?? true);
  setIsModalOpen(true);
  };
@@ -154,10 +148,9 @@ export const HealthLogsView: React.FC<HealthLogsViewProps> = ({ currentUser }) =
  glucose_context: glucoseContext,
  temperature_c: temperature ? parseFloat(temperature) : null,
  weight_kg: weight ? parseFloat(weight) : null,
- notes: notes (systolic ? 'Aferição editada.' : 'Registro atualizado (sem aferição de PA).'),
+ notes: notes || (systolic ? 'Aferição editada.' : 'Registro atualizado (sem aferição de PA).'),
  contractor_signed: contractorSigned,
- caregiver_signed: true,
- });
+ caregiver_signed: true });
  } else {
  await api.createHealthLog({
  systolic_bp: systolic ? parseFloat(systolic) : null,
@@ -167,11 +160,10 @@ export const HealthLogsView: React.FC<HealthLogsViewProps> = ({ currentUser }) =
  glucose_context: glucoseContext,
  temperature_c: temperature ? parseFloat(temperature) : null,
  weight_kg: weight ? parseFloat(weight) : null,
- notes: notes (systolic ? 'Aferição registrada.' : 'Registro de rotina sem aferição de PA.'),
+ notes: notes || (systolic ? 'Aferição registrada.' : 'Registro de rotina sem aferição de PA.'),
  recorded_by_user_id: currentUser.id,
  contractor_signed: contractorSigned,
- caregiver_signed: true,
- });
+ caregiver_signed: true });
  }
  await loadLogs();
  setIsModalOpen(false);
@@ -237,7 +229,7 @@ export const HealthLogsView: React.FC<HealthLogsViewProps> = ({ currentUser }) =
  calculateBPStatus(latestLog.systolic_bp, latestLog.diastolic_bp).color
  }`}
  >
- {latestLog.status_category 'Opcional'}
+ {latestLog.status_category || 'Opcional'}
  </span>
  </div>
  </div>
@@ -250,7 +242,7 @@ export const HealthLogsView: React.FC<HealthLogsViewProps> = ({ currentUser }) =
  </div>
  <div className="flex items-baseline gap-1.5">
  <span className="text-2xl font-extrabold text-slate-900 font-mono">
- {latestLog.heart_rate '--'}
+ {latestLog.heart_rate || '--'}
  </span>
  <span className="text-xs text-slate-500">bpm</span>
  </div>
@@ -267,12 +259,12 @@ export const HealthLogsView: React.FC<HealthLogsViewProps> = ({ currentUser }) =
  </div>
  <div className="flex items-baseline gap-1.5">
  <span className="text-2xl font-extrabold text-slate-900 font-mono">
- {latestLog.glucose '--'}
+ {latestLog.glucose || '--'}
  </span>
  <span className="text-xs text-slate-500">mg/dL</span>
  </div>
  <div className="mt-2 text-xs text-slate-500 truncate">
- {latestLog.glucose_context 'Não medida'}
+ {latestLog.glucose_context || 'Não medida'}
  </div>
  </div>
 
@@ -379,13 +371,12 @@ export const HealthLogsView: React.FC<HealthLogsViewProps> = ({ currentUser }) =
  {new Date(log.created_at).toLocaleDateString('pt-BR')} às{' '}
  {new Date(log.created_at).toLocaleTimeString('pt-BR', {
  hour: '2-digit',
- minute: '2-digit',
- })}
+ minute: '2-digit' })}
  </span>
  </div>
  <div className="flex items-center gap-1 text-xs text-slate-600 font-medium">
  <UserIcon className="w-3 h-3 text-slate-400" />
- <span>{log.recorded_by_name 'Profissional'}</span>
+ <span>{log.recorded_by_name || 'Profissional'}</span>
  </div>
 
  {/* Edit button */}
@@ -584,20 +575,18 @@ export const HealthLogsView: React.FC<HealthLogsViewProps> = ({ currentUser }) =
  />
  </div>
  <div>
- <label className="block text-xs font-semibold text-slate-700 mb-1">
- Contexto da Glicemia
- </label>
- <select
+ <AnimatedSelect
+ label="Contexto da Glicemia"
  value={glucoseContext}
- onChange={(e) => setGlucoseContext(e.target.value)}
- className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-blue-600 bg-white"
- >
- <option value="Jejum matinal">Jejum matinal</option>
- <option value="2h pós-almoço">2h pós-almoço</option>
- <option value="2h pós-jantar">2h pós-jantar</option>
- <option value="Pré-refeição">Pré-refeição</option>
- <option value="Aleatória">Aleatória</option>
- </select>
+ onChange={(val) => setGlucoseContext(val)}
+ options={[
+ { value: 'Jejum matinal', label: 'Jejum matinal' },
+ { value: '2h pós-almoço', label: '2h pós-almoço' },
+ { value: '2h pós-jantar', label: '2h pós-jantar' },
+ { value: 'Pré-refeição', label: 'Pré-refeição' },
+ { value: 'Aleatória', label: 'Aleatória' },
+ ]}
+ />
  </div>
  </div>
 

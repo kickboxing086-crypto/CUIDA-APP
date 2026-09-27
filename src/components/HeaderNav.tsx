@@ -1,22 +1,13 @@
 import React, { useState } from 'react';
-import { Clock, Heart, Pill, MessageSquare, FileText, Database, LayoutDashboard, Plus, CheckSquare, Users, LogOut, ShieldCheck, History, MapPin, Bell, Link2, Camera, Menu, X, User as UserIcon, ChevronRight, Settings, Shield, Stethoscope, MoreVertical, } from "lucide-react";
+import { motion } from 'motion/react';
+import { Clock, Heart, Pill, MessageSquare, FileText, Database, LayoutDashboard, Plus, CheckSquare, Users, LogOut, ShieldCheck, History, MapPin, Bell, Link2, Camera, Menu, X, User as UserIcon, ChevronRight, Settings, Shield, Stethoscope, MoreVertical } from "lucide-react";
 import { ElderCaneLogo } from './ElderCaneLogo';
 import { User as UserType } from '../types';
 import { PWAInstallButton } from './PWAInstallButton';
 import { UserProfileModal } from './UserProfileModal';
 
 export type AppTabType =
- 'caregiver_dashboard'
- 'admin_users'
- 'family_history'
- 'missions'
- 'incidents'
- 'clock'
- 'health'
- 'meds'
- 'family'
- 'timesheet'
- 'tech';
+ 'caregiver_dashboard' | 'admin_users' | 'family_history' | 'missions' | 'incidents' | 'clock' | 'health' | 'meds' | 'family' | 'timesheet' | 'tech';
 
 interface HeaderNavProps {
  activeTab: AppTabType;
@@ -41,7 +32,7 @@ interface NavTabItem {
  icon: React.ComponentType<{ className?: string }>;
  badge?: string;
  categoryKey?: string;
- categoryGroup: 'principal' 'saude' 'familia' 'gestao';
+ categoryGroup: 'principal' | 'saude' | 'familia' | 'gestao';
 }
 
 export const HeaderNav: React.FC<HeaderNavProps> = ({
@@ -58,13 +49,12 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
  onUserUpdated,
  unreadCount = 0,
  categoryUnreadCounts = {},
- onLogout,
-}) => {
+ onLogout }) => {
  const [isMenuOpen, setIsMenuOpen] = useState(false);
  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
  const isMasterAdmin = currentUser.role === 'admin_geral';
- const isFamilyAdmin = currentUser.role === 'admin_family' currentUser.roles?.includes('admin_family');
+ const isFamilyAdmin = currentUser.role === 'admin_family' || currentUser.roles?.includes('admin_family');
  const canManageResidence = Boolean(isFamilyAdmin);
 
  const allTabs: NavTabItem[] = [
@@ -73,87 +63,74 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
  label: 'Painel do Cuidador',
  icon: LayoutDashboard,
  badge: 'Principal',
- categoryGroup: 'principal',
- },
+ categoryGroup: 'principal' },
  {
  id: 'clock',
  label: 'Bater Ponto (Entrada & Saída)',
  icon: Clock,
  badge: 'Auditado',
  categoryKey: 'Controle de Ponto',
- categoryGroup: 'principal',
- },
+ categoryGroup: 'principal' },
  {
  id: 'missions',
- label: isMasterAdmin isFamilyAdmin ? 'Obrigações Diárias' : 'Missões do Turno',
+ label: isMasterAdmin || isFamilyAdmin ? 'Obrigações Diárias' : 'Missões do Turno',
  icon: CheckSquare,
  badge: isMasterAdmin ? 'Admin' : isFamilyAdmin ? 'Família' : 'POP',
  categoryKey: 'Obrigações Diárias',
- categoryGroup: 'principal',
- },
+ categoryGroup: 'principal' },
  {
  id: 'incidents',
  label: 'Boletim do Idoso',
  icon: FileText,
  badge: 'Diário',
  categoryKey: 'Boletim do Idoso',
- categoryGroup: 'principal',
- },
+ categoryGroup: 'principal' },
  {
  id: 'health',
  label: 'Sinais Vitais',
  icon: Heart,
  badge: 'Clínico',
  categoryKey: 'Sinais Vitais',
- categoryGroup: 'saude',
- },
+ categoryGroup: 'saude' },
  {
  id: 'meds',
  label: 'Medicamentos & Prescrições',
  icon: Pill,
  badge: 'Horários',
  categoryKey: 'Medicamentos',
- categoryGroup: 'saude',
- },
+ categoryGroup: 'saude' },
  {
  id: 'family',
  label: 'Mural & Escala da Família',
  icon: MessageSquare,
  categoryKey: 'Mural',
- categoryGroup: 'familia',
- },
+ categoryGroup: 'familia' },
  {
  id: 'family_history',
  label: 'Histórico & Auditoria da Família',
  icon: History,
  badge: 'Linha do Tempo',
- categoryGroup: 'familia',
- },
+ categoryGroup: 'familia' },
  {
  id: 'timesheet',
  label: 'Folha de Presenças & Ponto',
  icon: FileText,
- categoryGroup: 'familia',
- },
- ...(isMasterAdmin isFamilyAdmin
+ categoryGroup: 'familia' },
+ ...(isMasterAdmin || isFamilyAdmin
  ? ([
  {
  id: 'admin_users',
  label: 'Gestão de Famílias & Logins',
  icon: Users,
  badge: isMasterAdmin ? 'Master' : 'Família',
- categoryGroup: 'gestao',
- },
- ] as NavTabItem[])
+ categoryGroup: 'gestao' } ] as NavTabItem[])
  : []),
  {
  id: 'tech',
  label: 'Especificação do Sistema & SQL',
  icon: Database,
  badge: 'Arquiteto',
- categoryGroup: 'gestao',
- },
- ];
+ categoryGroup: 'gestao' } ];
 
  // Quick primary tabs for fast switching on top bar
  const quickTabs = allTabs.filter((t) =>
@@ -187,28 +164,36 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
  </div>
 
  {/* Quick Navigation Pills for Desktop */}
- <nav className="hidden lg:flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/80">
+ <nav className="hidden lg:flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 relative">
  {quickTabs.map((tab) => {
  const Icon = tab.icon;
  const isActive = activeTab === tab.id;
  const tabUnread = tab.categoryKey
- ? categoryUnreadCounts[tab.categoryKey] 0
+ ? categoryUnreadCounts[tab.categoryKey] || 0
  : 0;
 
  return (
  <button
  key={tab.id}
+ type="button"
  onClick={() => setActiveTab(tab.id)}
- className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+ className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer z-10 ${
  isActive
- ? 'bg-blue-600 text-white shadow-xs'
- : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+ ? 'text-white'
+ : 'text-slate-600 hover:text-slate-900'
  }`}
  >
+ {isActive && (
+ <motion.div
+ layoutId="headerActiveQuickTab"
+ transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+ className="absolute inset-0 bg-blue-600 rounded-xl shadow-xs z-[-1]"
+ />
+ )}
  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-500'}`} />
  <span>{tab.label.split(' ')[0]}</span>
  {tabUnread > 0 && (
- <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+ <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse ml-0.5" />
  )}
  </button>
  );
@@ -261,7 +246,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
  className="w-full h-full object-cover"
  />
  ) : (
- <span>{currentUser.name?.slice(0, 1).toUpperCase() 'U'}</span>
+ <span>{currentUser.name?.slice(0, 1).toUpperCase() || 'U'}</span>
  )}
  <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white" />
  </div>
@@ -415,7 +400,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
  const Icon = tab.icon;
  const isActive = activeTab === tab.id;
  const tabUnread = tab.categoryKey
- ? categoryUnreadCounts[tab.categoryKey] 0
+ ? categoryUnreadCounts[tab.categoryKey] || 0
  : 0;
 
  return (
@@ -478,7 +463,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
  const Icon = tab.icon;
  const isActive = activeTab === tab.id;
  const tabUnread = tab.categoryKey
- ? categoryUnreadCounts[tab.categoryKey] 0
+ ? categoryUnreadCounts[tab.categoryKey] || 0
  : 0;
 
  return (
@@ -638,27 +623,45 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 
  {/* Alternador rápido de perfil */}
  {users.length > 1 && (
- <div className="pt-3 border-t border-slate-800 space-y-1.5">
+ <div className="pt-3 border-t border-slate-800 space-y-2">
  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block px-1">
  Alternar Usuário Ativo
  </label>
- <select
- value={currentUser.id}
- onChange={(e) => {
- const selected = users.find((u) => u.id === e.target.value);
- if (selected) {
- onSelectUser(selected);
+ <div className="space-y-1">
+ {users.map((u) => {
+ const isSelected = u.id === currentUser.id;
+ return (
+ <button
+ key={u.id}
+ type="button"
+ onClick={() => {
+ onSelectUser(u);
  setIsMenuOpen(false);
- }
  }}
- className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-blue-500"
+ className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+ isSelected
+ ? 'bg-blue-600/30 text-white border border-blue-500/40'
+ : 'text-slate-300 hover:bg-slate-800/80 hover:text-white border border-transparent'
+ }`}
  >
- {users.map((u) => (
- <option key={u.id} value={u.id}>
- {u.name} ({u.role === 'admin_geral' ? 'Admin Geral' : u.role === 'caregiver' ? 'Cuidadora' : 'Família'})
- </option>
- ))}
- </select>
+ <div className="flex items-center gap-2 truncate">
+ <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+ {u.name.charAt(0)}
+ </div>
+ <div className="text-left truncate">
+ <div className="truncate">{u.name}</div>
+ <div className="text-[10px] text-slate-400 font-normal">
+ {u.role === 'admin_geral' ? 'Admin Geral' : u.role === 'caregiver' ? 'Cuidador(a)' : 'Família'}
+ </div>
+ </div>
+ </div>
+ {isSelected && (
+ <div className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
+ )}
+ </button>
+ );
+ })}
+ </div>
  </div>
  )}
  </div>

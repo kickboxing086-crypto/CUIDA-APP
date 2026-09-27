@@ -10,7 +10,7 @@ interface MedicationTrackerProps {
 export const MedicationTrackerView: React.FC<MedicationTrackerProps> = ({ currentUser }) => {
  const [medications, setMedications] = useState<MedicationLog[]>([]);
  const [isLoading, setIsLoading] = useState(false);
- const [selectedMedToSkip, setSelectedMedToSkip] = useState<MedicationLog null>(null);
+ const [selectedMedToSkip, setSelectedMedToSkip] = useState<MedicationLog | null>(null);
  const [skipReason, setSkipReason] = useState<string>('');
 
  const loadMeds = async () => {
@@ -41,7 +41,7 @@ export const MedicationTrackerView: React.FC<MedicationTrackerProps> = ({ curren
  const handleConfirmSkip = async () => {
  if (!selectedMedToSkip) return;
  try {
- await api.skipMedication(selectedMedToSkip.id, skipReason 'Recusa do paciente');
+ await api.skipMedication(selectedMedToSkip.id, skipReason || 'Recusa do paciente');
  setSelectedMedToSkip(null);
  setSkipReason('');
  await loadMeds();
@@ -141,10 +141,9 @@ export const MedicationTrackerView: React.FC<MedicationTrackerProps> = ({ curren
  {med.administered_at
  ? new Date(med.administered_at).toLocaleTimeString('pt-BR', {
  hour: '2-digit',
- minute: '2-digit',
- })
+ minute: '2-digit' })
  : med.scheduled_time}{' '}
- por {med.administered_by_name 'Cuidadora'}
+ por {med.administered_by_name || 'Cuidadora'}
  </span>
  </div>
  )}

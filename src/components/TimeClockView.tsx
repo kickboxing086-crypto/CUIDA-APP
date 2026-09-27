@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, MapPin, ShieldCheck, UserCheck, Clock, AlertTriangle, History, Camera, CheckCircle2, Plus, Compass, AlertCircle, Building2, } from "lucide-react";
+import { LogIn, LogOut, MapPin, ShieldCheck, UserCheck, Clock, AlertTriangle, History, Camera, CheckCircle2, Plus, Compass, AlertCircle, Building2, Scan } from "lucide-react";
 import { ElderlyProfile, TimeEntry, User } from '../types';
 import { api } from '../services/api';
 import { CameraCaptureModal } from './CameraCaptureModal';
@@ -17,33 +17,30 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  elderly,
  onRefreshHistory,
  onOpenAddPresence,
- onOpenResidenceConfig,
-}) => {
- const [activeEntry, setActiveEntry] = useState<TimeEntry null>(null);
+ onOpenResidenceConfig }) => {
+ const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
  const [recentEntries, setRecentEntries] = useState<TimeEntry[]>([]);
  const [isLoading, setIsLoading] = useState(true);
- const [actionError, setActionError] = useState<string null>(null);
- const [actionSuccess, setActionSuccess] = useState<string null>(null);
+ const [actionError, setActionError] = useState<string | null>(null);
+ const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
  // Camera modal state
  const [isCameraOpen, setIsCameraOpen] = useState(false);
- const [cameraMode, setCameraMode] = useState<'check_in' 'check_out'>('check_in');
+ const [cameraMode, setCameraMode] = useState<'check_in' | 'check_out'>('check_in');
 
  // Geolocation state
- const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } null>(null);
- const [geoDistance, setGeoDistance] = useState<number null>(null);
- const [isWithinRadius, setIsWithinRadius] = useState<boolean null>(null);
- const [geoError, setGeoError] = useState<string null>(null);
+ const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
+ const [geoDistance, setGeoDistance] = useState<number | null>(null);
+ const [isWithinRadius, setIsWithinRadius] = useState<boolean | null>(null);
+ const [geoError, setGeoError] = useState<string | null>(null);
 
  // Active shift live duration counter
  const [shiftDurationFormatted, setShiftDurationFormatted] = useState<string>('00h 00m');
 
  const canManageResidence =
- currentUser.role === 'admin_geral' 
- currentUser.role === 'admin_family' 
- currentUser.roles?.includes('admin_family');
+ currentUser.role === 'admin_geral' || currentUser.role === 'admin_family' || currentUser.roles?.includes('admin_family');
 
- const allowedRadius = elderly.allowed_radius_meters 150;
+ const allowedRadius = elderly.allowed_radius_meters || 150;
  const hasResidenceConfigured = Boolean(elderly.residence_lat && elderly.residence_long);
 
  const loadShiftState = async () => {
@@ -132,15 +129,14 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  const res = await api.checkIn({
  userId: currentUser.id,
  elderlyId: elderly.id,
- locationLat: currentCoords?.lat elderly.residence_lat,
- locationLong: currentCoords?.lng elderly.residence_long,
- notes: 'Registro de ponto com horário oficial sincronizado.',
- });
+ locationLat: currentCoords?.lat || elderly.residence_lat,
+ locationLong: currentCoords?.lng || elderly.residence_long,
+ notes: 'Registro de ponto com horário oficial sincronizado.' });
  setActionSuccess(res.message);
  await loadShiftState();
  onRefreshHistory();
  } catch (err: any) {
- setActionError(err.message 'Erro ao bater ponto de entrada.');
+ setActionError(err.message || 'Erro ao bater ponto de entrada.');
  } finally {
  setIsSubmittingDirect(false);
  }
@@ -152,22 +148,22 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  setIsSubmittingDirect(true);
 
  try {
- const currentActive = activeEntry (await api.getActiveEntry(currentUser.id));
+ const currentActive = activeEntry || (await api.getActiveEntry(currentUser.id));
  if (!currentActive) {
  setActionError('Não há plantão em aberto no momento para encerrar.');
  return;
  }
  const res = await api.checkOut({
  entryId: currentActive.id,
- locationLat: currentCoords?.lat elderly.residence_lat,
- locationLong: currentCoords?.lng elderly.residence_long,
- notes: 'Encerramento de plantão com horário oficial sincronizado.',
- });
+ userId: currentUser.id,
+ locationLat: currentCoords?.lat || elderly.residence_lat,
+ locationLong: currentCoords?.lng || elderly.residence_long,
+ notes: 'Encerramento de plantão com horário oficial sincronizado.' });
  setActionSuccess(res.message);
  await loadShiftState();
  onRefreshHistory();
  } catch (err: any) {
- setActionError(err.message 'Erro ao registrar saída de plantão.');
+ setActionError(err.message || 'Erro ao registrar saída de plantão.');
  } finally {
  setIsSubmittingDirect(false);
  }
@@ -197,30 +193,29 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  userId: currentUser.id,
  elderlyId: elderly.id,
  photoBase64: params.photoBase64,
- locationLat: params.locationLat currentCoords?.lat,
- locationLong: params.locationLong currentCoords?.lng,
- notes: 'Registro de ponto com foto facial auditada.',
- });
+ locationLat: params.locationLat || currentCoords?.lat,
+ locationLong: params.locationLong || currentCoords?.lng,
+ notes: 'Registro de ponto com foto facial auditada.' });
  setActionSuccess(res.message);
  } else if (cameraMode === 'check_out') {
- const currentActive = activeEntry (await api.getActiveEntry(currentUser.id));
+ const currentActive = activeEntry || (await api.getActiveEntry(currentUser.id));
  if (!currentActive) {
  setActionError('Não há plantão em andamento para registrar saída.');
  return;
  }
  const res = await api.checkOut({
  entryId: currentActive.id,
+ userId: currentUser.id,
  photoBase64: params.photoBase64,
- locationLat: params.locationLat currentCoords?.lat,
- locationLong: params.locationLong currentCoords?.lng,
- notes: 'Encerramento de plantão com foto facial auditada.',
- });
+ locationLat: params.locationLat || currentCoords?.lat,
+ locationLong: params.locationLong || currentCoords?.lng,
+ notes: 'Encerramento de plantão com foto facial auditada.' });
  setActionSuccess(res.message);
  }
  await loadShiftState();
  onRefreshHistory();
  } catch (err: any) {
- setActionError(err.message 'Erro ao processar registro de ponto');
+ setActionError(err.message || 'Erro ao processar registro de ponto');
  }
  };
 
@@ -231,7 +226,7 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
  <div className="flex items-center gap-3.5">
  <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-800 font-extrabold text-xl flex items-center justify-center shrink-0 border border-blue-200">
- {elderly.full_name?.slice(0, 2).toUpperCase() 'ID'}
+ {elderly.full_name?.slice(0, 2).toUpperCase() || 'ID'}
  </div>
  <div>
  <div className="flex items-center gap-2">
@@ -243,7 +238,7 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  <div className="flex items-center gap-2 text-xs text-slate-600 mt-1">
  <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
  <span className="font-medium">
- {elderly.residence_address 'Endereço residencial ainda não cadastrado'}
+ {elderly.residence_address || 'Endereço residencial ainda não cadastrado'}
  </span>
  </div>
  </div>
@@ -259,7 +254,7 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  title="Cadastrar ou editar o endereço da residência para controle de ponto"
  >
  <Building2 className="w-4 h-4 text-amber-700" />
- <span>{hasResidenceConfigured ? 'Editar Residência & Raio' : ' Cadastrar Residência'}</span>
+ <span>{hasResidenceConfigured ? 'Editar Residência & Raio' : '  Cadastrar Residência'}</span>
  </button>
  )}
 
@@ -302,12 +297,10 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  isWithinRadius ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
  }`}
  >
- {isWithinRadius ? ' Dentro do Perímetro Autorizado' : ' Fora do Local de Trabalho'}
+ {isWithinRadius ? ' Dentro do Perímetro Autorizado' : '  Fora do Local de Trabalho'}
  </span>
  </span>
- ) : (
- 'Calculando distância da residência...'
- )}
+ ) : (  'Calculando distância da residência...'  )}
  </span>
  </div>
 
@@ -378,8 +371,7 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  Entrada registrada às{' '}
  {new Date(activeEntry.entry_time).toLocaleTimeString('pt-BR', {
  hour: '2-digit',
- minute: '2-digit',
- })}
+ minute: '2-digit' })}
  </span>
  </div>
 
@@ -543,8 +535,7 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  const entryDate = new Date(entry.entry_time);
  const formattedEntryTime = entryDate.toLocaleTimeString('pt-BR', {
  hour: '2-digit',
- minute: '2-digit',
- });
+ minute: '2-digit' });
  const exitDate = entry.exit_time ? new Date(entry.exit_time) : null;
  const formattedExitTime = exitDate
  ? exitDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -569,9 +560,9 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  )}
  <div>
  <div className="flex items-center gap-2">
- <span className="font-bold text-slate-900">{entry.user_name 'Cuidador(a)'}</span>
+ <span className="font-bold text-slate-900">{entry.user_name || 'Cuidador(a)'}</span>
  <span className="text-[10px] text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded font-medium">
- {entry.day_of_week 'Plantão'} · {entry.date_stamp}
+ {entry.day_of_week || 'Plantão'} · {entry.date_stamp}
  </span>
  </div>
  <div className="text-slate-600 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">

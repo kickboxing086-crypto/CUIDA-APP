@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link2, Copy, Check, MessageCircle, X, Plus, Users, ShieldCheck, AlertCircle, CheckCircle2, Trash2, Shield, Stethoscope, Clock, HeartHandshake, } from "lucide-react";
+import { Link2, Copy, Check, MessageCircle, X, Plus, Users, ShieldCheck, AlertCircle, CheckCircle2, Trash2, Shield, Stethoscope, Clock, HeartHandshake } from "lucide-react";
 import { User, InviteLink, UserRole } from '../types';
 import { api } from '../services/api';
 import { ROLE_POWER_PROFILES, RolePowerProfile } from '../utils/classifications';
@@ -15,12 +15,11 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
  isOpen,
  onClose,
  currentUser,
- elderlyName = 'Idoso Assistido',
-}) => {
+ elderlyName = 'Idoso Assistido' }) => {
  const [invites, setInvites] = useState<InviteLink[]>([]);
  const [loading, setLoading] = useState(true);
- const [copiedCode, setCopiedCode] = useState<string null>(null);
- const [feedback, setFeedback] = useState<{ type: 'success' 'error'; message: string } null>(null);
+ const [copiedCode, setCopiedCode] = useState<string | null>(null);
+ const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
  // Form State
  const [guestName, setGuestName] = useState('');
@@ -28,8 +27,8 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
  const [isSubmitting, setIsSubmitting] = useState(false);
  const [isCreatingNew, setIsCreatingNew] = useState(false);
 
- const familyId = currentUser.family_id null;
- const familyName = currentUser.family_name 'Nossa Família';
+ const familyId = currentUser.family_id || null;
+ const familyName = currentUser.family_name || 'Nossa Família';
 
  const loadInvites = async () => {
  try {
@@ -52,7 +51,7 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
 
  if (!isOpen) return null;
 
- const currentProfile = ROLE_POWER_PROFILES.find((p) => p.id === selectedRole) ROLE_POWER_PROFILES[1];
+ const currentProfile = ROLE_POWER_PROFILES.find((p) => p.id === selectedRole) || ROLE_POWER_PROFILES[1];
 
  const handleCreateInvite = async (e: React.FormEvent) => {
  e.preventDefault();
@@ -69,19 +68,17 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
  guest_name: guestName.trim(),
  classification: selectedRole,
  classification_label: currentProfile.title,
- requesting_user_id: currentUser.id,
- });
+ requesting_user_id: currentUser.id });
 
  setFeedback({
  type: 'success',
- message: `Convite ${newInv.code} gerado com sucesso para ${newInv.guest_name}!`,
- });
+ message: `Convite ${newInv.code} gerado com sucesso para ${newInv.guest_name}!` });
 
  setGuestName('');
  setIsCreatingNew(false);
  await loadInvites();
  } catch (err: any) {
- setFeedback({ type: 'error', message: err.message 'Falha ao gerar link de convite.' });
+ setFeedback({ type: 'error', message: err.message || 'Falha ao gerar link de convite.' });
  } finally {
  setIsSubmitting(false);
  }
@@ -104,7 +101,7 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
  setFeedback({ type: 'success', message: `Convite ${code} foi revogado com sucesso.` });
  await loadInvites();
  } catch (err: any) {
- setFeedback({ type: 'error', message: err.message 'Erro ao revogar convite.' });
+ setFeedback({ type: 'error', message: err.message || 'Erro ao revogar convite.' });
  }
  };
 
@@ -161,8 +158,7 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
  {feedback && (
  <div
  className={`p-3.5 rounded-2xl border text-xs flex items-center gap-2.5 ${
- feedback.type === 'success'
- ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-200'
+ feedback.type === 'success' ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-200'
  : 'bg-red-950/70 border-red-500/40 text-red-200'
  }`}
  >
@@ -298,7 +294,7 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
  </button>
  <button
  type="submit"
- disabled={isSubmitting !guestName.trim()}
+ disabled={isSubmitting || !guestName.trim()}
  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 cursor-pointer flex items-center gap-1.5"
  >
  {isSubmitting ? 'Gerando Link...' : 'Gerar e Exibir Link de Convite'}
@@ -335,19 +331,17 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
  ? window.location.origin
  : 'https://cuida-app.vercel.app';
  const fullInviteUrl = `${hostDomain}${window.location.pathname}?invite=${inv.code}`;
- const roleProfile = ROLE_POWER_PROFILES.find((p) => p.id === inv.roles?.[0]) ROLE_POWER_PROFILES[1];
+ const roleProfile = ROLE_POWER_PROFILES.find((p) => p.id === inv.roles?.[0]) || ROLE_POWER_PROFILES[1];
  const roleLabel = roleProfile.title;
- const whatsappMsg = `Olá ${inv.guest_name ''}! Como Administrador da Família ${familyName}, gerei seu link de acesso exclusivo como ${roleLabel} no aplicativo CUIDA.\n\nPara criar seu login e senha, acesse o link:\n${fullInviteUrl}`;
+ const whatsappMsg = `Olá ${inv.guest_name || ''}! Como Administrador da Família ${familyName}, gerei seu link de acesso exclusivo como ${roleLabel} no aplicativo CUIDA.\n\nPara criar seu login e senha, acesse o link:\n${fullInviteUrl}`;
  const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappMsg)}`;
 
  return (
  <div
  key={inv.id}
  className={`p-4 rounded-2xl border transition-all space-y-2.5 ${
- inv.status === 'active'
- ? 'bg-slate-950 border-slate-800 hover:border-emerald-500/40'
- : inv.status === 'used'
- ? 'bg-slate-950/70 border-slate-800/70'
+ inv.status === 'active' ? 'bg-slate-950 border-slate-800 hover:border-emerald-500/40'
+ : inv.status === 'used' ? 'bg-slate-950/70 border-slate-800/70'
  : 'bg-red-950/20 border-red-900/30 opacity-60'
  }`}
  >
@@ -358,17 +352,13 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
  </span>
  <span
  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
- inv.status === 'active'
- ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
- : inv.status === 'used'
- ? 'bg-blue-950/80 text-blue-300 border-blue-500/40'
+ inv.status === 'active' ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+ : inv.status === 'used' ? 'bg-blue-950/80 text-blue-300 border-blue-500/40'
  : 'bg-red-950/80 text-red-300 border-red-500/40'
  }`}
  >
- {inv.status === 'active'
- ? ' Ativo (Aguardando login)'
- : inv.status === 'used'
- ? ' Conta Criada'
+ {inv.status === 'active' ? ' Ativo (Aguardando login)'
+ : inv.status === 'used' ? ' Conta Criada'
  : ' Revogado'}
  </span>
  </div>
@@ -390,7 +380,7 @@ export const FamilyAdminInvitesModal: React.FC<FamilyAdminInvitesModalProps> = (
  <div>
  <p className="font-bold text-white text-sm">{inv.guest_name}</p>
  <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
- {getRoleIcon(inv.roles?.[0] 'caregiver')}
+ {getRoleIcon(inv.roles?.[0] || 'caregiver')}
  <span className="text-emerald-300 font-semibold">{roleLabel}</span>
  <span className="text-slate-600">·</span>
  <span className="text-slate-400">{roleProfile.badge}</span>

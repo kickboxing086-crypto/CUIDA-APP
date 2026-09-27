@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Clock, Heart, Pill, Camera, CheckCircle2, Check, AlertTriangle, Calendar, Plus, ShieldCheck, MapPin, ClipboardList, PhoneCall, Bell, Info, CheckSquare, FileText, } from "lucide-react";
+import { UserCheck, Clock, Heart, Pill, Camera, CheckCircle2, Check, AlertTriangle, Calendar, Plus, ShieldCheck, MapPin, ClipboardList, PhoneCall, Bell, Info, CheckSquare, FileText, Scan } from "lucide-react";
 import { ElderlyProfile, TimeEntry, User, DailyMission, FamilyNotice, FamilyActivityLog } from '../types';
 import { api } from '../services/api';
 
@@ -8,7 +8,7 @@ interface CaregiverDashboardViewProps {
  elderly: ElderlyProfile;
  onNavigateTab: (tab: any) => void;
  onOpenAddPresence: () => void;
- onOpenLiveCamera: (mode: 'check_in' 'check_out') => void;
+ onOpenLiveCamera: (mode: 'check_in' | 'check_out') => void;
  onOpenResidenceConfig?: () => void;
  onOpenNotifications?: () => void;
  unreadCount?: number;
@@ -26,16 +26,17 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  onOpenNotifications,
  unreadCount = 0,
  unreadLogs = [],
- onOpenInvites,
-}) => {
- const [activeEntry, setActiveEntry] = useState<TimeEntry null>(null);
+ onOpenInvites }) => {
+ const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
  const [missions, setMissions] = useState<DailyMission[]>([]);
  const [notices, setNotices] = useState<FamilyNotice[]>([]);
  const [shiftTimeFormatted, setShiftTimeFormatted] = useState<string>('00h 00m');
 
  const canManageResidence =
- currentUser.role === 'admin_family' 
- Boolean(currentUser.roles?.includes('admin_family'));
+ currentUser.role === 'admin_family' ||
+ currentUser.role === 'admin_geral' ||
+ Boolean(currentUser.roles?.includes('admin_family')) ||
+ Boolean(currentUser.roles?.includes('admin_geral'));
 
  const hasResidenceConfigured = Boolean(
  elderly?.residence_address &&
@@ -46,7 +47,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  );
 
  const [isRegisteringPoint, setIsRegisteringPoint] = useState(false);
- const [pointMessage, setPointMessage] = useState<string null>(null);
+ const [pointMessage, setPointMessage] = useState<string | null>(null);
 
  const handleDirectCheckIn = async () => {
  try {
@@ -74,13 +75,12 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  elderlyId: elderly.id,
  locationLat: lat,
  locationLong: lng,
- notes: 'Ponto de entrada registrado com sucesso.',
- });
+ notes: 'Ponto de entrada registrado com sucesso.' });
  await loadData();
  setPointMessage('Entrada registrada com sucesso!');
  setTimeout(() => setPointMessage(null), 4000);
  } catch (err: any) {
- alert(`️ Erro ao registrar ponto: ${err.message 'Falha ao bater ponto.'}`);
+ alert(`️ Erro ao registrar ponto: ${err.message || 'Falha ao bater ponto.'}`);
  } finally {
  setIsRegisteringPoint(false);
  }
@@ -110,15 +110,16 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
 
  await api.checkOut({
  entryId: activeEntry.id,
+ userId: currentUser.id,
  locationLat: lat,
  locationLong: lng,
- notes: 'Encerramento de plantão registrado com sucesso.',
- });
+ notes: 'Encerramento de plantão registrado com sucesso.' });
  await loadData();
  setPointMessage('Saída registrada com sucesso!');
  setTimeout(() => setPointMessage(null), 4000);
  } catch (err: any) {
- alert(`️ Erro ao registrar saída: ${err.message 'Falha ao bater saída.'}`);
+ setPointMessage(`Erro ao registrar saída: ${err.message || 'Falha ao bater saída.'}`);
+ setTimeout(() => setPointMessage(null), 5000);
  } finally {
  setIsRegisteringPoint(false);
  }
@@ -220,7 +221,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  <div className="flex items-center gap-4">
  <div className="relative">
  <img
- src={currentUser.avatar_url 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150'}
+ src={currentUser.avatar_url || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150'}
  alt={currentUser.name}
  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-white/30 shadow-md"
  />
@@ -232,7 +233,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  <span className="text-[11px] uppercase tracking-wider font-extrabold bg-blue-700/80 text-blue-200 px-2 py-0.5 rounded border border-blue-600/60">
  Painel Operacional do Cuidador
  </span>
- <span className="text-[11px] text-blue-200 font-mono">Reg: {currentUser.registration_code 'CUID-4821'}</span>
+ <span className="text-[11px] text-blue-200 font-mono">Reg: {currentUser.registration_code || 'CUID-4821'}</span>
  </div>
  <h1 className="text-xl sm:text-2xl font-black text-white mt-1">
  Olá, {currentUser.name}
@@ -390,11 +391,11 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  : 'bg-amber-50 text-amber-800 border-amber-200'
  }`}
  >
- {hasResidenceConfigured ? `Perímetro Ativo (Raio ${elderly.allowed_radius_meters 150}m)` : '️ Cadastro Pendente'}
+ {hasResidenceConfigured ? `Perímetro Ativo (Raio ${elderly.allowed_radius_meters || 150}m)` : 'Cadastro Pendente'}
  </span>
  </div>
  <p className="text-slate-600 mt-0.5">
- {elderly.residence_address 'Endereço da residência ainda não cadastrado pelo Administrador Familiar.'}
+ {elderly.residence_address || 'Endereço da residência ainda não cadastrado pelo Administrador Familiar.'}
  </p>
  </div>
  </div>
@@ -406,7 +407,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  className="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 font-bold text-xs flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
  >
  <MapPin className="w-4 h-4 text-blue-600" />
- <span>{hasResidenceConfigured ? 'Alterar Residência / Raio' : ' Cadastrar Residência do Idoso'}</span>
+ <span>{hasResidenceConfigured ? 'Alterar Residência / Raio' : 'Cadastrar Residência do Idoso'}</span>
  </button>
  )}
  </div>
@@ -462,8 +463,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col sm:flex-row sm:items-start justify-between gap-3 ${
  mission.completed
  ? 'bg-emerald-50/40 border-emerald-200 text-slate-700'
- : mission.priority === 'mandatory'
- ? 'bg-blue-50/30 border-blue-200 hover:border-blue-300'
+ : mission.priority === 'mandatory' ? 'bg-blue-50/30 border-blue-200 hover:border-blue-300'
  : 'bg-white border-slate-200 hover:border-blue-200 text-slate-900'
  }`}
  >
@@ -506,7 +506,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
 
  {mission.completed && (
  <span className="text-[11px] text-emerald-700 font-semibold block pt-0.5">
- Cumprido às {mission.completed_at '08:05'} por {mission.completed_by_name currentUser.name}
+ Cumprido às {mission.completed_at || '08:05'} por {mission.completed_by_name || currentUser.name}
  </span>
  )}
  </div>
@@ -586,8 +586,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  <div
  key={n.id}
  className={`p-3 rounded-xl border text-xs ${
- n.category === 'shopping'
- ? 'bg-amber-50/70 border-amber-200 text-amber-900'
+ n.category === 'shopping' ? 'bg-amber-50/70 border-amber-200 text-amber-900'
  : 'bg-blue-50/70 border-blue-200 text-blue-900'
  }`}
  >

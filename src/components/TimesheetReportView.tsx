@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Printer, Download, Calendar, User, ShieldCheck, CheckCircle2, Clock, Eye, Filter, Plus, } from "lucide-react";
+import { FileText, Printer, Download, Calendar, User, ShieldCheck, CheckCircle2, Clock, Eye, Filter, Plus } from "lucide-react";
 import { ElderlyProfile, TimeEntry } from '../types';
 import { api } from '../services/api';
+import { AnimatedSelect } from './AnimatedChoiceSelect';
 
 interface TimesheetReportViewProps {
  elderly: ElderlyProfile;
@@ -10,20 +11,18 @@ interface TimesheetReportViewProps {
 
 export const TimesheetReportView: React.FC<TimesheetReportViewProps> = ({
  elderly,
- onOpenAddPresence,
-}) => {
+ onOpenAddPresence }) => {
  const [entries, setEntries] = useState<TimeEntry[]>([]);
  const [meta, setMeta] = useState({
  total_records: 0,
  completed_shifts: 0,
  total_hours: 0,
- total_hours_formatted: '0h 00min',
- });
+ total_hours_formatted: '0h 00min' });
 
  const [selectedYear, setSelectedYear] = useState('2026');
  const [selectedMonth, setSelectedMonth] = useState('09');
  const [selectedUserId, setSelectedUserId] = useState('usr-01');
- const [previewPhoto, setPreviewPhoto] = useState<string null>(null);
+ const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
  const loadTimesheet = async () => {
  try {
@@ -44,19 +43,19 @@ export const TimesheetReportView: React.FC<TimesheetReportViewProps> = ({
  };
 
  const monthNames: Record<string, string> = {
- '01': 'Janeiro',
- '02': 'Fevereiro',
- '03': 'Março',
- '04': 'Abril',
- '05': 'Maio',
- '06': 'Junho',
- '07': 'Julho',
- '08': 'Agosto',
- '09': 'Setembro',
- '10': 'Outubro',
- '11': 'Novembro',
- '12': 'Dezembro',
- };
+  "01": "Janeiro",
+  "02": "Fevereiro",
+  "03": "Março",
+  "04": "Abril",
+  "05": "Maio",
+  "06": "Junho",
+  "07": "Julho",
+  "08": "Agosto",
+  "09": "Setembro",
+  "10": "Outubro",
+  "11": "Novembro",
+  "12": "Dezembro",
+};
 
  return (
  <div className="space-y-6">
@@ -99,42 +98,39 @@ export const TimesheetReportView: React.FC<TimesheetReportViewProps> = ({
  {/* Filter bar */}
  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
  <div>
- <label className="block text-xs font-semibold text-slate-600 mb-1">Mês de Referência</label>
- <select
+ <AnimatedSelect
+ label="Mês de Referência"
  value={selectedMonth}
- onChange={(e) => setSelectedMonth(e.target.value)}
- className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white"
- >
- {Object.entries(monthNames).map(([val, name]) => (
- <option key={val} value={val}>
- {name}
- </option>
- ))}
- </select>
+ onChange={(val) => setSelectedMonth(val)}
+ options={Object.entries(monthNames).map(([val, name]) => ({
+ value: val,
+ label: name,
+ }))}
+ />
  </div>
 
  <div>
- <label className="block text-xs font-semibold text-slate-600 mb-1">Ano</label>
- <select
+ <AnimatedSelect
+ label="Ano"
  value={selectedYear}
- onChange={(e) => setSelectedYear(e.target.value)}
- className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white"
- >
- <option value="2026">2026</option>
- <option value="2025">2025</option>
- </select>
+ onChange={(val) => setSelectedYear(val)}
+ options={[
+ { value: '2026', label: '2026' },
+ { value: '2025', label: '2025' },
+ ]}
+ />
  </div>
 
  <div>
- <label className="block text-xs font-semibold text-slate-600 mb-1">Colaborador / Cuidador</label>
- <select
+ <AnimatedSelect
+ label="Colaborador / Cuidador"
  value={selectedUserId}
- onChange={(e) => setSelectedUserId(e.target.value)}
- className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white"
- >
- <option value="usr-01">Clara Mendes (Cuidadora Titular)</option>
- <option value="Todos">Todos os profissionais</option>
- </select>
+ onChange={(val) => setSelectedUserId(val)}
+ options={[
+ { value: 'usr-01', label: 'Clara Mendes (Cuidadora Titular)' },
+ { value: 'Todos', label: 'Todos os profissionais' },
+ ]}
+ />
  </div>
  </div>
  </div>
@@ -253,8 +249,7 @@ export const TimesheetReportView: React.FC<TimesheetReportViewProps> = ({
  <td className="p-2.5 font-mono font-semibold text-slate-800">
  {new Date(entry.entry_time).toLocaleTimeString('pt-BR', {
  hour: '2-digit',
- minute: '2-digit',
- })}
+ minute: '2-digit' })}
  </td>
 
  {/* Entry Photo Thumbnail */}
@@ -280,8 +275,7 @@ export const TimesheetReportView: React.FC<TimesheetReportViewProps> = ({
  {entry.exit_time
  ? new Date(entry.exit_time).toLocaleTimeString('pt-BR', {
  hour: '2-digit',
- minute: '2-digit',
- })
+ minute: '2-digit' })
  : '--:--'}
  </td>
 
@@ -306,7 +300,7 @@ export const TimesheetReportView: React.FC<TimesheetReportViewProps> = ({
 
  {/* Permanence */}
  <td className="p-2.5 font-mono font-bold text-blue-900">
- {entry.total_hours_formatted 'Em aberto'}
+ {entry.total_hours_formatted || 'Em aberto'}
  </td>
 
  {/* Geofence */}
@@ -318,7 +312,7 @@ export const TimesheetReportView: React.FC<TimesheetReportViewProps> = ({
 
  {/* Notes */}
  <td className="p-2.5 text-[11px] text-slate-600 max-w-xs truncate">
- {entry.notes '-'}
+ {entry.notes || '-'}
  </td>
  </tr>
  ))

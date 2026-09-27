@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, ShoppingCart, Calendar, CheckCircle2, AlertCircle, Plus, Clock, UserCheck, Stethoscope, } from "lucide-react";
+import { MessageSquare, ShoppingCart, Calendar, CheckCircle2, AlertCircle, Plus, Clock, UserCheck, Stethoscope } from "lucide-react";
 import { FamilyNotice, User } from '../types';
 import { api } from '../services/api';
+import { AnimatedSelect, AnimatedSegmentedControl } from './AnimatedChoiceSelect';
 
 interface FamilyBoardViewProps {
  currentUser: User;
@@ -9,13 +10,13 @@ interface FamilyBoardViewProps {
 
 export const FamilyBoardView: React.FC<FamilyBoardViewProps> = ({ currentUser }) => {
  const [notices, setNotices] = useState<FamilyNotice[]>([]);
- const [activeTab, setActiveTab] = useState<'all' 'shopping' 'schedule'>('all');
+ const [activeTab, setActiveTab] = useState<'all' | 'shopping' | 'schedule'>('all');
  const [isModalOpen, setIsModalOpen] = useState(false);
 
  // New notice form
  const [title, setTitle] = useState('');
  const [description, setDescription] = useState('');
- const [category, setCategory] = useState<'shopping' 'medical' 'routine'>('shopping');
+ const [category, setCategory] = useState<'shopping' | 'medical' | 'routine'>('shopping');
 
  // Static mock schedule for shifts & specialist visits
  const [schedules] = useState([
@@ -27,8 +28,7 @@ export const FamilyBoardView: React.FC<FamilyBoardViewProps> = ({ currentUser })
  date: 'Hoje (Quinta-feira)',
  time: '07:00 às 19:00',
  status: 'Em andamento',
- type: 'shift',
- },
+ type: 'shift' },
  {
  id: 'sc-2',
  title: 'Sessão de Fisioterapia Motora & Respiratória',
@@ -37,8 +37,7 @@ export const FamilyBoardView: React.FC<FamilyBoardViewProps> = ({ currentUser })
  date: 'Hoje',
  time: '15:30 às 16:30',
  status: 'Confirmado',
- type: 'medical',
- },
+ type: 'medical' },
  {
  id: 'sc-3',
  title: 'Visita Familiar de Final de Semana',
@@ -47,8 +46,7 @@ export const FamilyBoardView: React.FC<FamilyBoardViewProps> = ({ currentUser })
  date: 'Sábado, 26 de Setembro',
  time: '14:00 às 18:00',
  status: 'Programado',
- type: 'family',
- },
+ type: 'family' },
  {
  id: 'sc-4',
  title: 'Consulta de Retorno com Cardiologista',
@@ -57,9 +55,7 @@ export const FamilyBoardView: React.FC<FamilyBoardViewProps> = ({ currentUser })
  date: 'Terça, 29 de Setembro',
  time: '10:00',
  status: 'Agendado',
- type: 'medical',
- },
- ]);
+ type: 'medical' } ]);
 
  const loadNotices = async () => {
  try {
@@ -85,14 +81,13 @@ export const FamilyBoardView: React.FC<FamilyBoardViewProps> = ({ currentUser })
 
  const handleCreateNotice = async (e: React.FormEvent) => {
  e.preventDefault();
- if (!title !description) return;
+ if (!title || !description) return;
  try {
  await api.createNotice({
  title,
  description,
  category,
- userId: currentUser.id,
- });
+ created_by_user_id: currentUser.id });
  setTitle('');
  setDescription('');
  setIsModalOpen(false);
@@ -158,38 +153,18 @@ export const FamilyBoardView: React.FC<FamilyBoardViewProps> = ({ currentUser })
  </div>
  </div>
 
- {/* Tabs / Filter Bar */}
- <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 w-fit">
- <button
- onClick={() => setActiveTab('all')}
- className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
- activeTab === 'all'
- ? 'bg-white text-blue-900 shadow-xs'
- : 'text-slate-600 hover:text-slate-900'
- }`}
- >
- Todos os Recados ({notices.length})
- </button>
- <button
- onClick={() => setActiveTab('shopping')}
- className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
- activeTab === 'shopping'
- ? 'bg-white text-blue-900 shadow-xs'
- : 'text-slate-600 hover:text-slate-900'
- }`}
- >
- Insumos & Compras ({unresolvedShoppingCount})
- </button>
- <button
- onClick={() => setActiveTab('schedule')}
- className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
- activeTab === 'schedule'
- ? 'bg-white text-blue-900 shadow-xs'
- : 'text-slate-600 hover:text-slate-900'
- }`}
- >
- Escala de Visitas & Plantões
- </button>
+ {/* Tabs / Filter Bar - Animated Segmented Control */}
+ <div>
+ <AnimatedSegmentedControl
+ value={activeTab}
+ onChange={(val) => setActiveTab(val as 'all' | 'shopping' | 'schedule')}
+ layoutId="familyBoardTabs"
+ options={[
+ { value: 'all', label: `Todos os Recados (${notices.length})` },
+ { value: 'shopping', label: `Insumos & Compras (${unresolvedShoppingCount})` },
+ { value: 'schedule', label: 'Escala de Visitas & Plantões' },
+ ]}
+ />
  </div>
 
  {/* Content Area */}
@@ -208,8 +183,7 @@ export const FamilyBoardView: React.FC<FamilyBoardViewProps> = ({ currentUser })
  <div className="flex items-start gap-3">
  <div
  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
- sc.type === 'medical'
- ? 'bg-blue-50 text-blue-700 border-blue-200'
+ sc.type === 'medical' ? 'bg-blue-50 text-blue-700 border-blue-200'
  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
  }`}
  >
@@ -258,17 +232,13 @@ export const FamilyBoardView: React.FC<FamilyBoardViewProps> = ({ currentUser })
  <div className="flex items-center gap-2">
  <span
  className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
- notice.category === 'shopping'
- ? 'bg-amber-50 text-amber-800 border-amber-200'
- : notice.category === 'medical'
- ? 'bg-blue-50 text-blue-800 border-blue-200'
+ notice.category === 'shopping' ? 'bg-amber-50 text-amber-800 border-amber-200'
+ : notice.category === 'medical' ? 'bg-blue-50 text-blue-800 border-blue-200'
  : 'bg-slate-100 text-slate-800 border-slate-200'
  }`}
  >
- {notice.category === 'shopping'
- ? 'Lista de Compras'
- : notice.category === 'medical'
- ? 'Médico / Saúde'
+ {notice.category === 'shopping' ? 'Lista de Compras'
+ : notice.category === 'medical' ? 'Médico / Saúde'
  : 'Rotina'}
  </span>
  <h3 className={`font-bold text-base ${notice.is_resolved ? 'line-through text-slate-500' : 'text-slate-900'}`}>
@@ -321,18 +291,16 @@ export const FamilyBoardView: React.FC<FamilyBoardViewProps> = ({ currentUser })
 
  <form onSubmit={handleCreateNotice} className="p-5 space-y-4">
  <div>
- <label className="block text-xs font-semibold text-slate-700 mb-1">
- Categoria
- </label>
- <select
+ <AnimatedSelect
+ label="Categoria *"
  value={category}
- onChange={(e: any) => setCategory(e.target.value)}
- className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white"
- >
- <option value="shopping">Insumos & Compras (Remédios, fraldas em falta)</option>
- <option value="medical">Saúde & Especialistas (Médicos, fisioterapia)</option>
- <option value="routine">Rotina Geral da Casa</option>
- </select>
+ onChange={(val) => setCategory(val as 'shopping' | 'medical' | 'routine')}
+ options={[
+ { value: 'shopping', label: 'Insumos & Compras (Remédios, fraldas em falta)' },
+ { value: 'medical', label: 'Saúde & Especialistas (Médicos, fisioterapia)' },
+ { value: 'routine', label: 'Rotina Geral da Casa' },
+ ]}
+ />
  </div>
 
  <div>

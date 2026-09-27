@@ -1,12 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { User, Phone, ShieldCheck, CheckCircle2, AlertCircle, ArrowRight, MapPin, Building2, UploadCloud, Check, } from "lucide-react";
+import { User, Phone, ShieldCheck, CheckCircle2, AlertCircle, ArrowRight, MapPin, Building2, UploadCloud, Check, Info } from "lucide-react";
 import { User as UserType, ElderlyProfile } from '../types';
 import { ElderCaneLogo } from './ElderCaneLogo';
 import { fetchAddressByCep, formatCep } from '../utils/cep';
 
 interface OnboardingWelcomeModalProps {
  user: UserType;
- elderly?: ElderlyProfile null;
+ elderly?: ElderlyProfile | null;
  onComplete: (
  updatedData: Partial<UserType>,
  residenceData?: {
@@ -21,13 +21,11 @@ interface OnboardingWelcomeModalProps {
 export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
  user,
  elderly,
- onComplete,
-}) => {
+ onComplete }) => {
  const isFamilyAdmin =
- user.role === 'admin_family' 
- (Array.isArray(user.roles) && user.roles.includes('admin_family'));
+ user.role === 'admin_family' || (Array.isArray(user.roles) && user.roles.includes('admin_family'));
 
- const cleanName = (user.name '').trim();
+ const cleanName = (user.name || '').trim();
  const isGeneric =
  !cleanName 
  cleanName.toLowerCase().includes('pendente') 
@@ -35,13 +33,11 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
  cleanName.toLowerCase().includes('novo cliente') 
  cleanName.toLowerCase().includes('convidado');
 
- const [firstName, setFirstName] = useState(isGeneric ? '' : cleanName.split(' ')[0] '');
+ const [firstName, setFirstName] = useState(isGeneric ? '' : cleanName.split(' ')[0] || '');
  const [lastName, setLastName] = useState(
- isGeneric ? '' : user.last_name cleanName.split(' ').slice(1).join(' ') ''
- );
+ isGeneric ? '' : user.last_name || cleanName.split(' ').slice(1).join(' ') || ''  );
  const [phone, setPhone] = useState(
- user.phone && user.phone !== '(11) 98000-0000' ? user.phone : ''
- );
+ user.phone && user.phone !== '(11) 98000-0000' ? user.phone : ''  );
 
  const sampleAvatars = [
  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
@@ -49,13 +45,12 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80',
  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80',
- 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
- ];
+ 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80' ];
 
- const [photoUrl, setPhotoUrl] = useState(user.avatar_url sampleAvatars[0]);
+ const [photoUrl, setPhotoUrl] = useState(user.avatar_url || sampleAvatars[0]);
  const [termsAccepted, setTermsAccepted] = useState(false);
  const [isSubmitting, setIsSubmitting] = useState(false);
- const [errorMsg, setErrorMsg] = useState<string null>(null);
+ const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
  // Residence address state (exclusive for family admin)
  const [cep, setCep] = useState('');
@@ -65,7 +60,7 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
  const [cityState, setCityState] = useState('');
  const [isSearchingCep, setIsSearchingCep] = useState(false);
 
- const fileInputRef = useRef<HTMLInputElement null>(null);
+ const fileInputRef = useRef<HTMLInputElement | null>(null);
 
  const handleCepChange = async (val: string) => {
  const formatted = formatCep(val);
@@ -100,7 +95,7 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
 
  const reader = new FileReader();
  reader.onload = (event) => {
- const base64 = event.target?.result as string;
+ const base64 = event.target?.result as | string;
  if (base64) {
  setPhotoUrl(base64);
  }
@@ -120,7 +115,7 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
  setErrorMsg('Por favor, informe seu Sobrenome.');
  return;
  }
- if (!phone.trim() phone.length < 9) {
+ if (!phone.trim() || phone.length < 9) {
  setErrorMsg('Por favor, informe um telefone/WhatsApp válido com DDD.');
  return;
  }
@@ -133,8 +128,7 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
  number.trim() ? `nº ${number.trim()}` : '',
  neighborhood.trim(),
  cityState.trim(),
- cep.trim() ? `CEP ${cep.trim()}` : '',
- ].filter(Boolean);
+ cep.trim() ? `CEP ${cep.trim()}` : '' ].filter(Boolean);
  computedAddress = parts.join(', ');
 
  if (!computedAddress) {
@@ -159,17 +153,15 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
  phone: phone.trim(),
  avatar_url: photoUrl,
  first_login_completed: true,
- terms_accepted: true,
- },
+ terms_accepted: true },
  isFamilyAdmin && computedAddress
  ? {
  address: computedAddress,
- radius: 150,
- }
+ radius: 150 }
  : undefined
  );
  } catch (err: any) {
- setErrorMsg(err.message 'Erro ao salvar informações de perfil.');
+ setErrorMsg(err.message || 'Erro ao salvar informações de perfil.');
  setIsSubmitting(false);
  }
  };
@@ -411,18 +403,19 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
  <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1 text-xs">
  <span className="font-bold text-slate-800 flex items-center gap-1.5">
  <Building2 className="w-3.5 h-3.5 text-blue-600" />
- <span>Família: {user.family_name 'Família CUIDA'}</span>
+ <span>Família: {user.family_name || 'Família CUIDA'}</span>
  </span>
  <p className="text-[11px] text-slate-500">
- Assistido(a): <strong>{elderly?.full_name 'Idoso(a) Assistido(a)'}</strong>
+ Assistido(a): <strong>{elderly?.full_name || 'Idoso(a) Assistido(a)'}</strong>
  </p>
  {elderly?.residence_address && elderly.residence_address !== 'Residência do Idoso' ? (
  <p className="text-[11px] text-emerald-700 font-medium pt-0.5">
  Residência: {elderly.residence_address}
  </p>
  ) : (
- <p className="text-[11px] text-amber-700 font-medium pt-0.5">
- ℹ️ O Administrador Familiar cadastrará o endereço oficial da residência.
+ <p className="text-[11px] text-amber-700 font-medium pt-0.5 flex items-center gap-1">
+ <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+ <span>O Administrador Familiar cadastrará o endereço oficial da residência.</span>
  </p>
  )}
  </div>

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { User as UserIcon, Camera, UploadCloud, Check, X, ShieldCheck, Phone, Mail, RefreshCw, LogOut, } from "lucide-react";
+import { User as UserIcon, Camera, UploadCloud, Check, X, ShieldCheck, Phone, Mail, RefreshCw, LogOut } from "lucide-react";
 import { User } from '../types';
 import { api } from '../services/api';
 import { getRolePowerProfile } from '../utils/classifications';
@@ -18,29 +18,27 @@ const PRESET_AVATARS = [
  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&auto=format&fit=crop&q=80',
  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80',
- 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=80',
-];
+ 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=80' ];
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({
  isOpen,
  onClose,
  currentUser,
  onUserUpdated,
- onLogout,
-}) => {
- const [name, setName] = useState(currentUser.name '');
- const [email, setEmail] = useState(currentUser.email '');
- const [phone, setPhone] = useState(currentUser.phone '');
- const [avatarUrl, setAvatarUrl] = useState(currentUser.avatar_url '');
+ onLogout }) => {
+ const [name, setName] = useState(currentUser.name || '');
+ const [email, setEmail] = useState(currentUser.email || '');
+ const [phone, setPhone] = useState(currentUser.phone || '');
+ const [avatarUrl, setAvatarUrl] = useState(currentUser.avatar_url || '');
  const [isSaving, setIsSaving] = useState(false);
- const [message, setMessage] = useState<{ type: 'success' 'error'; text: string } null>(null);
+ const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
  // Camera capture states
  const [isCameraActive, setIsCameraActive] = useState(false);
- const videoRef = useRef<HTMLVideoElement null>(null);
- const canvasRef = useRef<HTMLCanvasElement null>(null);
- const fileInputRef = useRef<HTMLInputElement null>(null);
- const [stream, setStream] = useState<MediaStream null>(null);
+ const videoRef = useRef<HTMLVideoElement | null>(null);
+ const canvasRef = useRef<HTMLCanvasElement | null>(null);
+ const fileInputRef = useRef<HTMLInputElement | null>(null);
+ const [stream, setStream] = useState<MediaStream | null>(null);
 
  if (!isOpen) return null;
 
@@ -51,8 +49,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
  setIsCameraActive(true);
  const mediaStream = await navigator.mediaDevices.getUserMedia({
  video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } },
- audio: false,
- });
+ audio: false });
  setStream(mediaStream);
  if (videoRef.current) {
  videoRef.current.srcObject = mediaStream;
@@ -62,8 +59,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
  setIsCameraActive(false);
  setMessage({
  type: 'error',
- text: 'Não foi possível acessar a câmera frontal. Tente escolher uma foto da galeria.',
- });
+ text: 'Não foi possível acessar a câmera frontal. Tente escolher uma foto da galeria.' });
  }
  };
 
@@ -103,7 +99,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
  }
  const reader = new FileReader();
  reader.onload = (event) => {
- const base64 = event.target?.result as string;
+ const base64 = event.target?.result as | string;
  if (base64) {
  setAvatarUrl(base64);
  setMessage({ type: 'success', text: 'Foto selecionada! Clique em Salvar Alterações.' });
@@ -126,10 +122,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
  const updated = await api.updateUserProfile(currentUser.id, {
  name: name.trim(),
- email: email.trim() undefined,
- phone: phone.trim() undefined,
- avatar_url: avatarUrl undefined,
- });
+ email: email.trim() || undefined,
+ phone: phone.trim() || undefined,
+ avatar_url: avatarUrl || undefined });
 
  // Update session storage
  try {
@@ -142,7 +137,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
  onClose();
  }, 1000);
  } catch (err: any) {
- setMessage({ type: 'error', text: err.message 'Falha ao salvar alterações.' });
+ setMessage({ type: 'error', text: err.message || 'Falha ao salvar alterações.' });
  } finally {
  setIsSaving(false);
  }
@@ -189,8 +184,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
  {message && (
  <div
  className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
- message.type === 'success'
- ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
+ message.type === 'success' ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
  : 'bg-red-950/80 border-red-500/40 text-red-200'
  }`}
  >

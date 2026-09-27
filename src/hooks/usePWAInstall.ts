@@ -2,24 +2,24 @@ import { useEffect, useState } from 'react';
 
 interface BeforeInstallPromptEvent extends Event {
  prompt: () => Promise<void>;
- userChoice: Promise<{ outcome: 'accepted' 'dismissed'; platform: string }>;
+ userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
 export function usePWAInstall() {
- const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent null>(null);
+ const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
  const [isInstalled, setIsInstalled] = useState(false);
  const [isIOS, setIsIOS] = useState(false);
 
  useEffect(() => {
  // Detect standalone mode (app is running installed)
  const isStandalone =
- window.matchMedia('(display-mode: standalone)').matches 
+ Boolean(window.matchMedia('(display-mode: standalone)').matches) ||
  (window.navigator as unknown as { standalone?: boolean }).standalone === true;
  setIsInstalled(isStandalone);
 
  // Detect iOS
  const userAgent = window.navigator.userAgent.toLowerCase();
- const isIOSDevice = /iphoneipadipod/.test(userAgent);
+ const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
  setIsIOS(isIOSDevice);
 
  const handleBeforeInstallPrompt = (e: Event) => {
@@ -64,6 +64,5 @@ export function usePWAInstall() {
  isInstallable: !!deferredPrompt,
  isInstalled,
  isIOS,
- install,
- };
+ install };
 }

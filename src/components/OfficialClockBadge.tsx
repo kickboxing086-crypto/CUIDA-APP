@@ -7,7 +7,7 @@ export const OfficialClockBadge: React.FC = () => {
  const [serverTime, setServerTime] = useState<OfficialServerTime>(generateLocalOfficialTime());
  const [currentDisplayTime, setCurrentDisplayTime] = useState<string>('00:00:00');
  const [offsetMs, setOffsetMs] = useState<number>(0);
- const [syncStatus, setSyncStatus] = useState<'synced' 'syncing' 'warning'>('syncing');
+ const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'warning'>('syncing');
 
  // Synchronize with server time every 30 seconds to adjust drift
  useEffect(() => {
@@ -84,8 +84,7 @@ export const OfficialClockBadge: React.FC = () => {
  </div>
  <div
  className={`w-2 h-2 rounded-full ${
- syncStatus === 'synced'
- ? 'bg-emerald-500 ring-2 ring-emerald-200 animate-pulse'
+ syncStatus === 'synced' ? 'bg-emerald-500 ring-2 ring-emerald-200 animate-pulse'
  : 'bg-amber-500'
  }`}
  title="Conexão com servidor oficial de hora ativo"

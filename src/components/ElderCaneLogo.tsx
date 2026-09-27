@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface ElderCaneLogoProps {
- size?: 'sm' 'md' 'lg' 'xl';
- variant?: 'blue-on-white' 'white-on-blue' 'monochrome';
+ size?: 'sm' | 'md' | 'lg' | 'xl';
+ variant?: 'blue-on-white' | 'white-on-blue' | 'monochrome';
  className?: string;
  showText?: boolean;
 }
@@ -11,14 +11,12 @@ export const ElderCaneLogo: React.FC<ElderCaneLogoProps> = ({
  size = 'md',
  variant = 'white-on-blue',
  className = '',
- showText = true,
-}) => {
+ showText = true }) => {
  const sizeMap = {
  sm: { box: 'w-8 h-8', icon: 20, text: 'text-base', sub: 'text-[9px]' },
  md: { box: 'w-10 h-10', icon: 24, text: 'text-lg', sub: 'text-[10px]' },
  lg: { box: 'w-14 h-14', icon: 34, text: 'text-2xl', sub: 'text-xs' },
- xl: { box: 'w-20 h-20', icon: 48, text: 'text-3xl', sub: 'text-sm' },
- };
+ xl: { box: 'w-20 h-20', icon: 48, text: 'text-3xl', sub: 'text-sm' } };
 
  const currentSize = sizeMap[size];
 
@@ -27,10 +25,8 @@ export const ElderCaneLogo: React.FC<ElderCaneLogoProps> = ({
  {/* Minimalist Vector Icon: Elder with a cane */}
  <div
  className={`${currentSize.box} rounded-xl flex items-center justify-center transition-all ${
- variant === 'white-on-blue'
- ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
- : variant === 'blue-on-white'
- ? 'bg-blue-50 text-blue-700 border border-blue-200'
+ variant === 'white-on-blue' ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+ : variant === 'blue-on-white' ? 'bg-blue-50 text-blue-700 border border-blue-200'
  : 'bg-slate-900 text-white'
  }`}
  title="CUIDA - Assistência e Ponto Eletrônico Seguro"

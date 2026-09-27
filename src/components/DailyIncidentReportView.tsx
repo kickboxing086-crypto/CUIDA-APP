@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, AlertTriangle, CheckCircle2, Calendar, Clock, User, Plus, Heart, ShieldCheck, Eye, Check, Activity, AlertCircle, FileCheck, } from "lucide-react";
+import { FileText, AlertTriangle, CheckCircle2, Calendar, Clock, User, Plus, Heart, ShieldCheck, Eye, Check, Activity, AlertCircle, FileCheck } from "lucide-react";
 import { DailyIncidentReport, ElderlyProfile, GeneralWellbeing, User as UserType } from '../types';
 import { api } from '../services/api';
 
@@ -10,8 +10,7 @@ interface DailyIncidentReportViewProps {
 
 export const DailyIncidentReportView: React.FC<DailyIncidentReportViewProps> = ({
  currentUser,
- elderly,
-}) => {
+ elderly }) => {
  const [incidents, setIncidents] = useState<DailyIncidentReport[]>([]);
  const [isLoading, setIsLoading] = useState(false);
  const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,7 +23,7 @@ export const DailyIncidentReportView: React.FC<DailyIncidentReportViewProps> = (
  const [actionsTaken, setActionsTaken] = useState('');
  const [contractorSigned, setContractorSigned] = useState(true);
  const [isSubmitting, setIsSubmitting] = useState(false);
- const [feedbackMsg, setFeedbackMsg] = useState<string null>(null);
+ const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
  // Filter state
  const [filterDiscomfortOnly, setFilterDiscomfortOnly] = useState(false);
@@ -39,8 +38,7 @@ export const DailyIncidentReportView: React.FC<DailyIncidentReportViewProps> = (
  'Desequilíbrio / Quase queda',
  'Recusa alimentar ou de líquidos',
  'Dor corporal ou articular',
- 'Agitação / Confusão momentânea',
- ];
+ 'Agitação / Confusão momentânea' ];
 
  const loadIncidents = async () => {
  setIsLoading(true);
@@ -74,12 +72,11 @@ export const DailyIncidentReportView: React.FC<DailyIncidentReportViewProps> = (
  general_state: generalState,
  had_discomfort: hadDiscomfort,
  discomfort_types: hadDiscomfort ? selectedDiscomforts : [],
- symptoms_description: symptomsDescription (hadDiscomfort ? 'Idoso apresentou mal-estar relatado.' : 'Dia transcorreu sem alterações ou queixas.'),
- actions_taken: actionsTaken 'Rotina mantida, cuidados e hidratação regular.',
+ symptoms_description: symptomsDescription || (hadDiscomfort ? 'Idoso apresentou mal-estar relatado.' : 'Dia transcorreu sem alterações ou queixas.'),
+ actions_taken: actionsTaken || 'Rotina mantida, cuidados e hidratação regular.',
  recorded_by_user_id: currentUser.id,
  contractor_signed: contractorSigned,
- caregiver_signed: true,
- });
+ caregiver_signed: true });
 
  setIsModalOpen(false);
  // Reset form
@@ -91,7 +88,7 @@ export const DailyIncidentReportView: React.FC<DailyIncidentReportViewProps> = (
  setFeedbackMsg('Boletim diário registrado com sucesso!');
  await loadIncidents();
  } catch (err: any) {
- setFeedbackMsg(err.message 'Erro ao registrar boletim.');
+ setFeedbackMsg(err.message || 'Erro ao registrar boletim.');
  } finally {
  setIsSubmitting(false);
  }
@@ -292,13 +289,13 @@ export const DailyIncidentReportView: React.FC<DailyIncidentReportViewProps> = (
  <div className="space-y-1 text-slate-500">
  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
  <Check className="w-3.5 h-3.5" />
- <span>Cuidador(a) Assinou: {item.caregiver_signed_name item.recorded_by_name}</span>
+ <span>Cuidador(a) Assinou: {item.caregiver_signed_name || item.recorded_by_name}</span>
  </div>
 
  {item.contractor_signed ? (
  <div className="flex items-center gap-1.5 text-blue-800 font-semibold">
  <FileCheck className="w-3.5 h-3.5 text-blue-600" />
- <span>Ciência do Contratante / Família: {item.contractor_signed_name 'Dr. Fernando Silveira'}</span>
+ <span>Ciência do Contratante / Família: {item.contractor_signed_name || 'Dr. Fernando Silveira'}</span>
  </div>
  ) : (
  <div className="flex items-center gap-2">
@@ -358,8 +355,7 @@ export const DailyIncidentReportView: React.FC<DailyIncidentReportViewProps> = (
  { id: 'otimo', label: 'Disposição Ótima', sub: 'Sem queixas, bem-humorado' },
  { id: 'estavel', label: 'Estável e Calmo', sub: 'Rotina padrão cumprida' },
  { id: 'atencao', label: 'Requer Atenção', sub: 'Leve indisposição ou cansaço' },
- { id: 'mal_estar', label: 'Houve Mal-Estar', sub: 'Sintomas relatados ou pico de PA' },
- ].map((opt) => (
+ { id: 'mal_estar', label: 'Houve Mal-Estar', sub: 'Sintomas relatados ou pico de PA' } ].map((opt) => (
  <button
  key={opt.id}
  type="button"

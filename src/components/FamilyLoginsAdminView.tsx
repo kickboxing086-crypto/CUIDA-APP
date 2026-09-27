@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Building2, UserPlus, Plus, ShieldCheck, Trash2, CheckCircle2, AlertCircle, Search, Eye, EyeOff, LogOut, Layers, Activity, Check, X, Copy, KeyRound, Lock, MapPin, Link2, Send, MessageCircle, } from "lucide-react";
+import { Users, Building2, UserPlus, Plus, ShieldCheck, Trash2, CheckCircle2, AlertCircle, Search, Eye, EyeOff, LogOut, Layers, Activity, Check, X, Copy, KeyRound, Lock, MapPin, Link2, Send, MessageCircle, Info } from "lucide-react";
 import { api } from '../services/api';
 import { User as UserType, Family, UserRole, FamilyActivityLog, InviteLink } from '../types';
 import { AVAILABLE_ROLES, validateUsername, validatePassword, getRoleDefinition } from '../utils/permissions';
@@ -7,6 +7,7 @@ import { fetchAddressByCep, formatCep } from '../utils/cep';
 import { ElderCaneLogo } from './ElderCaneLogo';
 import { ElderlyResidenceConfigModal } from './ElderlyResidenceConfigModal';
 import { FooterBranding } from './FooterBranding';
+import { AnimatedSelect } from './AnimatedChoiceSelect';
 
 interface FamilyLoginsAdminViewProps {
  currentUser: UserType;
@@ -17,34 +18,33 @@ interface FamilyLoginsAdminViewProps {
 export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  currentUser,
  onRefreshDirectory,
- onLogout,
-}) => {
- const [activeAdminTab, setActiveAdminTab] = useState<'logins' 'invites' 'roles' 'audit'>('logins');
+ onLogout }) => {
+ const [activeAdminTab, setActiveAdminTab] = useState<'logins' | 'invites' | 'roles' | 'audit'>('logins');
  const [families, setFamilies] = useState<Family[]>([]);
  const [allUsers, setAllUsers] = useState<UserType[]>([]);
  const [globalAuditLogs, setGlobalAuditLogs] = useState<FamilyActivityLog[]>([]);
  const [invitesList, setInvitesList] = useState<InviteLink[]>([]);
  const [loading, setLoading] = useState(true);
- const [feedback, setFeedback] = useState<{ type: 'success' 'error'; message: string } null>(null);
+ const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
  // Password visibility map (userId -> boolean)
  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
  const [showAllPasswords, setShowAllPasswords] = useState(false);
- const [copiedUserId, setCopiedUserId] = useState<string null>(null);
+ const [copiedUserId, setCopiedUserId] = useState<string | null>(null);
 
  // Modals
  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
  const [isCreateFamilyModalOpen, setIsCreateFamilyModalOpen] = useState(false);
  const [isResidenceModalOpen, setIsResidenceModalOpen] = useState(false);
  const [isCreateInviteModalOpen, setIsCreateInviteModalOpen] = useState(false);
- const [targetResidenceFamily, setTargetResidenceFamily] = useState<Family null>(null);
+ const [targetResidenceFamily, setTargetResidenceFamily] = useState<Family | null>(null);
 
  // Form State: Create Invite Link
  const [inviteTargetFamilyId, setInviteTargetFamilyId] = useState('');
  const [inviteSelectedRoles, setInviteSelectedRoles] = useState<UserRole[]>(['caregiver']);
  const [inviteGuestName, setInviteGuestName] = useState('');
  const [isSubmittingInvite, setIsSubmittingInvite] = useState(false);
- const [copiedInviteCode, setCopiedInviteCode] = useState<string null>(null);
+ const [copiedInviteCode, setCopiedInviteCode] = useState<string | null>(null);
 
  // Form State: Create User
  const [targetFamilyId, setTargetFamilyId] = useState('');
@@ -111,8 +111,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  api.getFamilies(),
  api.fetchUsers(true),
  api.getFamilyActivityLogs('all'),
- api.getInvites(),
- ]);
+ api.getInvites() ]);
  setFamilies(famData);
  setAllUsers(usersData);
  setGlobalAuditLogs(auditData);
@@ -135,8 +134,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  const togglePasswordVisibility = (userId: string) => {
  setVisiblePasswords((prev) => ({
  ...prev,
- [userId]: !prev[userId],
- }));
+ [userId]: !prev[userId] }));
  };
 
  const handleCopyPassword = (userId: string, pass?: string) => {
@@ -201,16 +199,14 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  password: cleanPass,
  roles: selectedRoles,
  role: selectedRoles[0],
- family_id: targetFamilyId null,
- requesting_user_id: currentUser.id,
- });
+ family_id: targetFamilyId || null,
+ requesting_user_id: currentUser.id });
 
- const roleNames = selectedRoles.map((r) => AVAILABLE_ROLES[r]?.name r).join(' + ');
+ const roleNames = selectedRoles.map((r) => AVAILABLE_ROLES[r]?.name || r).join(' + ');
 
  setFeedback({
  type: 'success',
- message: `Login "${cleanUser}" criado com sucesso! No primeiro acesso, o usuário preencherá seu nome, sobrenome e foto.`,
- });
+ message: `Login "${cleanUser}" criado com sucesso! No primeiro acesso, o usuário preencherá seu nome, sobrenome e foto.` });
 
  // Reset form
  setNewUserUsername('');
@@ -221,7 +217,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  await loadData();
  if (onRefreshDirectory) onRefreshDirectory();
  } catch (err: any) {
- setFeedback({ type: 'error', message: err.message 'Erro ao cadastrar login.' });
+ setFeedback({ type: 'error', message: err.message || 'Erro ao cadastrar login.' });
  } finally {
  setIsSubmittingUser(false);
  }
@@ -231,7 +227,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  e.preventDefault();
  setFeedback(null);
 
- if (!newFamilyName.trim() !newElderlyName.trim()) {
+ if (!newFamilyName.trim() || !newElderlyName.trim()) {
  setFeedback({ type: 'error', message: 'Preencha o nome da família e o nome do idoso(a).' });
  return;
  }
@@ -241,15 +237,13 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  const fam = await api.createFamily({
  name: newFamilyName.trim(),
  elderly_name: newElderlyName.trim(),
- residence_address: newFamilyAddress.trim() undefined,
- notes: newFamilyNotes.trim() undefined,
- requesting_user_id: currentUser.id,
- });
+ residence_address: newFamilyAddress.trim() || undefined,
+ notes: newFamilyNotes.trim() || undefined,
+ requesting_user_id: currentUser.id });
 
  setFeedback({
  type: 'success',
- message: `Família "${fam.name}" cadastrada com sucesso! Agora você pode criar os logins para ela.`,
- });
+ message: `Família "${fam.name}" cadastrada com sucesso! Agora você pode criar os logins para ela.` });
 
  setNewFamilyName('');
  setNewElderlyName('');
@@ -261,7 +255,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  await loadData();
  if (onRefreshDirectory) onRefreshDirectory();
  } catch (err: any) {
- setFeedback({ type: 'error', message: err.message 'Erro ao cadastrar família.' });
+ setFeedback({ type: 'error', message: err.message || 'Erro ao cadastrar família.' });
  } finally {
  setIsSubmittingFamily(false);
  }
@@ -319,13 +313,11 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  admin_name: 'Pendente de Preenchimento',
  admin_username: cleanUser,
  admin_password: cleanPass,
- requesting_user_id: currentUser.id,
- });
+ requesting_user_id: currentUser.id });
 
  setFeedback({
  type: 'success',
- message: `Família "${res.family.name}" e Administrador Familiar "@${res.adminUser.username}" criados com sucesso! O administrador preencherá seus dados pessoais e o endereço oficial da residência no seu primeiro login.`,
- });
+ message: `Família "${res.family.name}" e Administrador Familiar "@${res.adminUser.username}" criados com sucesso! O administrador preencherá seus dados pessoais e o endereço oficial da residência no seu primeiro login.` });
 
  setCfaFamilyName('');
  setCfaElderlyName('');
@@ -335,7 +327,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  await loadData();
  if (onRefreshDirectory) onRefreshDirectory();
  } catch (err: any) {
- setFeedback({ type: 'error', message: err.message 'Erro ao cadastrar Família e Administrador.' });
+ setFeedback({ type: 'error', message: err.message || 'Erro ao cadastrar Família e Administrador.' });
  } finally {
  setCfaIsSubmitting(false);
  }
@@ -346,22 +338,20 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  try {
  setIsSubmittingInvite(true);
  const newInv = await api.createInvite({
- family_id: inviteTargetFamilyId null,
+ family_id: inviteTargetFamilyId || null,
  roles: inviteSelectedRoles,
  guest_name: inviteGuestName,
- requesting_user_id: currentUser.id,
- });
+ requesting_user_id: currentUser.id });
 
  setFeedback({
  type: 'success',
- message: `Link de convite ${newInv.code} criado com sucesso para "${newInv.guest_name}"!`,
- });
+ message: `Link de convite ${newInv.code} criado com sucesso para "${newInv.guest_name}"!` });
 
  setInviteGuestName('');
  setIsCreateInviteModalOpen(false);
  await loadData();
  } catch (err: any) {
- setFeedback({ type: 'error', message: err.message 'Erro ao gerar convite.' });
+ setFeedback({ type: 'error', message: err.message || 'Erro ao gerar convite.' });
  } finally {
  setIsSubmittingInvite(false);
  }
@@ -374,7 +364,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  setFeedback({ type: 'success', message: `Convite ${inviteCode} foi revogado com sucesso.` });
  await loadData();
  } catch (err: any) {
- setFeedback({ type: 'error', message: err.message 'Erro ao revogar convite.' });
+ setFeedback({ type: 'error', message: err.message || 'Erro ao revogar convite.' });
  }
  };
 
@@ -399,12 +389,12 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  await loadData();
  if (onRefreshDirectory) onRefreshDirectory();
  } catch (err: any) {
- setFeedback({ type: 'error', message: err.message 'Erro ao excluir login.' });
+ setFeedback({ type: 'error', message: err.message || 'Erro ao excluir login.' });
  }
  };
 
  const handleToggleUserRole = async (user: UserType, roleToToggle: UserRole) => {
- const currentRoles = (user.roles && user.roles.length > 0) ? [...user.roles] : [user.role 'caregiver'];
+ const currentRoles = (user.roles && user.roles.length > 0) ? [...user.roles] : [user.role || 'caregiver'];
  let updatedRoles: UserRole[];
 
  if (currentRoles.includes(roleToToggle)) {
@@ -423,27 +413,26 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
 
  try {
  await api.updateUserRoles(user.id, updatedRoles, currentUser.id);
- const roleLabels = updatedRoles.map((r) => AVAILABLE_ROLES[r]?.name r).join(' + ');
+ const roleLabels = updatedRoles.map((r) => AVAILABLE_ROLES[r]?.name || r).join(' + ');
  setFeedback({
  type: 'success',
- message: `Funções de ${user.name} atualizadas para: [${roleLabels}].`,
- });
+ message: `Funções de ${user.name} atualizadas para: [${roleLabels}].` });
  await loadData();
  if (onRefreshDirectory) onRefreshDirectory();
  } catch (err: any) {
- setFeedback({ type: 'error', message: err.message 'Erro ao atualizar funções do usuário.' });
+ setFeedback({ type: 'error', message: err.message || 'Erro ao atualizar funções do usuário.' });
  }
  };
 
  // Filtered families by search
  const filteredFamilies = families.filter((fam) => {
  const q = searchQuery.toLowerCase();
- const matchesFamily = fam.name.toLowerCase().includes(q) fam.elderly_name.toLowerCase().includes(q);
+ const matchesFamily = fam.name.toLowerCase().includes(q) || fam.elderly_name.toLowerCase().includes(q);
  const usersInFamily = allUsers.filter((u) => u.family_id === fam.id);
  const matchesUser = usersInFamily.some(
- (u) => u.name.toLowerCase().includes(q) u.username.toLowerCase().includes(q)
+ (u) => u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q)
  );
- return matchesFamily matchesUser;
+ return matchesFamily || matchesUser;
  });
 
  return (
@@ -494,8 +483,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  <button
  onClick={() => setActiveAdminTab('logins')}
  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
- activeAdminTab === 'logins'
- ? 'bg-blue-600 text-white shadow-xs'
+ activeAdminTab === 'logins' ? 'bg-blue-600 text-white shadow-xs'
  : 'text-slate-400 hover:text-white hover:bg-slate-800'
  }`}
  >
@@ -509,8 +497,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  <button
  onClick={() => setActiveAdminTab('invites')}
  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
- activeAdminTab === 'invites'
- ? 'bg-blue-600 text-white shadow-xs'
+ activeAdminTab === 'invites' ? 'bg-blue-600 text-white shadow-xs'
  : 'text-slate-400 hover:text-white hover:bg-slate-800'
  }`}
  >
@@ -524,8 +511,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  <button
  onClick={() => setActiveAdminTab('roles')}
  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
- activeAdminTab === 'roles'
- ? 'bg-blue-600 text-white shadow-xs'
+ activeAdminTab === 'roles' ? 'bg-blue-600 text-white shadow-xs'
  : 'text-slate-400 hover:text-white hover:bg-slate-800'
  }`}
  >
@@ -536,8 +522,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  <button
  onClick={() => setActiveAdminTab('audit')}
  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
- activeAdminTab === 'audit'
- ? 'bg-blue-600 text-white shadow-xs'
+ activeAdminTab === 'audit' ? 'bg-blue-600 text-white shadow-xs'
  : 'text-slate-400 hover:text-white hover:bg-slate-800'
  }`}
  >
@@ -553,8 +538,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  {feedback && (
  <div
  className={`p-4 rounded-xl text-xs font-semibold flex items-center justify-between gap-3 shadow-md ${
- feedback.type === 'success'
- ? 'bg-emerald-950/80 text-emerald-200 border border-emerald-500/40'
+ feedback.type === 'success' ? 'bg-emerald-950/80 text-emerald-200 border border-emerald-500/40'
  : 'bg-red-950/80 text-red-200 border border-red-500/40'
  }`}
  >
@@ -696,7 +680,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  </span>
  </h3>
  <p className="text-xs text-slate-400">
- {family.residence_address 'Endereço cadastrado'}
+ {family.residence_address || 'Endereço cadastrado'}
  {family.notes && ` · ${family.notes}`}
  </p>
  </div>
@@ -739,8 +723,8 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
  {familyUsers.map((user) => {
  const userRoles: UserRole[] =
- user.roles && user.roles.length > 0 ? user.roles : [user.role 'caregiver'];
- const isPasswordVisible = showAllPasswords visiblePasswords[user.id];
+ user.roles && user.roles.length > 0 ? user.roles : [user.role || 'caregiver'];
+ const isPasswordVisible = showAllPasswords || visiblePasswords[user.id];
 
  return (
  <div
@@ -752,8 +736,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  <div className="flex items-center gap-2.5">
  <img
  src={
- user.avatar_url 
- 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'
+ user.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'
  }
  alt={user.name}
  className="w-10 h-10 rounded-full object-cover border border-slate-700 shrink-0"
@@ -771,7 +754,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  key={r}
  className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30"
  >
- {def?.name r}
+ {def?.name || r}
  </span>
  );
  })}
@@ -807,7 +790,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  </span>
  <div className="flex items-center gap-1.5">
  <span className="font-mono text-xs font-bold text-amber-300 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
- {isPasswordVisible ? (user.password '••••••••') : '••••••••'}
+ {isPasswordVisible ? (user.password || '••••••••') : '••••••••'}
  </span>
  <button
  type="button"
@@ -835,7 +818,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  <div className="flex items-center justify-between pt-1 border-t border-slate-900 text-[11px]">
  <span className="text-slate-500">Matrícula:</span>
  <span className="font-mono text-slate-400">
- {user.registration_code '---'}
+ {user.registration_code || '---'}
  </span>
  </div>
  </div>
@@ -931,17 +914,15 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  ? window.location.origin
  : 'https://cuida-app.vercel.app';
  const fullInviteUrl = `${hostDomain}${window.location.pathname}?invite=${inv.code}`;
- const whatsappMsg = `Olá ${inv.guest_name ''}! Você foi convidado(a) para acessar o sistema CUIDA (${inv.family_name}).\nPara criar sua conta e senha, acesse o link de convite exclusivo:\n${fullInviteUrl}`;
+ const whatsappMsg = `Olá ${inv.guest_name || ''}! Você foi convidado(a) para acessar o sistema CUIDA (${inv.family_name}).\nPara criar sua conta e senha, acesse o link de convite exclusivo:\n${fullInviteUrl}`;
  const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappMsg)}`;
 
  return (
  <div
  key={inv.id}
  className={`p-4 rounded-2xl border transition-all space-y-3 ${
- inv.status === 'active'
- ? 'bg-slate-900 border-slate-800 hover:border-blue-500/40'
- : inv.status === 'used'
- ? 'bg-slate-950/80 border-slate-800/80 opacity-80'
+ inv.status === 'active' ? 'bg-slate-900 border-slate-800 hover:border-blue-500/40'
+ : inv.status === 'used' ? 'bg-slate-950/80 border-slate-800/80 opacity-80'
  : 'bg-red-950/20 border-red-900/40 opacity-60'
  }`}
  >
@@ -951,13 +932,11 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  {inv.code}
  </span>
  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
- inv.status === 'active'
- ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
- : inv.status === 'used'
- ? 'bg-blue-950/80 text-blue-300 border-blue-500/40'
+ inv.status === 'active' ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+ : inv.status === 'used' ? 'bg-blue-950/80 text-blue-300 border-blue-500/40'
  : 'bg-red-950/80 text-red-300 border-red-500/40'
  }`}>
- {inv.status === 'active' ? ' Ativo (Aguardando uso)' : inv.status === 'used' ? ' Conta Criada' : ' Revogado'}
+ {inv.status === 'active' ? ' Ativo (Aguardando uso)' : inv.status === 'used' ? ' Conta Criada' : '  Revogado'}
  </span>
  </div>
 
@@ -1220,23 +1199,23 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  <label className="block text-xs font-semibold text-slate-300 mb-1">
  Família do Cliente *
  </label>
- <select
- required
- value={targetFamilyId}
- onChange={(e) => setTargetFamilyId(e.target.value)}
- className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-semibold text-white focus:outline-blue-500 cursor-pointer"
- >
- {families.map((f) => (
- <option key={f.id} value={f.id}>
- {f.name} ({f.elderly_name})
- </option>
- ))}
- </select>
+                  <AnimatedSelect
+                    value={targetFamilyId}
+                    onChange={(val) => setTargetFamilyId(val)}
+                    options={families.map((f) => ({
+                      value: f.id,
+                      label: f.name,
+                      sublabel: `Idoso(a): ${f.elderly_name}`
+                    }))}
+                    placeholder="Selecione a família do cliente"
+                    className="w-full text-left"
+                  />
  </div>
 
- <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200">
+ <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200 flex items-start gap-2">
+ <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
  <p className="font-semibold text-blue-300">
- ℹ️ Como Administrador Geral, você gera apenas o login e a função. O usuário completará seu nome completo, sobrenome e foto de perfil no seu primeiro acesso.
+ Como Administrador Geral, você gera apenas o login e a função. O usuário completará seu nome completo, sobrenome e foto de perfil no seu primeiro acesso.
  </p>
  </div>
 
@@ -1414,9 +1393,10 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  </div>
 
  <form onSubmit={handleCreateFamily} className="space-y-4">
- <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200">
+ <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl text-[11px] text-blue-200 flex items-start gap-2">
+ <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
  <p className="font-semibold text-blue-300">
- ℹ️ O endereço oficial da residência será cadastrado exclusivamente pelo Administrador da Família após o login.
+ O endereço oficial da residência será cadastrado exclusivamente pelo Administrador da Família após o login.
  </p>
  </div>
 
@@ -1481,18 +1461,17 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  familyId={targetResidenceFamily.id}
  familyName={targetResidenceFamily.name}
  currentElderly={{
- id: targetResidenceFamily.elderly_id 'eld-01',
+ id: targetResidenceFamily.elderly_id || 'eld-01',
  full_name: targetResidenceFamily.elderly_name,
  birth_date: '',
  blood_type: 'Não informado',
  allergies: [],
- residence_address: targetResidenceFamily.residence_address '',
- residence_lat: targetResidenceFamily.residence_lat -23.5505,
- residence_long: targetResidenceFamily.residence_long -46.6333,
- allowed_radius_meters: targetResidenceFamily.allowed_radius_meters 150,
+ residence_address: targetResidenceFamily.residence_address || '',
+ residence_lat: targetResidenceFamily.residence_lat || -23.5505,
+ residence_long: targetResidenceFamily.residence_long || -46.6333,
+ allowed_radius_meters: targetResidenceFamily.allowed_radius_meters || 150,
  emergency_contacts: [],
- created_at: new Date().toISOString(),
- }}
+ created_at: new Date().toISOString() }}
  onSaved={() => {
  loadData();
  if (onRefreshDirectory) onRefreshDirectory();
@@ -1644,7 +1623,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  </button>
  <button
  type="submit"
- disabled={cfaIsSubmitting !cfaFamilyName.trim() !cfaElderlyName.trim() !cfaAdminUsername.trim() !cfaAdminPassword.trim()}
+ disabled={cfaIsSubmitting || !cfaFamilyName.trim() || !cfaElderlyName.trim() || !cfaAdminUsername.trim() || !cfaAdminPassword.trim()}
  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold cursor-pointer shadow-lg shadow-emerald-600/30 flex items-center gap-1.5"
  >
  {cfaIsSubmitting ? 'Cadastrando Família...' : 'Criar Família & Administrador'}
@@ -1691,17 +1670,17 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  <label className="block text-xs font-semibold text-slate-300 mb-1">
  Vincular à Família do Idoso *
  </label>
- <select
- value={inviteTargetFamilyId}
- onChange={(e) => setInviteTargetFamilyId(e.target.value)}
- className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-medium text-white focus:outline-blue-500"
- >
- {families.map((f) => (
- <option key={f.id} value={f.id}>
- {f.name} ({f.elderly_name})
- </option>
- ))}
- </select>
+                  <AnimatedSelect
+                    value={inviteTargetFamilyId}
+                    onChange={(val) => setInviteTargetFamilyId(val)}
+                    options={families.map((f) => ({
+                      value: f.id,
+                      label: f.name,
+                      sublabel: `Idoso(a): ${f.elderly_name}`
+                    }))}
+                    placeholder="Selecione a família do idoso"
+                    className="w-full text-left"
+                  />
  </div>
 
  <div>
@@ -1752,7 +1731,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  </button>
  <button
  type="submit"
- disabled={isSubmittingInvite !inviteGuestName.trim()}
+ disabled={isSubmittingInvite || !inviteGuestName.trim()}
  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer shadow-lg flex items-center gap-1.5"
  >
  {isSubmittingInvite ? 'Gerando Link...' : 'Gerar Link de Convite'}

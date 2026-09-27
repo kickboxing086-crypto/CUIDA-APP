@@ -2,13 +2,12 @@ import React from 'react';
 
 interface FooterBrandingProps {
  className?: string;
- theme?: 'dark' 'light';
+ theme?: 'dark' | 'light';
 }
 
 export const FooterBranding: React.FC<FooterBrandingProps> = ({
  className = '',
- theme = 'light',
-}) => {
+ theme = 'light' }) => {
  const isDark = theme === 'dark';
 
  return (

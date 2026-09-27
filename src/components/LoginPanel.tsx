@@ -14,14 +14,14 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
  const [password, setPassword] = useState('');
  const [showPassword, setShowPassword] = useState(false);
  const [isLoading, setIsLoading] = useState(false);
- const [errorMessage, setErrorMessage] = useState<string null>(null);
+ const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
  // Convites por Link Exclusivo State
  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
  const [inviteCodeInput, setInviteCodeInput] = useState('');
- const [inviteData, setInviteData] = useState<any null>(null);
+ const [inviteData, setInviteData] = useState<any | null>(null);
  const [isValidatingInvite, setIsValidatingInvite] = useState(false);
- const [inviteError, setInviteError] = useState<string null>(null);
+ const [inviteError, setInviteError] = useState<string | null>(null);
 
  // Invite Form Registration
  const [regFullName, setRegFullName] = useState('');
@@ -29,13 +29,13 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
  const [regPassword, setRegPassword] = useState('');
  const [showRegPassword, setShowRegPassword] = useState(false);
  const [isRegistering, setIsRegistering] = useState(false);
- const [regFeedback, setRegFeedback] = useState<{ type: 'error' 'success'; message: string } null>(null);
+ const [regFeedback, setRegFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
 
  // Detect query param ?invite=... or ?convite=... on page load
  useEffect(() => {
  try {
  const searchParams = new URLSearchParams(window.location.search);
- const code = searchParams.get('invite') searchParams.get('convite') searchParams.get('code');
+ const code = searchParams.get('invite') || searchParams.get('convite') || searchParams.get('code');
  if (code) {
  setInviteCodeInput(code.trim());
  setIsInviteModalOpen(true);
@@ -61,11 +61,11 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
  }
  } else {
  setInviteData(null);
- setInviteError(res.message 'Código de convite inválido, expirado ou revogado.');
+ setInviteError(res.message || 'Código de convite inválido, expirado ou revogado.');
  }
  } catch (err: any) {
  setInviteData(null);
- setInviteError(err.message 'Erro ao validar código do convite.');
+ setInviteError(err.message || 'Erro ao validar código do convite.');
  } finally {
  setIsValidatingInvite(false);
  }
@@ -75,7 +75,7 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
  e.preventDefault();
  setErrorMessage(null);
 
- if (!username.trim() !password.trim()) {
+ if (!username.trim() || !password.trim()) {
  setErrorMessage('Por favor, informe o seu usuário e senha.');
  return;
  }
@@ -83,9 +83,9 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
  try {
  setIsLoading(true);
  const res = await api.login(username.trim(), password.trim());
- onLoginSuccess(res.user);
+ if (res.user) { onLoginSuccess(res.user); } else { setErrorMessage(res.message || "Credenciais inválidas."); }
  } catch (err: any) {
- setErrorMessage(err.message 'Credenciais inválidas. Verifique seu usuário e senha.');
+ setErrorMessage(err.message || 'Credenciais inválidas. Verifique seu usuário e senha.');
  } finally {
  setIsLoading(false);
  }
@@ -95,7 +95,7 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
  e.preventDefault();
  setRegFeedback(null);
 
- if (!inviteData !inviteData.code) {
+ if (!inviteData || !inviteData.code) {
  setRegFeedback({ type: 'error', message: 'Nenhum convite válido selecionado.' });
  return;
  }
@@ -117,22 +117,20 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
  setIsRegistering(true);
  const res = await api.registerWithInvite({
  invite_code: inviteData.code,
- name: regFullName.trim() inviteData.guest_name 'Novo Usuário',
+ name: regFullName.trim() || inviteData.guest_name || 'Novo Usuário',
  username: cleanUser,
- password: cleanPass,
- });
+ password: cleanPass });
 
  setRegFeedback({
  type: 'success',
- message: `Conta criada com sucesso! Acessando sistema como @${res.user.username}...`,
- });
+ message: `Conta criada com sucesso! Acessando sistema como @${res.user.username}...` });
 
  setTimeout(() => {
  setIsInviteModalOpen(false);
  onLoginSuccess(res.user);
  }, 1200);
  } catch (err: any) {
- setRegFeedback({ type: 'error', message: err.message 'Falha ao criar conta com o convite.' });
+ setRegFeedback({ type: 'error', message: err.message || 'Falha ao criar conta com o convite.' });
  } finally {
  setIsRegistering(false);
  }
@@ -323,7 +321,7 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
  />
  <button
  type="button"
- disabled={isValidatingInvite !inviteCodeInput.trim()}
+ disabled={isValidatingInvite || !inviteCodeInput.trim()}
  onClick={() => handleValidateInviteCode(inviteCodeInput)}
  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer shrink-0 transition-all"
  >
@@ -360,14 +358,13 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
  {inviteData.classification_label && (
  <p><strong>Classificação Familiar:</strong> <span className="text-emerald-300 font-bold">{inviteData.classification_label}</span></p>
  )}
- <p><strong>Função Liberada:</strong> {inviteData.role_labels?.join(' + ') 'Membro Familiar'}</p>
+ <p><strong>Função Liberada:</strong> {inviteData.role_labels?.join(' + ') || 'Membro Familiar'}</p>
  </div>
  </div>
 
  {regFeedback && (
  <div className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
- regFeedback.type === 'success'
- ? 'bg-emerald-950/60 border-emerald-500/30 text-emerald-200'
+ regFeedback.type === 'success' ? 'bg-emerald-950/60 border-emerald-500/30 text-emerald-200'
  : 'bg-red-950/60 border-red-500/30 text-red-200'
  }`}>
  {regFeedback.type === 'success' ? (
@@ -473,7 +470,7 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onLoginSuccess }) => {
  </button>
  <button
  type="submit"
- disabled={isRegistering !regFullName.trim() regUsername.length < 3 regPassword.length < 3}
+ disabled={isRegistering || !regFullName.trim() || regUsername.length < 3 || regPassword.length < 3}
  className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
  >
  {isRegistering ? 'Criando Conta...' : 'Concluir Cadastro e Entrar'}

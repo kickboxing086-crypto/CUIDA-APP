@@ -3,7 +3,7 @@ import { Download, Smartphone, X, Check, Share, PlusSquare, ShieldCheck } from "
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
 interface PWAInstallButtonProps {
- variant?: 'header' 'login' 'banner' 'floating';
+ variant?: 'header' | 'login' | 'banner' | 'floating';
 }
 
 export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'header' }) => {

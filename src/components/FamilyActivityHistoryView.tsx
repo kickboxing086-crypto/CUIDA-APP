@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { History, Heart, Pill, CheckSquare, FileText, Clock, MessageSquare, Filter, User, ShieldCheck, RefreshCw, Search, } from "lucide-react";
+import { History, Heart, Pill, CheckSquare, FileText, Clock, MessageSquare, Filter, User, ShieldCheck, RefreshCw, Search } from "lucide-react";
 import { FamilyActivityLog, User as UserType } from '../types';
 import { api } from '../services/api';
 
@@ -12,8 +12,7 @@ interface FamilyActivityHistoryViewProps {
 export const FamilyActivityHistoryView: React.FC<FamilyActivityHistoryViewProps> = ({
  currentUser,
  familyId,
- familyName,
-}) => {
+ familyName }) => {
  const [logs, setLogs] = useState<FamilyActivityLog[]>([]);
  const [loading, setLoading] = useState(true);
  const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -22,7 +21,7 @@ export const FamilyActivityHistoryView: React.FC<FamilyActivityHistoryViewProps>
  const loadLogs = async () => {
  try {
  setLoading(true);
- const data = await api.getFamilyActivityLogs(familyId currentUser.family_id 'fam-01');
+ const data = await api.getFamilyActivityLogs(familyId || currentUser.family_id || 'fam-01');
  setLogs(data);
  } catch (err) {
  console.error('Erro ao carregar histórico da família:', err);
@@ -41,16 +40,13 @@ export const FamilyActivityHistoryView: React.FC<FamilyActivityHistoryViewProps>
  { id: 'Obrigações Diárias', label: 'Obrigações Diárias', icon: CheckSquare },
  { id: 'Boletim do Idoso', label: 'Boletim do Idoso', icon: FileText },
  { id: 'Medicamentos', label: 'Medicamentos', icon: Pill },
- { id: 'Controle de Ponto', label: 'Controle de Ponto', icon: Clock },
- ];
+ { id: 'Controle de Ponto', label: 'Controle de Ponto', icon: Clock } ];
 
  const filteredLogs = logs.filter((log) => {
- const matchesCategory = selectedCategory === 'all' log.category === selectedCategory;
+ const matchesCategory = selectedCategory === 'all' || log.category === selectedCategory;
  const q = searchQuery.toLowerCase();
  const matchesSearch =
- log.description.toLowerCase().includes(q) 
- log.user_name.toLowerCase().includes(q) 
- (log.details && log.details.toLowerCase().includes(q));
+ log.description.toLowerCase().includes(q) || log.user_name.toLowerCase().includes(q) || Boolean(log.details && log.details.toLowerCase().includes(q));
  return matchesCategory && matchesSearch;
  });
 
@@ -162,10 +158,8 @@ export const FamilyActivityHistoryView: React.FC<FamilyActivityHistoryViewProps>
  {log.user_name}
  </span>
  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
- {log.user_role === 'caregiver'
- ? 'Cuidadora'
- : log.user_role === 'admin_family'
- ? 'Familiar (Admin)'
+ {log.user_role === 'caregiver' ? 'Cuidadora'
+ : log.user_role === 'admin_family' ? 'Familiar (Admin)'
  : 'Familiar'}
  </span>
  <span
@@ -193,14 +187,12 @@ export const FamilyActivityHistoryView: React.FC<FamilyActivityHistoryViewProps>
  <div className="text-xs font-semibold text-slate-700">
  {new Date(log.created_at).toLocaleTimeString('pt-BR', {
  hour: '2-digit',
- minute: '2-digit',
- })}
+ minute: '2-digit' })}
  </div>
  <div className="text-[11px] text-slate-400">
  {new Date(log.created_at).toLocaleDateString('pt-BR', {
  day: '2-digit',
- month: 'short',
- })}
+ month: 'short' })}
  </div>
  </div>
  </div>

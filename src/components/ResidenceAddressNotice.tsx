@@ -4,23 +4,24 @@ import { User, ElderlyProfile } from '../types';
 
 interface ResidenceAddressNoticeProps {
  currentUser: User;
- elderly?: ElderlyProfile null;
+ elderly?: ElderlyProfile | null;
  onOpenResidenceModal: () => void;
 }
 
 export const ResidenceAddressNotice: React.FC<ResidenceAddressNoticeProps> = ({
  currentUser,
  elderly,
- onOpenResidenceModal,
-}) => {
- const address = (elderly?.residence_address '').trim();
- const isAddressMissing = !address address === 'Residência do Idoso' address === 'Endereço da Residência';
+ onOpenResidenceModal }) => {
+ const address = (elderly?.residence_address || '').trim();
+ const isAddressMissing = !address || address === 'Residência do Idoso' || address === 'Endereço da Residência';
 
  if (!isAddressMissing) return null;
 
  const isFamilyAdmin =
- currentUser.role === 'admin_family' 
- (Array.isArray(currentUser.roles) && currentUser.roles.includes('admin_family'));
+ currentUser.role === 'admin_family' ||
+ currentUser.role === 'admin_geral' ||
+ (Array.isArray(currentUser.roles) && currentUser.roles.includes('admin_family')) ||
+ (Array.isArray(currentUser.roles) && currentUser.roles.includes('admin_geral'));
 
  if (isFamilyAdmin) {
  return (

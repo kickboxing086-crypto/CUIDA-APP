@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Database, Code2, Shield, Copy, Check, Terminal, FileCode2 } from "lucide-react";
 
 export const TechSpecView: React.FC = () => {
- const [activeTab, setActiveTab] = useState<'ddl' 'apis' 'rls'>('ddl');
- const [copiedKey, setCopiedKey] = useState<string null>(null);
+ const [activeTab, setActiveTab] = useState<'ddl' | 'apis' | 'rls'>('ddl');
+ const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
  const copyToClipboard = (text: string, key: string) => {
  navigator.clipboard.writeText(text);
@@ -34,7 +34,7 @@ CREATE TABLE users (
  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
  name VARCHAR(255) NOT NULL,
  email VARCHAR(255) UNIQUE NOT NULL,
- role user_role_enum NOT NULL DEFAULT 'caregiver',
+ role user_role_enum NOT NULL DEFAULT || 'caregiver',
  avatar_url TEXT,
  registration_code VARCHAR(50),
  phone VARCHAR(30),
@@ -51,9 +51,8 @@ CREATE TABLE elderly_profiles (
  family_admin_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
  full_name VARCHAR(255) NOT NULL,
  birth_date DATE NOT NULL,
- blood_type VARCHAR(5) NOT NULL, -- Ex: 'A+', 'O-', 'AB+'
- allergies TEXT[] DEFAULT ARRAY[]::TEXT[],
- emergency_contacts_json JSONB NOT NULL DEFAULT '[]'::JSONB,
+ blood_type VARCHAR(5) NOT NULL, -- Ex: 'A+', 'O-', 'AB+'  allergies TEXT[] DEFAULT ARRAY[]::TEXT[],
+ emergency_contacts_json JSONB NOT NULL DEFAULT || '[]'::JSONB,
  residence_address TEXT NOT NULL,
  residence_lat NUMERIC(10, 7) NOT NULL,
  residence_long NUMERIC(10, 7) NOT NULL,
@@ -69,7 +68,7 @@ CREATE TABLE elderly_caregivers (
  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
  elderly_id UUID NOT NULL REFERENCES elderly_profiles(id) ON DELETE CASCADE,
  caregiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
- shift_description VARCHAR(100) DEFAULT 'Plantão 12x36',
+ shift_description VARCHAR(100) DEFAULT || 'Plantão 12x36',
  is_active BOOLEAN NOT NULL DEFAULT TRUE,
  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
  UNIQUE(elderly_id, caregiver_id)
@@ -100,8 +99,7 @@ CREATE TABLE time_entries (
  
  -- Metadados de Calendário Oficial
  date_stamp DATE NOT NULL, -- Formato YYYY-MM-DD para índices rápidos
- day_of_week VARCHAR(30) NOT NULL, -- Ex: 'Segunda-feira', 'Terça-feira'
- notes TEXT,
+ day_of_week VARCHAR(30) NOT NULL, -- Ex: 'Segunda-feira', 'Terça-feira'  notes TEXT,
  
  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -122,8 +120,7 @@ CREATE TABLE health_logs (
  
  -- Indicadores Complementares
  glucose NUMERIC(5, 1), -- mg/dL
- glucose_context VARCHAR(50), -- 'Jejum matinal', '2h pós-almoço'
- temperature_c NUMERIC(4, 1), -- °C
+ glucose_context VARCHAR(50), -- 'Jejum matinal', '2h pós-almoço'  temperature_c NUMERIC(4, 1), -- °C
  weight_kg NUMERIC(5, 2), -- kg
  
  notes TEXT,
@@ -138,13 +135,12 @@ CREATE TABLE medication_logs (
  elderly_id UUID NOT NULL REFERENCES elderly_profiles(id) ON DELETE CASCADE,
  medication_name VARCHAR(255) NOT NULL,
  dosage VARCHAR(100) NOT NULL,
- scheduled_time TIME NOT NULL, -- Ex: '08:00:00'
- instructions TEXT,
+ scheduled_time TIME NOT NULL, -- Ex: '08:00:00'  instructions TEXT,
  
  -- Confirmação de Ministração
  administered_at TIMESTAMPTZ,
  administered_by_user_id UUID REFERENCES users(id) ON DELETE RESTRICT,
- status medication_status_enum NOT NULL DEFAULT 'pending',
+ status medication_status_enum NOT NULL DEFAULT || 'pending',
  
  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -157,7 +153,7 @@ CREATE TABLE family_notices (
  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
  elderly_id UUID NOT NULL REFERENCES elderly_profiles(id) ON DELETE CASCADE,
  created_by_user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
- category notice_category_enum NOT NULL DEFAULT 'shopping',
+ category notice_category_enum NOT NULL DEFAULT || 'shopping',
  title VARCHAR(255) NOT NULL,
  description TEXT NOT NULL,
  is_resolved BOOLEAN NOT NULL DEFAULT FALSE,
@@ -174,9 +170,8 @@ CREATE TABLE daily_care_missions (
  created_by_user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
  title VARCHAR(255) NOT NULL,
  scheduled_time TIME NOT NULL,
- category VARCHAR(50) NOT NULL DEFAULT 'medication',
- priority VARCHAR(50) NOT NULL DEFAULT 'mandatory', -- 'mandatory', 'routine', 'urgent'
- clear_instructions TEXT NOT NULL, -- Instrução clara e concisa do administrador geral
+ category VARCHAR(50) NOT NULL DEFAULT || 'medication',
+ priority VARCHAR(50) NOT NULL DEFAULT || 'mandatory', -- 'mandatory', 'routine', 'urgent'  clear_instructions TEXT NOT NULL, -- Instrução clara e concisa do administrador geral
  is_active BOOLEAN NOT NULL DEFAULT TRUE,
  completed BOOLEAN NOT NULL DEFAULT FALSE,
  completed_at VARCHAR(10),
@@ -218,7 +213,7 @@ FOR EACH ROW
 EXECUTE FUNCTION fn_calculate_shift_hours();`;
 
  const rlsPolicies = `-- ============================================================================
--- REGRAS DE SEGURANÇA E POLÍTICAS RLS (ROW LEVEL SECURITY) - SUPABASE
+-- REGRAS DE SEGURANÇA E POLÍTICAS RLS  (ROW LEVEL SECURITY) - SUPABASE
 -- ISOLAMENTO ESTRITO DE DADOS ENTRE FAMÍLIAS E PERMISSÕES RBAC
 -- ============================================================================
 
@@ -342,14 +337,12 @@ ON daily_care_missions FOR ALL
 USING (
  EXISTS (
  SELECT 1 FROM users u
- WHERE u.id = auth.uid() AND u.role = 'admin_family'
- )
+ WHERE u.id = auth.uid() AND u.role = 'admin_family'  )
 )
 WITH CHECK (
  EXISTS (
  SELECT 1 FROM users u
- WHERE u.id = auth.uid() AND u.role = 'admin_family'
- )
+ WHERE u.id = auth.uid() AND u.role = 'admin_family'  )
 );
 
 CREATE POLICY "Cuidadores autorizados visualizam missões e registram cumprimento"
@@ -429,7 +422,7 @@ export interface HealthLogResponse {
  success: boolean;
  log: {
  id: string;
- status_category: 'Normal' 'Pré-hipertensão' 'Hipertensão Estágio 1' 'Hipertensão Estágio 2' 'Crise Hipertensiva';
+ status_category: 'Normal', 'Pré-hipertensão', 'Hipertensão Estágio 1', 'Hipertensão Estágio 2', 'Crise Hipertensiva';
  created_at: string;
  };
 }
@@ -445,9 +438,9 @@ export interface TimesheetHistoryResponse {
  day_of_week: string;
  entry_time: string;
  entry_photo_url: string;
- exit_time: string null;
- exit_photo_url: string null;
- total_hours: number null;
+ exit_time: string | null;
+ exit_photo_url: string | null;
+ total_hours: number | null;
  total_hours_formatted: string;
  is_verified_geofence: boolean;
  }>;
@@ -498,8 +491,7 @@ export interface TimesheetHistoryResponse {
  <button
  onClick={() => setActiveTab('ddl')}
  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
- activeTab === 'ddl'
- ? 'bg-blue-600 text-white shadow-xs'
+ activeTab === 'ddl' ? 'bg-blue-600 text-white shadow-xs'
  : 'text-slate-600 hover:bg-slate-100'
  }`}
  >
@@ -510,8 +502,7 @@ export interface TimesheetHistoryResponse {
  <button
  onClick={() => setActiveTab('rls')}
  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
- activeTab === 'rls'
- ? 'bg-blue-600 text-white shadow-xs'
+ activeTab === 'rls' ? 'bg-blue-600 text-white shadow-xs'
  : 'text-slate-600 hover:bg-slate-100'
  }`}
  >
@@ -522,8 +513,7 @@ export interface TimesheetHistoryResponse {
  <button
  onClick={() => setActiveTab('apis')}
  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
- activeTab === 'apis'
- ? 'bg-blue-600 text-white shadow-xs'
+ activeTab === 'apis' ? 'bg-blue-600 text-white shadow-xs'
  : 'text-slate-600 hover:bg-slate-100'
  }`}
  >
