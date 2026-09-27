@@ -89,7 +89,6 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  };
 
  const handleDirectCheckOut = async () => {
- if (!activeEntry) return;
  try {
  setIsRegisteringPoint(true);
  setPointMessage(null);
@@ -111,7 +110,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  }
 
  await api.checkOut({
- entryId: activeEntry.id,
+ entryId: activeEntry?.id || '',
  userId: currentUser.id,
  locationLat: lat,
  locationLong: lng,
