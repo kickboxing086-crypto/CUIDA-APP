@@ -634,6 +634,65 @@ async function startServer() {
     });
   });
 
+  // 0c3. Excluir Família (Apenas Administradores com Confirmação de Duas Etapas)
+  app.delete('/api/families/:id', (req, res) => {
+    const { id } = req.params;
+    const { requesting_user_id } = req.query;
+
+    const requester = db.users.find((u) => u.id === requesting_user_id);
+    if (requester && requester.role !== 'admin_geral' && requester.role !== 'admin_family' && !requester.roles?.includes('admin_family')) {
+      return res.status(403).json({
+        error: 'Permissão negada',
+        message: 'Apenas Administradores podem excluir famílias.',
+      });
+    }
+
+    const idx = db.families.findIndex((f) => f.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ error: 'Família não encontrada' });
+    }
+
+    const removedFamily = db.families.splice(idx, 1)[0];
+
+    // Desvincular usuários associados a esta família
+    let unlinkedCount = 0;
+    db.users.forEach((u) => {
+      if (u.family_id === id) {
+        u.family_id = null;
+        u.family_name = 'Sem família vinculada';
+        unlinkedCount++;
+      }
+    });
+
+    // Remover escalas de plantão dessa família
+    if (db.shiftSchedules) {
+      db.shiftSchedules = db.shiftSchedules.filter((s) => s.family_id !== id);
+    }
+
+    // Remover convites pendentes dessa família
+    if (db.invites) {
+      db.invites = db.invites.filter((inv) => inv.family_id !== id);
+    }
+
+    saveDb();
+
+    logActivity({
+      family_id: 'fam-01',
+      user_id: requester?.id || 'usr-admin-samuel',
+      user_name: requester?.name || 'Administrador',
+      user_role: requester?.role || 'admin_geral',
+      action_type: 'vitals_edited',
+      category: 'Mural',
+      description: `Família "${removedFamily.name}" foi excluída pelo administrador (${unlinkedCount} logins desvinculados).`,
+      details: `Idoso assistido: ${removedFamily.elderly_name}.`,
+    });
+
+    res.json({
+      success: true,
+      message: `Família "${removedFamily.name}" e seus registros vinculados foram excluídos com sucesso.`,
+    });
+  });
+
   // Atualizar Residência do Idoso Direto
   app.put('/api/elderly/residence', (req, res) => {
     const {
@@ -1288,16 +1347,16 @@ async function startServer() {
     res.status(201).json({ success: true, log });
   });
 
-  // Excluir Login (Apenas Admin Geral)
+  // Excluir Login (Admin Geral ou Admin Familiar)
   app.delete('/api/users/:id', (req, res) => {
     const { id } = req.params;
     const { requesting_user_id } = req.query;
 
     const requester = db.users.find((u) => u.id === requesting_user_id);
-    if (requester && requester.role !== 'admin_geral') {
+    if (requester && requester.role !== 'admin_geral' && requester.role !== 'admin_family' && !requester.roles?.includes('admin_family')) {
       return res.status(403).json({
         error: 'Permissão negada',
-        message: 'Apenas o Administrador Geral pode excluir logins.',
+        message: 'Apenas Administradores podem excluir logins.',
       });
     }
 
@@ -1308,11 +1367,35 @@ async function startServer() {
       });
     }
 
+    if (requester && requester.id === id) {
+      return res.status(400).json({
+        error: 'Ação não permitida',
+        message: 'Você não pode excluir sua própria conta de login ativa.',
+      });
+    }
+
     const idx = db.users.findIndex((u) => u.id === id);
     if (idx === -1) return res.status(404).json({ error: 'Usuário não encontrado' });
 
     const removed = db.users.splice(idx, 1)[0];
+
+    // Limpar escalas de plantão associadas ao usuário
+    if (db.shiftSchedules) {
+      db.shiftSchedules = db.shiftSchedules.filter((s) => s.user_id !== id);
+    }
+
     saveDb();
+
+    logActivity({
+      family_id: removed.family_id || 'fam-01',
+      user_id: requester?.id || 'usr-admin-samuel',
+      user_name: requester?.name || 'Administrador',
+      user_role: requester?.role || 'admin_geral',
+      action_type: 'vitals_edited',
+      category: 'Mural',
+      description: `Login "${removed.username}" (${removed.name}) foi excluído pelo administrador.`,
+      details: `Funções: ${removed.roles?.join(', ') || removed.role}.`,
+    });
 
     res.json({
       success: true,

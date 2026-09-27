@@ -1049,6 +1049,29 @@ export const api = {
     return newFamily;
   },
 
+  async deleteFamily(id: string, requesting_user_id: string): Promise<void> {
+    const res = await safeFetchJson(`/api/families/${id}?requesting_user_id=${requesting_user_id}`, {
+      method: 'DELETE',
+    });
+    const idx = INITIAL_FAMILIES.findIndex((f) => f.id === id);
+    if (idx !== -1) {
+      INITIAL_FAMILIES.splice(idx, 1);
+      persistFamiliesCache(INITIAL_FAMILIES);
+    }
+    // Also update users linked to this family in local cache
+    INITIAL_USERS.forEach((u) => {
+      if (u.family_id === id) {
+        u.family_id = null;
+        u.family_name = 'Sem família vinculada';
+      }
+    });
+    persistUsersToCache(INITIAL_USERS);
+
+    if (!res.ok && res.error) {
+      throw new Error(res.error || 'Falha ao remover família.');
+    }
+  },
+
   async updateFamilyResidence(
     familyId: string,
     params: {

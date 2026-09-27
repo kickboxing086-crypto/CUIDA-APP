@@ -8,6 +8,7 @@ import { ElderCaneLogo } from './ElderCaneLogo';
 import { ElderlyResidenceConfigModal } from './ElderlyResidenceConfigModal';
 import { FooterBranding } from './FooterBranding';
 import { AnimatedSelect } from './AnimatedChoiceSelect';
+import { TwoStepDeleteModal } from './TwoStepDeleteModal';
 
 interface FamilyLoginsAdminViewProps {
  currentUser: UserType;
@@ -26,6 +27,15 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  const [invitesList, setInvitesList] = useState<InviteLink[]>([]);
  const [loading, setLoading] = useState(true);
  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+ // Two-Step Delete Modal State
+ const [deleteTarget, setDeleteTarget] = useState<{
+ type: 'login' | 'family';
+ id: string;
+ name: string;
+ subtitle?: string;
+ details?: { label: string; value: string }[];
+ } | null>(null);
 
  // Password visibility map (userId -> boolean)
  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
@@ -378,19 +388,71 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  setTimeout(() => setCopiedInviteCode(null), 2500);
  };
 
- const handleDeleteUser = async (userId: string, userName: string) => {
- if (!window.confirm(`Tem certeza que deseja excluir o login de ${userName}?`)) {
+ const handleRequestDeleteUser = (user: UserType) => {
+ if (user.id === 'usr-admin-samuel') {
+ alert('A conta de Administrador Geral Master Samuel_02 é protegida e não pode ser excluída.');
+ return;
+ }
+ if (user.id === currentUser.id) {
+ alert('Você não pode excluir sua própria conta de login ativa.');
  return;
  }
 
- try {
- await api.deleteUser(userId, currentUser.id);
- setFeedback({ type: 'success', message: `Login de ${userName} foi excluído com sucesso.` });
+ const userRoles: UserRole[] =
+ user.roles && user.roles.length > 0 ? user.roles : [user.role || 'caregiver'];
+ const roleLabels = userRoles.map((r) => AVAILABLE_ROLES[r]?.name || r).join(' + ');
+ const familyName = families.find((f) => f.id === user.family_id)?.name || user.family_name || 'Sem família vinculada';
+
+ setDeleteTarget({
+ type: 'login',
+ id: user.id,
+ name: `${user.name} (@${user.username})`,
+ subtitle: `Família: ${familyName}`,
+ details: [
+ { label: 'Nome Completo', value: user.name },
+ { label: 'Usuário (Login)', value: `@${user.username}` },
+ { label: 'Funções Ativas', value: roleLabels },
+ { label: 'Matrícula', value: user.registration_code || '---' },
+ ],
+ });
+ };
+
+ const handleRequestDeleteFamily = (family: Family) => {
+ const linkedUsers = allUsers.filter((u) => u.family_id === family.id);
+ setDeleteTarget({
+ type: 'family',
+ id: family.id,
+ name: family.name,
+ subtitle: `Idoso(a): ${family.elderly_name}`,
+ details: [
+ { label: 'Nome da Família', value: family.name },
+ { label: 'Idoso(a) Assistido(a)', value: family.elderly_name },
+ { label: 'Logins Vinculados', value: `${linkedUsers.length} membro(s) cadastrado(s)` },
+ { label: 'Endereço', value: family.residence_address || 'Endereço padrão' },
+ ],
+ });
+ };
+
+ const handleExecuteDelete = async () => {
+ if (!deleteTarget) return;
+
+ if (deleteTarget.type === 'login') {
+ await api.deleteUser(deleteTarget.id, currentUser.id);
+ setFeedback({
+ type: 'success',
+ message: `O login "${deleteTarget.name}" foi excluído com sucesso após a confirmação em duas etapas.`,
+ });
+ } else if (deleteTarget.type === 'family') {
+ await api.deleteFamily(deleteTarget.id, currentUser.id);
+ setFeedback({
+ type: 'success',
+ message: `A família "${deleteTarget.name}" e seus registros foram excluídos com sucesso após a confirmação em duas etapas.`,
+ });
+ }
+
+ setDeleteTarget(null);
  await loadData();
  if (onRefreshDirectory) onRefreshDirectory();
- } catch (err: any) {
- setFeedback({ type: 'error', message: err.message || 'Erro ao excluir login.' });
- }
  };
 
  const handleToggleUserRole = async (user: UserType, roleToToggle: UserRole) => {
@@ -708,7 +770,17 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-bold transition-all cursor-pointer"
  >
  <Plus className="w-3.5 h-3.5" />
- <span>Novo Login nesta Família</span>
+ <span>Novo Login</span>
+ </button>
+
+ <button
+ type="button"
+ onClick={() => handleRequestDeleteFamily(family)}
+ className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-lg text-xs font-bold transition-all cursor-pointer"
+ title="Excluir esta família com confirmação de duas etapas"
+ >
+ <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+ <span>Excluir Família</span>
  </button>
  </div>
  </div>
@@ -762,13 +834,14 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  </div>
  </div>
 
- {user.id !== 'usr-admin-samuel' && (
+ {user.id !== 'usr-admin-samuel' && user.id !== currentUser.id && (
  <button
- onClick={() => handleDeleteUser(user.id, user.name)}
- className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
- title="Remover este login"
+ type="button"
+ onClick={() => handleRequestDeleteUser(user)}
+ className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+ title="Excluir este login com confirmação de duas etapas"
  >
- <Trash2 className="w-3.5 h-3.5" />
+ <Trash2 className="w-3.5 h-3.5 text-rose-400" />
  </button>
  )}
  </div>
@@ -1740,6 +1813,18 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  </form>
  </div>
  </div>
+ )}
+ {deleteTarget && (
+ <TwoStepDeleteModal
+ isOpen={Boolean(deleteTarget)}
+ onClose={() => setDeleteTarget(null)}
+ onConfirm={handleExecuteDelete}
+ itemType={deleteTarget.type}
+ itemId={deleteTarget.id}
+ itemName={deleteTarget.name}
+ itemSubtitle={deleteTarget.subtitle}
+ itemDetails={deleteTarget.details}
+ />
  )}
  </div>
  );
