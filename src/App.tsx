@@ -329,6 +329,7 @@ export default function App() {
  <TimeClockView
  currentUser={currentUser}
  elderly={elderly}
+ users={usersList}
  onRefreshHistory={handleRefreshHistory}
  onOpenAddPresence={() => setIsAddPresenceModalOpen(true)}
  onOpenResidenceConfig={() => setIsResidenceModalOpen(true)}
@@ -344,7 +345,7 @@ export default function App() {
  )}
 
  {activeTab === 'family' && (
- <FamilyBoardView currentUser={currentUser} />
+ <FamilyBoardView currentUser={currentUser} users={usersList} />
  )}
 
  {activeTab === 'timesheet' && (

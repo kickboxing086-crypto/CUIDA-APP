@@ -338,3 +338,21 @@ export interface OfficialServerTime {
   year: string;
   date_stamp: string;
 }
+
+export interface ShiftSchedule {
+  id: string;
+  family_id: string;
+  user_id: string;
+  user_name: string;
+  user_role?: string;
+  day_of_week_number: number; // 0: Domingo, 1: Segunda, 2: Terça, 3: Quarta, 4: Quinta, 5: Sexta, 6: Sábado
+  day_label: string; // 'Segunda-feira', 'Terça-feira', etc.
+  start_time: string; // "08:00"
+  end_time: string; // "20:00"
+  tolerance_minutes: number;
+  active: boolean;
+  notes?: string;
+  created_at: string;
+  created_by_user_id: string;
+  created_by_name: string;
+}

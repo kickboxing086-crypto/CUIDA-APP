@@ -73,6 +73,7 @@ async function startServer() {
     dailyIncidents: any[];
     familyActivityLogs: any[];
     invites: any[];
+    shiftSchedules: any[];
   } = {
     officialOffsetMs: 0, // Server clock offset
     elderly: defaultElderly,
@@ -86,6 +87,7 @@ async function startServer() {
     dailyMissions: [],
     dailyIncidents: [],
     invites: [],
+    shiftSchedules: [],
   };
 
   // Load persisted data if exists
@@ -117,9 +119,135 @@ async function startServer() {
       if (loaded.dailyIncidents) db.dailyIncidents = loaded.dailyIncidents;
       if (loaded.familyActivityLogs) db.familyActivityLogs = loaded.familyActivityLogs;
       if (loaded.invites && Array.isArray(loaded.invites)) db.invites = loaded.invites;
+      if (loaded.shiftSchedules && Array.isArray(loaded.shiftSchedules)) db.shiftSchedules = loaded.shiftSchedules;
     }
   } catch (err) {
     console.warn('[CUIDA DB] Aviso ao ler cuida-data-store.json:', err);
+  }
+
+  // Ensure default shift schedule exists if empty
+  if (!db.shiftSchedules || db.shiftSchedules.length === 0) {
+    db.shiftSchedules = [
+      {
+        id: 'sch-default-01',
+        family_id: 'fam-01',
+        user_id: 'usr-01',
+        user_name: 'Clara Mendes',
+        user_role: 'caregiver',
+        day_of_week_number: 1, // Segunda
+        day_label: 'Segunda-feira',
+        start_time: '08:00',
+        end_time: '20:00',
+        tolerance_minutes: 60,
+        active: true,
+        notes: 'Plantão diurno titular (8h às 20h)',
+        created_at: '2026-01-01T00:00:00Z',
+        created_by_user_id: 'usr-admin-samuel',
+        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
+      },
+      {
+        id: 'sch-default-02',
+        family_id: 'fam-01',
+        user_id: 'usr-01',
+        user_name: 'Clara Mendes',
+        user_role: 'caregiver',
+        day_of_week_number: 2, // Terça
+        day_label: 'Terça-feira',
+        start_time: '08:00',
+        end_time: '20:00',
+        tolerance_minutes: 60,
+        active: true,
+        notes: 'Plantão diurno titular (8h às 20h)',
+        created_at: '2026-01-01T00:00:00Z',
+        created_by_user_id: 'usr-admin-samuel',
+        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
+      },
+      {
+        id: 'sch-default-03',
+        family_id: 'fam-01',
+        user_id: 'usr-01',
+        user_name: 'Clara Mendes',
+        user_role: 'caregiver',
+        day_of_week_number: 3, // Quarta
+        day_label: 'Quarta-feira',
+        start_time: '08:00',
+        end_time: '20:00',
+        tolerance_minutes: 60,
+        active: true,
+        notes: 'Plantão diurno titular (8h às 20h)',
+        created_at: '2026-01-01T00:00:00Z',
+        created_by_user_id: 'usr-admin-samuel',
+        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
+      },
+      {
+        id: 'sch-default-04',
+        family_id: 'fam-01',
+        user_id: 'usr-01',
+        user_name: 'Clara Mendes',
+        user_role: 'caregiver',
+        day_of_week_number: 4, // Quinta
+        day_label: 'Quinta-feira',
+        start_time: '08:00',
+        end_time: '20:00',
+        tolerance_minutes: 60,
+        active: true,
+        notes: 'Plantão diurno titular (8h às 20h)',
+        created_at: '2026-01-01T00:00:00Z',
+        created_by_user_id: 'usr-admin-samuel',
+        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
+      },
+      {
+        id: 'sch-default-05',
+        family_id: 'fam-01',
+        user_id: 'usr-01',
+        user_name: 'Clara Mendes',
+        user_role: 'caregiver',
+        day_of_week_number: 5, // Sexta
+        day_label: 'Sexta-feira',
+        start_time: '08:00',
+        end_time: '20:00',
+        tolerance_minutes: 60,
+        active: true,
+        notes: 'Plantão diurno titular (8h às 20h)',
+        created_at: '2026-01-01T00:00:00Z',
+        created_by_user_id: 'usr-admin-samuel',
+        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
+      },
+      {
+        id: 'sch-default-06',
+        family_id: 'fam-01',
+        user_id: 'usr-01',
+        user_name: 'Clara Mendes',
+        user_role: 'caregiver',
+        day_of_week_number: 6, // Sábado
+        day_label: 'Sábado',
+        start_time: '08:00',
+        end_time: '20:00',
+        tolerance_minutes: 60,
+        active: true,
+        notes: 'Plantão de fim de semana (8h às 20h)',
+        created_at: '2026-01-01T00:00:00Z',
+        created_by_user_id: 'usr-admin-samuel',
+        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
+      },
+      {
+        id: 'sch-default-07',
+        family_id: 'fam-01',
+        user_id: 'usr-01',
+        user_name: 'Clara Mendes',
+        user_role: 'caregiver',
+        day_of_week_number: 0, // Domingo
+        day_label: 'Domingo',
+        start_time: '08:00',
+        end_time: '20:00',
+        tolerance_minutes: 60,
+        active: true,
+        notes: 'Plantão de fim de semana (8h às 20h)',
+        created_at: '2026-01-01T00:00:00Z',
+        created_by_user_id: 'usr-admin-samuel',
+        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
+      },
+    ];
   }
 
   // Ensure default elderly and family exist
@@ -1248,7 +1376,7 @@ async function startServer() {
     };
   }
 
-  // 4. Check-in (Entrada) - Official Time & Inviolable GPS Geofence (Foto Facial Opcional)
+  // 4. Check-in (Entrada) - Validação Rígida de Escala e Raio da Residência
   app.post(['/api/time-entries/check-in', '/api/timeclock/check-in'], (req, res) => {
     const {
       user_id,
@@ -1271,9 +1399,56 @@ async function startServer() {
     const effectiveLong = location_long !== undefined ? location_long : locationLong;
 
     const user = db.users.find((u) => u.id === effectiveUserId);
+    const familyId = user?.family_id || 'fam-01';
 
-    // Validação de Geolocalização com confirmação de presença
+    // 1. Validação de Raio da Residência
     const geoValidation = validateGeofence(user, effectiveLat, effectiveLong);
+    if (effectiveLat && effectiveLong && geoValidation.distanceMeters > geoValidation.allowedRadius) {
+      return res.status(403).json({
+        error: 'Fora do raio da residência',
+        message: `Check-in não permitido: Você está a ${geoValidation.distanceMeters}m da residência, fora do raio máximo autorizado de ${geoValidation.allowedRadius}m.`,
+      });
+    }
+
+    // 2. Validação Rígida de Escala de Plantão (definida pelo Administrador Familiar)
+    const familySchedules = (db.shiftSchedules || []).filter(
+      (s) => s.family_id === familyId && s.active !== false
+    );
+    const userSchedules = familySchedules.filter(
+      (s) => s.user_id === effectiveUserId || s.user_name === user?.name
+    );
+
+    if (userSchedules.length > 0) {
+      const nowBr = new Date(Date.now() + db.officialOffsetMs);
+      const brDayOfWeek = nowBr.getDay(); // 0: Dom, 1: Seg, 2: Ter, 3: Qua, 4: Qui, 5: Sex, 6: Sab
+      const currentMinutes = nowBr.getHours() * 60 + nowBr.getMinutes();
+
+      // Verificar se o usuário está escalado para o dia de hoje
+      const todaySchedule = userSchedules.find((s) => s.day_of_week_number === brDayOfWeek);
+
+      if (!todaySchedule) {
+        const scheduledDays = userSchedules.map((s) => `${s.day_label} às ${s.start_time}h`).join(', ');
+        return res.status(403).json({
+          error: 'Dia fora da escala',
+          message: `Check-in bloqueado: Você não está escalado para hoje. Sua escala definida pelo Administrador Familiar é: ${scheduledDays}. O Check-in só funciona no seu dia e horário de plantão.`,
+        });
+      }
+
+      // Validar horário da escala
+      const [sHour, sMin] = todaySchedule.start_time.split(':').map(Number);
+      const [eHour, eMin] = (todaySchedule.end_time || '20:00').split(':').map(Number);
+      const startMinute = sHour * 60 + (sMin || 0);
+      const endMinute = eHour * 60 + (eMin || 0);
+      const tolerance = todaySchedule.tolerance_minutes || 60; // 60 min de antecedência permitida
+
+      // Se tentar registrar antes da tolerância
+      if (currentMinutes < startMinute - tolerance) {
+        return res.status(403).json({
+          error: 'Horário antecipado',
+          message: `Check-in bloqueado: Seu plantão de hoje (${todaySchedule.day_label}) está agendado para iniciar às ${todaySchedule.start_time}h. O Check-in só é liberado próximo ao horário da escala.`,
+        });
+      }
+    }
 
     const officialTime = getOfficialServerTime();
 
@@ -1325,7 +1500,7 @@ async function startServer() {
 
     res.status(201).json({
       success: true,
-      message: `Ponto de entrada registrado com sucesso! Horário oficial: ${officialTime.formatted_time}`,
+      message: `Check-in de entrada registrado com sucesso! Horário oficial: ${officialTime.formatted_time}`,
       entry: newEntry,
     });
   });
@@ -1543,6 +1718,167 @@ async function startServer() {
       success: true,
       message: 'Presença adicionada com sucesso e registrada na folha de auditoria.',
       entry: newEntry,
+    });
+  });
+
+  // 5c. Gestão da Escala de Plantão da Família (Shift Schedules CRUD)
+  app.get('/api/shift-schedules', (req, res) => {
+    const { family_id, user_id } = req.query;
+    let list = [...(db.shiftSchedules || [])];
+    if (family_id) {
+      list = list.filter((s) => s.family_id === family_id);
+    }
+    if (user_id) {
+      list = list.filter((s) => s.user_id === user_id);
+    }
+    // Sort by day_of_week_number and start_time
+    list.sort((a, b) => {
+      if (a.day_of_week_number !== b.day_of_week_number) {
+        return a.day_of_week_number - b.day_of_week_number;
+      }
+      return (a.start_time || '').localeCompare(b.start_time || '');
+    });
+    res.json(list);
+  });
+
+  app.post('/api/shift-schedules', (req, res) => {
+    const {
+      family_id,
+      user_id,
+      user_name,
+      user_role,
+      day_of_week_number,
+      day_label,
+      start_time,
+      end_time,
+      tolerance_minutes,
+      active,
+      notes,
+      created_by_user_id,
+      created_by_name,
+    } = req.body;
+
+    if (!user_id || day_of_week_number === undefined || !start_time) {
+      return res.status(400).json({ error: 'Dados incompletos para a escala (usuário, dia e horário obrigatórios).' });
+    }
+
+    const dayLabelsMap: Record<number, string> = {
+      0: 'Domingo',
+      1: 'Segunda-feira',
+      2: 'Terça-feira',
+      3: 'Quarta-feira',
+      4: 'Quinta-feira',
+      5: 'Sexta-feira',
+      6: 'Sábado',
+    };
+
+    const targetUser = db.users.find((u) => u.id === user_id);
+    const dayNum = Number(day_of_week_number);
+    const resolvedDayLabel = day_label || dayLabelsMap[dayNum] || `Dia ${dayNum}`;
+
+    const newSchedule = {
+      id: `sch-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      family_id: family_id || targetUser?.family_id || 'fam-01',
+      user_id,
+      user_name: user_name || targetUser?.name || 'Membro da Família',
+      user_role: user_role || targetUser?.role || 'family',
+      day_of_week_number: dayNum,
+      day_label: resolvedDayLabel,
+      start_time: (start_time || '08:00').trim(),
+      end_time: (end_time || '20:00').trim(),
+      tolerance_minutes: Number(tolerance_minutes) || 60,
+      active: active !== false,
+      notes: notes || `Plantão escalado para ${resolvedDayLabel} (${start_time}h às ${end_time || '20:00'}h)`,
+      created_at: new Date().toISOString(),
+      created_by_user_id: created_by_user_id || 'admin',
+      created_by_name: created_by_name || 'Administrador Geral da Família',
+    };
+
+    if (!db.shiftSchedules) db.shiftSchedules = [];
+    db.shiftSchedules.push(newSchedule);
+    saveDb();
+
+    logActivity({
+      family_id: newSchedule.family_id,
+      user_id: created_by_user_id || 'admin',
+      user_name: created_by_name || 'Administrador',
+      user_role: 'admin_family',
+      action_type: 'schedule_update',
+      category: 'Escala da Família',
+      description: `Nova escala cadastrada: ${newSchedule.user_name} escalado para ${resolvedDayLabel} (${newSchedule.start_time}h - ${newSchedule.end_time}h).`,
+      details: `Escalado por: ${created_by_name || 'Administrador Geral'} | Tolerância: ${newSchedule.tolerance_minutes} min.`,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Escala cadastrada com sucesso para ${newSchedule.user_name} (${resolvedDayLabel})!`,
+      schedule: newSchedule,
+    });
+  });
+
+  app.put('/api/shift-schedules/:id', (req, res) => {
+    const { id } = req.params;
+    if (!db.shiftSchedules) db.shiftSchedules = [];
+    const schedule = db.shiftSchedules.find((s) => s.id === id);
+    if (!schedule) {
+      return res.status(404).json({ error: 'Escala de plantão não encontrada.' });
+    }
+
+    const {
+      day_of_week_number,
+      day_label,
+      start_time,
+      end_time,
+      tolerance_minutes,
+      active,
+      notes,
+      user_id,
+      user_name,
+    } = req.body;
+
+    if (day_of_week_number !== undefined) schedule.day_of_week_number = Number(day_of_week_number);
+    if (day_label) schedule.day_label = day_label;
+    if (start_time) schedule.start_time = start_time.trim();
+    if (end_time) schedule.end_time = end_time.trim();
+    if (tolerance_minutes !== undefined) schedule.tolerance_minutes = Number(tolerance_minutes);
+    if (active !== undefined) schedule.active = Boolean(active);
+    if (notes !== undefined) schedule.notes = notes;
+    if (user_id) schedule.user_id = user_id;
+    if (user_name) schedule.user_name = user_name;
+
+    saveDb();
+    res.json({
+      success: true,
+      message: 'Escala de plantão atualizada com sucesso.',
+      schedule,
+    });
+  });
+
+  app.delete('/api/shift-schedules/:id', (req, res) => {
+    const { id } = req.params;
+    if (!db.shiftSchedules) db.shiftSchedules = [];
+    const idx = db.shiftSchedules.findIndex((s) => s.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ error: 'Escala não encontrada.' });
+    }
+    const removed = db.shiftSchedules.splice(idx, 1)[0];
+    saveDb();
+
+    logActivity({
+      family_id: removed.family_id,
+      user_id: 'admin',
+      user_name: 'Administrador',
+      user_role: 'admin_family',
+      action_type: 'schedule_update',
+      category: 'Escala da Família',
+      description: `Escala removida: ${removed.user_name} (${removed.day_label} às ${removed.start_time}h).`,
+      details: 'Remoção realizada pelo Administrador.',
+    });
+
+    res.json({
+      success: true,
+      message: 'Plantão removido da escala com sucesso.',
+      schedule: removed,
     });
   });
 

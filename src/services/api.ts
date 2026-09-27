@@ -13,6 +13,7 @@ import {
   PermissionLevel,
   DailyMission,
   DailyIncidentReport,
+  ShiftSchedule,
 } from '../types';
 
 export function loadInitialElderly(): ElderlyProfile {
@@ -280,6 +281,10 @@ export const api = {
       return res.data;
     }
 
+    if (!res.ok && res.error) {
+      throw new Error(res.error);
+    }
+
     const time = generateLocalOfficialTime();
     const user = INITIAL_USERS.find((u) => u.id === params.userId);
     const entryPhoto = params.photoBase64 || user?.avatar_url || SAMPLE_SELFIE_CARE;
@@ -341,6 +346,10 @@ export const api = {
       if (idx !== -1) localTimeEntries[idx] = res.data.entry;
       saveLocalTimeEntries();
       return res.data;
+    }
+
+    if (!res.ok && res.error) {
+      throw new Error(res.error);
     }
 
     const time = generateLocalOfficialTime();
@@ -1574,5 +1583,69 @@ export const api = {
     try {
       await fetch(`/api/invites/${inviteId}`, { method: 'DELETE' });
     } catch {}
+  },
+
+  // Shift Schedules / Escala de Plantão da Família
+  async getShiftSchedules(familyId?: string, userId?: string): Promise<ShiftSchedule[]> {
+    const params = new URLSearchParams();
+    if (familyId) params.append('family_id', familyId);
+    if (userId) params.append('user_id', userId);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const res = await safeFetchJson<ShiftSchedule[]>(`/api/shift-schedules${query}`);
+    if (res.ok && Array.isArray(res.data)) {
+      try {
+        localStorage.setItem('cuida_shift_schedules_cache', JSON.stringify(res.data));
+      } catch {}
+      return res.data;
+    }
+    try {
+      const cached = localStorage.getItem('cuida_shift_schedules_cache');
+      if (cached) {
+        let list: ShiftSchedule[] = JSON.parse(cached);
+        if (familyId) list = list.filter((s) => s.family_id === familyId);
+        if (userId) list = list.filter((s) => s.user_id === userId);
+        return list;
+      }
+    } catch {}
+    return [];
+  },
+
+  async createShiftSchedule(params: Partial<ShiftSchedule>): Promise<ShiftSchedule> {
+    const res = await safeFetchJson<{ success: boolean; message: string; schedule: ShiftSchedule }>('/api/shift-schedules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (res.ok && res.data && res.data.schedule) {
+      return res.data.schedule;
+    }
+    if (!res.ok && res.error) {
+      throw new Error(res.error);
+    }
+    throw new Error('Erro ao salvar escala de plantão.');
+  },
+
+  async updateShiftSchedule(id: string, params: Partial<ShiftSchedule>): Promise<ShiftSchedule> {
+    const res = await safeFetchJson<{ success: boolean; message: string; schedule: ShiftSchedule }>(`/api/shift-schedules/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (res.ok && res.data && res.data.schedule) {
+      return res.data.schedule;
+    }
+    if (!res.ok && res.error) {
+      throw new Error(res.error);
+    }
+    throw new Error('Erro ao atualizar escala de plantão.');
+  },
+
+  async deleteShiftSchedule(id: string): Promise<void> {
+    const res = await safeFetchJson<{ success: boolean; message: string }>(`/api/shift-schedules/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok && res.error) {
+      throw new Error(res.error);
+    }
   },
 };
