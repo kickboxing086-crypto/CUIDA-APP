@@ -21,7 +21,7 @@ export const TimesheetReportView: React.FC<TimesheetReportViewProps> = ({
 
  const [selectedYear, setSelectedYear] = useState('2026');
  const [selectedMonth, setSelectedMonth] = useState('09');
- const [selectedUserId, setSelectedUserId] = useState('usr-01');
+ const [selectedUserId, setSelectedUserId] = useState('Todos');
  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
  const loadTimesheet = async () => {

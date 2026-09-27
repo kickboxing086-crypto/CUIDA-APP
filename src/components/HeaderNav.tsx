@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Clock, Heart, Pill, MessageSquare, FileText, Database, LayoutDashboard, Plus, CheckSquare, Users, LogOut, ShieldCheck, History, MapPin, Bell, Link2, Camera, Menu, X, User as UserIcon, ChevronRight, Settings, Shield, Stethoscope, MoreVertical } from "lucide-react";
+import { Clock, Heart, Pill, MessageSquare, FileText, Database, LayoutDashboard, Plus, CheckSquare, Users, LogOut, ShieldCheck, History, MapPin, Bell, Link2, Camera, Menu, X, User as UserIcon, ChevronRight, Settings, Shield, Stethoscope, MoreVertical, Scan } from "lucide-react";
 import { ElderCaneLogo } from './ElderCaneLogo';
 import { User as UserType } from '../types';
 import { PWAInstallButton } from './PWAInstallButton';

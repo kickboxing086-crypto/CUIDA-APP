@@ -1227,43 +1227,58 @@ async function startServer() {
   }
 
   // 4. Check-in (Entrada) - Official Time & Inviolable GPS Geofence (Foto Facial Opcional)
-  app.post('/api/time-entries/check-in', (req, res) => {
-    const { user_id, elderly_id, photo_base64, location_lat, location_long, notes } = req.body;
+  app.post(['/api/time-entries/check-in', '/api/timeclock/check-in'], (req, res) => {
+    const {
+      user_id,
+      userId,
+      elderly_id,
+      elderlyId,
+      photo_base64,
+      photoBase64,
+      location_lat,
+      locationLat,
+      location_long,
+      locationLong,
+      notes,
+    } = req.body;
 
-    const user = db.users.find((u) => u.id === user_id);
+    const effectiveUserId = user_id || userId || 'usr-01';
+    const effectiveElderlyId = elderly_id || elderlyId || db.elderly?.id || 'eld-01';
+    const effectivePhoto = photo_base64 || photoBase64 || null;
+    const effectiveLat = location_lat !== undefined ? location_lat : locationLat;
+    const effectiveLong = location_long !== undefined ? location_long : locationLong;
+
+    const user = db.users.find((u) => u.id === effectiveUserId);
 
     // Validação de Geolocalização com confirmação de presença
-    const geoValidation = validateGeofence(user, location_lat, location_long);
+    const geoValidation = validateGeofence(user, effectiveLat, effectiveLong);
 
     const officialTime = getOfficialServerTime();
 
-    // Check if there is already an open shift
+    // If there is already an open shift, close it automatically so the new check-in is cleanly recorded
     const existingOpen = db.timeEntries.find(
-      (e) => e.user_id === (user_id || 'usr-01') && !e.exit_time
+      (e) => (e.user_id === effectiveUserId || e.user_id === user?.id) && !e.exit_time
     );
     if (existingOpen) {
-      return res.status(409).json({
-        error: 'Turno já em andamento',
-        message: 'Existe um registro de entrada sem saída finalizada. Realize o check-out antes de iniciar um novo turno.',
-        activeEntry: existingOpen,
-      });
+      existingOpen.exit_time = officialTime.iso_timestamp;
+      existingOpen.total_hours_formatted = 'Encerrado para novo plantão';
     }
 
-    const entryPhoto = photo_base64 || user?.avatar_url || null;
+    const entryPhoto = effectivePhoto || user?.avatar_url || null;
 
     const newEntry = {
       id: `pnt-${Date.now()}`,
-      user_id: user_id || 'usr-01',
+      user_id: effectiveUserId,
       user_name: user?.name || 'Cuidador',
-      elderly_id: elderly_id || db.elderly?.id || 'eld-01',
+      elderly_id: effectiveElderlyId,
       entry_time: officialTime.iso_timestamp,
       entry_photo_url: entryPhoto,
       exit_time: null,
       exit_photo_url: null,
       total_hours: 0,
       total_hours_formatted: 'Em andamento',
-      location_lat: Number(location_lat),
-      location_long: Number(location_long),
+      location_lat: Number(effectiveLat || geoValidation.targetLat),
+      location_long: Number(effectiveLong || geoValidation.targetLng),
       distance_meters: geoValidation.distanceMeters,
       is_verified_geofence: true,
       residence_address: geoValidation.targetAddress,
@@ -1277,7 +1292,7 @@ async function startServer() {
 
     logActivity({
       family_id: user?.family_id || 'fam-01',
-      user_id: user?.id || 'usr-01',
+      user_id: user?.id || effectiveUserId,
       user_name: user?.name || 'Cuidador',
       user_role: user?.role || 'caregiver',
       action_type: 'presence_clock',
@@ -1294,12 +1309,36 @@ async function startServer() {
   });
 
   // 5. Check-out (Saída) - Permanence Calculation & Geofence (Foto Facial Opcional)
-  app.post('/api/time-entries/check-out', (req, res) => {
-    const { entry_id, photo_base64, location_lat, location_long, notes } = req.body;
+  app.post(['/api/time-entries/check-out', '/api/timeclock/check-out'], (req, res) => {
+    const {
+      entry_id,
+      entryId,
+      user_id,
+      userId,
+      photo_base64,
+      photoBase64,
+      location_lat,
+      locationLat,
+      location_long,
+      locationLong,
+      notes,
+    } = req.body;
 
-    const entry = db.timeEntries.find((e) => e.id === entry_id);
+    const targetEntryId = entry_id || entryId;
+    const targetUserId = user_id || userId;
+    const effectivePhoto = photo_base64 || photoBase64 || null;
+    const effectiveLat = location_lat !== undefined ? location_lat : locationLat;
+    const effectiveLong = location_long !== undefined ? location_long : locationLong;
+
+    let entry = db.timeEntries.find((e) => e.id === targetEntryId);
+    if (!entry && (targetUserId || targetEntryId)) {
+      entry = db.timeEntries.find((e) => (e.user_id === targetUserId || e.user_id === targetEntryId) && !e.exit_time);
+    }
     if (!entry) {
-      return res.status(404).json({ error: 'Registro de ponto não encontrado' });
+      entry = db.timeEntries.find((e) => !e.exit_time);
+    }
+    if (!entry) {
+      return res.status(404).json({ error: 'Nenhum plantão ativo em aberto para encerrar.' });
     }
 
     if (entry.exit_time) {
@@ -1309,7 +1348,7 @@ async function startServer() {
     const user = db.users.find((u) => u.id === entry.user_id);
 
     // Validação de Geolocalização na saída
-    const geoValidation = validateGeofence(user, location_lat, location_long);
+    const geoValidation = validateGeofence(user, effectiveLat, effectiveLong);
 
     const officialTime = getOfficialServerTime();
     const entryDate = new Date(entry.entry_time);
@@ -1323,7 +1362,7 @@ async function startServer() {
     const formattedHours = `${hours}h ${mins.toString().padStart(2, '0')}min`;
 
     entry.exit_time = officialTime.iso_timestamp;
-    entry.exit_photo_url = photo_base64 || user?.avatar_url || null;
+    entry.exit_photo_url = effectivePhoto || user?.avatar_url || null;
     entry.total_hours = totalHours;
     entry.total_hours_formatted = formattedHours;
     if (notes) {
@@ -1859,19 +1898,20 @@ async function startServer() {
   });
 
   // 10. Plano de Missões Diárias (Protocolo de Cuidados) - Exclusivo do Administrador
-  app.get('/api/missions', (req, res) => {
+  app.get(['/api/missions', '/api/daily-missions'], (req, res) => {
     const list = [...db.dailyMissions].sort((a, b) => a.scheduled_time.localeCompare(b.scheduled_time));
     res.json(list);
   });
 
   // Criar nova missão
-  app.post('/api/missions', (req, res) => {
-    const { title, scheduled_time, category, priority, clear_instructions, user_id } = req.body;
-    const user = db.users.find((u) => u.id === user_id) || db.users[0];
+  app.post(['/api/missions', '/api/daily-missions'], (req, res) => {
+    const { title, scheduled_time, scheduledTime, category, priority, clear_instructions, clearInstructions, user_id, userId, created_by_user_id } = req.body;
+    const authorId = user_id || userId || created_by_user_id || 'usr-admin-samuel';
+    const user = db.users.find((u) => u.id === authorId) || db.users[0];
 
     const mTitle = (title || '').trim() || 'Obrigação de Cuidado';
-    const mTime = (scheduled_time || '').trim() || '08:00';
-    const mInstructions = (clear_instructions || '').trim() || 'Procedimento de rotina registrado no protocolo.';
+    const mTime = (scheduled_time || scheduledTime || '').trim() || '08:00';
+    const mInstructions = (clear_instructions || clearInstructions || '').trim() || 'Procedimento de rotina registrado no protocolo.';
 
     const newMission = {
       id: `mis-${Date.now()}`,
@@ -1881,7 +1921,7 @@ async function startServer() {
       category: category || 'medication',
       priority: priority || 'mandatory',
       clear_instructions: mInstructions,
-      created_by_user_id: user?.id || 'usr-admin-samuel',
+      created_by_user_id: user?.id || authorId,
       created_by_name: `${user?.name || 'Administrador'} (Protocolo Oficial)`,
       is_active: true,
       completed: false,
@@ -1895,7 +1935,7 @@ async function startServer() {
 
     logActivity({
       family_id: user?.family_id || 'fam-01',
-      user_id: user?.id || 'usr-admin-samuel',
+      user_id: user?.id || authorId,
       user_name: user?.name || 'Administrador',
       user_role: user?.role || 'admin_geral',
       action_type: 'mission_created',
@@ -1912,25 +1952,28 @@ async function startServer() {
   });
 
   // Editar missão
-  app.put('/api/missions/:id', (req, res) => {
+  app.put(['/api/missions/:id', '/api/daily-missions/:id'], (req, res) => {
     const { id } = req.params;
-    const { title, scheduled_time, category, priority, clear_instructions, user_id } = req.body;
-    const user = db.users.find((u) => u.id === user_id) || db.users[0];
+    const { title, scheduled_time, scheduledTime, category, priority, clear_instructions, clearInstructions, user_id, userId, created_by_user_id } = req.body;
+    const authorId = user_id || userId || created_by_user_id || 'usr-admin-samuel';
+    const user = db.users.find((u) => u.id === authorId) || db.users[0];
 
     const mission = db.dailyMissions.find((m) => m.id === id);
     if (!mission) return res.status(404).json({ error: 'Missão não encontrada' });
 
     if (title) mission.title = title.trim();
-    if (scheduled_time) mission.scheduled_time = scheduled_time.trim();
+    if (scheduled_time || scheduledTime) mission.scheduled_time = (scheduled_time || scheduledTime).trim();
     if (category) mission.category = category;
     if (priority) mission.priority = priority;
-    if (clear_instructions) mission.clear_instructions = clear_instructions.trim();
+    if (clear_instructions !== undefined || clearInstructions !== undefined) {
+      mission.clear_instructions = (clear_instructions !== undefined ? clear_instructions : clearInstructions).trim();
+    }
 
     saveDb();
 
     logActivity({
       family_id: user?.family_id || 'fam-01',
-      user_id: user?.id || 'usr-admin-samuel',
+      user_id: user?.id || authorId,
       user_name: user?.name || 'Administrador',
       user_role: user?.role || 'admin_geral',
       action_type: 'mission_created',
@@ -1946,7 +1989,7 @@ async function startServer() {
   });
 
   // Excluir missão (Admin Geral ou Admin Familiar)
-  app.delete('/api/missions/:id', (req, res) => {
+  app.delete(['/api/missions/:id', '/api/daily-missions/:id'], (req, res) => {
     const { id } = req.params;
     const { user_id } = req.query;
     const user = db.users.find((u) => u.id === (user_id || 'usr-admin-samuel'));
@@ -1978,7 +2021,7 @@ async function startServer() {
   });
 
   // Marcar missão como cumprida pelo cuidador / executor
-  app.post('/api/missions/:id/toggle', (req, res) => {
+  app.all(['/api/missions/:id/toggle', '/api/daily-missions/:id/toggle'], (req, res) => {
     const { id } = req.params;
     const { user_id, execution_notes } = req.body;
     const mission = db.dailyMissions.find((m) => m.id === id);

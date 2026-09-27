@@ -1,15 +1,16 @@
 import React, { useState, useRef } from 'react';
-import { User as UserIcon, Camera, UploadCloud, Check, X, ShieldCheck, Phone, Mail, RefreshCw, LogOut } from "lucide-react";
+import { User as UserIcon, Camera, Scan, ArrowRight, UploadCloud, Check, X, ShieldCheck, Phone, Mail, RefreshCw, LogOut } from "lucide-react";
 import { User } from '../types';
 import { api } from '../services/api';
 import { getRolePowerProfile } from '../utils/classifications';
 
 interface UserProfileModalProps {
- isOpen: boolean;
- onClose: () => void;
- currentUser: User;
- onUserUpdated: (updatedUser: User) => void;
- onLogout?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  currentUser: User;
+  onUserUpdated: (updatedUser: User) => void;
+  onLogout?: () => void;
+  onOpenFacialModal?: () => void;
 }
 
 const PRESET_AVATARS = [
@@ -21,11 +22,13 @@ const PRESET_AVATARS = [
  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=80' ];
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({
- isOpen,
- onClose,
- currentUser,
- onUserUpdated,
- onLogout }) => {
+  isOpen,
+  onClose,
+  currentUser,
+  onUserUpdated,
+  onLogout,
+  onOpenFacialModal,
+}) => {
  const [name, setName] = useState(currentUser.name || '');
  const [email, setEmail] = useState(currentUser.email || '');
  const [phone, setPhone] = useState(currentUser.phone || '');
@@ -197,7 +200,48 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
  </div>
  )}
 
- {/* Photo Management Section */}
+ {/* Face App Biometrics Registration Section */}
+        <div className="p-3.5 bg-gradient-to-r from-blue-950/80 via-slate-900 to-indigo-950/80 border border-blue-500/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-blue-400 shrink-0">
+              <Scan className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white">Biometria Facial Face App</span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                  currentUser.facial_registered
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                }`}>
+                  {currentUser.facial_registered ? 'Biometria Ativa' : 'Cadastro Pendente'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {currentUser.facial_registered
+                  ? 'Face cadastrada e ativa para registro de ponto auditado.'
+                  : 'Cadastre sua biometria facial para validar as batidas de ponto com câmera.'}
+              </p>
+            </div>
+          </div>
+
+          {onOpenFacialModal && (
+            <button
+              type="button"
+              onClick={() => {
+                handleClose();
+                onOpenFacialModal();
+              }}
+              className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+            >
+              <Scan className="w-3.5 h-3.5" />
+              <span>{currentUser.facial_registered ? 'Recadastrar Facial' : 'Cadastrar Facial'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Photo Management Section */}
  <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3">
  <label className="block text-xs font-bold text-slate-200">Foto do Perfil</label>
 

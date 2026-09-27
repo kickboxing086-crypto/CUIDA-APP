@@ -30,7 +30,11 @@ export const DailyMissionsAdminView: React.FC<DailyMissionsAdminViewProps> = ({
  const [executingMission, setExecutingMission] = useState<DailyMission | null>(null);
  const [executionNote, setExecutionNote] = useState('');
 
- const isAdmin = currentUser.role === 'admin_geral' || currentUser.role === 'admin_family';
+ const isAdmin =
+    currentUser.role === 'admin_geral' ||
+    currentUser.role === 'admin_family' ||
+    Boolean(currentUser.roles?.includes('admin_geral')) ||
+    Boolean(currentUser.roles?.includes('admin_family'));
 
  const loadMissions = async () => {
  setIsLoading(true);
@@ -401,7 +405,7 @@ export const DailyMissionsAdminView: React.FC<DailyMissionsAdminViewProps> = ({
  </div>
 
  {/* Time & Category */}
- <div className="grid grid-cols-2 gap-3">
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
  <div>
  <label className="block text-xs font-semibold text-slate-700 mb-1">
  Horário Programado

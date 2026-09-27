@@ -14,6 +14,7 @@ interface CaregiverDashboardViewProps {
  unreadCount?: number;
  unreadLogs?: FamilyActivityLog[];
  onOpenInvites?: () => void;
+ onOpenFacialRegistration?: () => void;
 }
 
 export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
@@ -26,7 +27,8 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  onOpenNotifications,
  unreadCount = 0,
  unreadLogs = [],
- onOpenInvites }) => {
+ onOpenInvites,
+ onOpenFacialRegistration }) => {
  const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
  const [missions, setMissions] = useState<DailyMission[]>([]);
  const [notices, setNotices] = useState<FamilyNotice[]>([]);
@@ -212,7 +214,47 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  </div>
  )}
 
- {/* 1. Header do Painel do Cuidador */}
+ {/* Banner de Cadastro / Status Face App */}
+      {onOpenFacialRegistration && (
+        <div className="bg-gradient-to-r from-blue-950/80 via-slate-900 to-indigo-950/80 border border-blue-500/40 rounded-3xl p-4 sm:p-5 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="p-3 bg-blue-500/20 border border-blue-400/30 rounded-2xl text-blue-400 shrink-0">
+              <Scan className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="bg-blue-500/30 text-blue-200 border border-blue-400/30 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
+                  Face App
+                </span>
+                <span className={`text-xs font-bold ${currentUser.facial_registered ? 'text-emerald-300' : 'text-amber-300'}`}>
+                  {currentUser.facial_registered ? 'Biometria Facial Cadastrada e Ativa' : 'Cadastre sua Biometria Facial'}
+                </span>
+              </div>
+              <h3 className="text-sm sm:text-base font-black text-white mt-1">
+                {currentUser.facial_registered
+                  ? 'Reconhecimento Facial Habilitado para Ponto'
+                  : 'Ativar Reconhecimento Facial para Bater Ponto'}
+              </h3>
+              <p className="text-xs text-blue-200/90 leading-relaxed max-w-xl">
+                {currentUser.facial_registered
+                  ? 'Ao bater o ponto, o sistema utiliza a câmera para identificação facial com prova de vida e auditoria oficial.'
+                  : 'Cadastre seu rosto agora no Face App para realizar as batidas de ponto com selfie e validação de presença.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenFacialRegistration}
+            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-extrabold text-xs shrink-0 shadow-lg shadow-blue-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            <Scan className="w-4 h-4" />
+            <span>{currentUser.facial_registered ? 'Recadastrar Biometria' : 'Cadastrar Facial Face App'}</span>
+          </button>
+        </div>
+      )}
+
+      {/* 1. Header do Painel do Cuidador */}
  <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 rounded-3xl p-6 text-white shadow-md relative overflow-hidden">
  <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
 
