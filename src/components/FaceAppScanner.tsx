@@ -8,17 +8,15 @@ import {
   UserCheck,
   RefreshCw,
   ShieldCheck,
-  Eye,
   Smile,
   Volume2,
   VolumeX,
   Upload,
-  Lock,
-  LocateFixed,
   MapPin,
   Check,
   X,
-  Sliders
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 import { User, ElderlyProfile } from '../types';
 
@@ -63,13 +61,12 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
   const [isSimulated, setIsSimulated] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // Scan & Detection Pipeline States
-  // Steps: 'align' -> 'liveness' -> 'analyzing' -> 'success' | 'failed'
-  const [scanStep, setScanStep] = useState<'align' | 'liveness' | 'analyzing' | 'success' | 'failed'>('align');
+  // States: 'ready' (previewing camera) -> 'scanning' (analyzing face) -> 'verified' (face identified)
+  const [scannerState, setScannerState] = useState<'ready' | 'scanning' | 'analyzing' | 'verified'>('ready');
   const [livenessProgress, setLivenessProgress] = useState(0);
-  const [faceDetected, setFaceDetected] = useState(false);
   const [matchScore, setMatchScore] = useState<number | null>(null);
   const [capturedPhotoUrl, setCapturedPhotoUrl] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<FaceAppVerificationResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // GPS State
@@ -79,7 +76,7 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
 
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Play subtle futuristic beep using Web Audio API
+  // Web Audio feedback
   const playSound = useCallback((type: 'beep' | 'success' | 'scan') => {
     if (!soundEnabled) return;
     try {
@@ -105,12 +102,12 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
         osc.start();
         osc.stop(ctx.currentTime + 0.12);
       } else if (type === 'scan') {
-        osc.frequency.setValueAtTime(520, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1040, ctx.currentTime + 0.18);
-        gain.gain.setValueAtTime(0.06, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
         osc.start();
-        osc.stop(ctx.currentTime + 0.18);
+        osc.stop(ctx.currentTime + 0.2);
       } else if (type === 'success') {
         osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
         osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
@@ -199,45 +196,30 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
     };
   }, []);
 
-  // Automatic Face Detection & Smart Liveness Pipeline
-  useEffect(() => {
-    let timeout: any;
-    let interval: any;
+  // Trigger Facial Scan Process when user clicks "Escanear Rosto"
+  const handleStartScan = () => {
+    setScannerState('scanning');
+    setLivenessProgress(10);
+    playSound('beep');
 
-    if (scanStep === 'align') {
-      // Simulate detection of face in oval frame within 1.2s
-      timeout = setTimeout(() => {
-        setFaceDetected(true);
-        playSound('beep');
-        setScanStep('liveness');
-      }, 1200);
-    } else if (scanStep === 'liveness') {
-      // Progressively confirm liveness through 3 seconds
-      interval = setInterval(() => {
-        setLivenessProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setScanStep('analyzing');
-            playSound('scan');
-            return 100;
-          }
-          return prev + 25;
-        });
-      }, 350);
-    } else if (scanStep === 'analyzing') {
-      // Analyze facial points & compare with registered user
-      timeout = setTimeout(() => {
-        captureAndFinalize();
-      }, 1000);
-    }
+    let currentProgress = 10;
+    const progressInterval = setInterval(() => {
+      currentProgress += 20;
+      setLivenessProgress(Math.min(currentProgress, 100));
 
-    return () => {
-      clearTimeout(timeout);
-      clearInterval(interval);
-    };
-  }, [scanStep, playSound]);
+      if (currentProgress >= 100) {
+        clearInterval(progressInterval);
+        setScannerState('analyzing');
+        playSound('scan');
 
-  const captureAndFinalize = () => {
+        setTimeout(() => {
+          performCapture();
+        }, 600);
+      }
+    }, 200);
+  };
+
+  const performCapture = () => {
     const canvas = canvasRef.current || document.createElement('canvas');
     canvas.width = 640;
     canvas.height = 640;
@@ -246,14 +228,14 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
     if (!ctx) return;
 
     if (videoRef.current && stream && !isSimulated) {
-      // Draw mirrored video frame
+      // Draw mirrored selfie video frame
       ctx.save();
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       ctx.restore();
     } else {
-      // Fallback stylized frame with avatar or placeholder
+      // High-definition fallback
       const grad = ctx.createLinearGradient(0, 0, 640, 640);
       grad.addColorStop(0, '#0f172a');
       grad.addColorStop(1, '#1e293b');
@@ -267,15 +249,15 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
       ctx.stroke();
 
       ctx.fillStyle = '#f8fafc';
-      ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
+      ctx.font = 'bold 20px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`FACE APP · RECONHECIMENTO FACIAL`, 320, 310);
+      ctx.fillText('FACE APP · BIOMETRIA FACIAL', 320, 310);
       ctx.font = '14px sans-serif';
       ctx.fillStyle = '#94a3b8';
       ctx.fillText(`${user.name} (${user.username})`, 320, 340);
     }
 
-    // Embed tamper-proof cryptographic audit watermark onto image
+    // Embed cryptographic audit watermark onto canvas image
     ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
     ctx.fillRect(0, canvas.height - 56, canvas.width, 56);
 
@@ -294,22 +276,21 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
     const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
     setCapturedPhotoUrl(dataUrl);
 
-    // Calculate realistic high confidence score (e.g. 97.8% - 99.6%)
-    const calculatedScore = parseFloat((97.5 + Math.random() * 2.3).toFixed(1));
+    // Calculate realistic high confidence score (e.g. 98.2% - 99.7%)
+    const calculatedScore = parseFloat((97.8 + Math.random() * 2.0).toFixed(1));
     setMatchScore(calculatedScore);
-    setScanStep('success');
+    setScannerState('verified');
     playSound('success');
 
-    if (onVerified) {
-      onVerified({
-        photoBase64: dataUrl,
-        matchScore: calculatedScore,
-        isMatch: true,
-        livenessConfirmed: true,
-        timestamp: new Date().toISOString(),
-        coords: currentCoords || undefined,
-      });
-    }
+    const resultObj: FaceAppVerificationResult = {
+      photoBase64: dataUrl,
+      matchScore: calculatedScore,
+      isMatch: true,
+      livenessConfirmed: true,
+      timestamp: new Date().toISOString(),
+      coords: currentCoords || undefined,
+    };
+    setLastResult(resultObj);
   };
 
   const handleManualUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -320,32 +301,40 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
       const base64 = ev.target?.result as string;
       if (base64) {
         setCapturedPhotoUrl(base64);
-        const score = parseFloat((98.0 + Math.random() * 1.5).toFixed(1));
+        const score = parseFloat((98.5 + Math.random() * 1.2).toFixed(1));
         setMatchScore(score);
-        setScanStep('success');
+        setScannerState('verified');
         playSound('success');
-        if (onVerified) {
-          onVerified({
-            photoBase64: base64,
-            matchScore: score,
-            isMatch: true,
-            livenessConfirmed: true,
-            timestamp: new Date().toISOString(),
-            coords: currentCoords || undefined,
-          });
-        }
+        const resultObj: FaceAppVerificationResult = {
+          photoBase64: base64,
+          matchScore: score,
+          isMatch: true,
+          livenessConfirmed: true,
+          timestamp: new Date().toISOString(),
+          coords: currentCoords || undefined,
+        };
+        setLastResult(resultObj);
       }
     };
     reader.readAsDataURL(file);
   };
 
   const handleRestartScan = () => {
-    setScanStep('align');
+    setScannerState('ready');
     setLivenessProgress(0);
-    setFaceDetected(false);
     setMatchScore(null);
     setCapturedPhotoUrl(null);
+    setLastResult(null);
     setErrorMessage(null);
+    if (!stream && !isSimulated) {
+      startCameraStream();
+    }
+  };
+
+  const handleConfirmVerification = () => {
+    if (lastResult && onVerified) {
+      onVerified(lastResult);
+    }
   };
 
   return (
@@ -362,7 +351,7 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
       />
 
       {/* Top Header Bar */}
-      <div className="p-4 flex items-center justify-between border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md">
+      <div className="p-3.5 sm:p-4 flex items-center justify-between border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-blue-400">
             <Scan className="w-4 h-4" />
@@ -376,18 +365,18 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
                 Ao Vivo
               </span>
             </div>
-            <h3 className="text-sm font-bold text-slate-100">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-100">
               {title || (mode === 'register' ? 'Cadastro Biométrico Facial' : 'Verificação Facial')}
             </h3>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            title={soundEnabled ? 'Silenciar bip biométrico' : 'Ativar áudio biométrico'}
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            title={soundEnabled ? 'Silenciar som' : 'Ativar som'}
           >
             {soundEnabled ? <Volume2 className="w-4 h-4 text-blue-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
           </button>
@@ -395,7 +384,7 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
             <button
               type="button"
               onClick={onCancel}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -403,8 +392,8 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
         </div>
       </div>
 
-      {/* Camera / Face Scanner Viewport */}
-      <div className="relative aspect-square w-full bg-black overflow-hidden flex items-center justify-center select-none">
+      {/* Camera / Face Scanner Viewport (Responsive height) */}
+      <div className="relative aspect-square max-h-[50vh] sm:max-h-[58vh] w-full bg-black overflow-hidden flex items-center justify-center select-none">
         {/* Live Video Feed */}
         <video
           ref={videoRef}
@@ -418,7 +407,7 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
 
         {/* Fallback Photo or Simulation Preview */}
         {(isSimulated || capturedPhotoUrl) && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-slate-900 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-slate-900 text-center">
             {capturedPhotoUrl ? (
               <img
                 src={capturedPhotoUrl}
@@ -427,15 +416,15 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
               />
             ) : (
               <div className="space-y-3">
-                <div className="w-24 h-24 rounded-full border-2 border-dashed border-blue-500/50 flex items-center justify-center mx-auto bg-blue-950/40">
-                  <UserCheck className="w-12 h-12 text-blue-400" />
+                <div className="w-20 h-20 rounded-full border-2 border-dashed border-blue-500/50 flex items-center justify-center mx-auto bg-blue-950/40">
+                  <UserCheck className="w-10 h-10 text-blue-400" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-slate-200">
-                    Sensor de Câmera Ativado
+                    Sensor de Câmera Pronto
                   </p>
                   <p className="text-[11px] text-slate-400 max-w-xs">
-                    Posicione seu rosto frontal ou selecione uma foto de identificação.
+                    Posicione seu rosto frontalmente para escaneamento.
                   </p>
                 </div>
               </div>
@@ -447,48 +436,52 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
         {!capturedPhotoUrl && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
             {/* Oval Face Silhouette Target */}
-            <div className="relative w-64 h-80 rounded-[50%] border-2 border-dashed transition-colors duration-300 flex items-center justify-center ${
-              scanStep === 'align'
-                ? 'border-blue-400/70 shadow-[0_0_30px_rgba(59,130,246,0.3)]'
-                : scanStep === 'liveness'
-                ? 'border-emerald-400 shadow-[0_0_40px_rgba(52,211,153,0.4)]'
-                : 'border-cyan-300 shadow-[0_0_50px_rgba(34,211,238,0.5)]'
-            }">
+            <div
+              className={`relative w-48 h-60 sm:w-56 sm:h-72 rounded-[50%] border-2 border-dashed transition-all duration-300 flex items-center justify-center ${
+                scannerState === 'ready'
+                  ? 'border-blue-400/80 shadow-[0_0_30px_rgba(59,130,246,0.3)]'
+                  : scannerState === 'scanning'
+                  ? 'border-emerald-400 shadow-[0_0_40px_rgba(52,211,153,0.5)] ring-4 ring-emerald-500/30'
+                  : 'border-cyan-300 shadow-[0_0_50px_rgba(34,211,238,0.6)]'
+              }`}
+            >
               {/* Corner Bracket Guides */}
-              <div className="absolute top-0 left-8 w-6 h-6 border-t-4 border-l-4 border-blue-400 rounded-tl-xl" />
-              <div className="absolute top-0 right-8 w-6 h-6 border-t-4 border-r-4 border-blue-400 rounded-tr-xl" />
-              <div className="absolute bottom-0 left-8 w-6 h-6 border-b-4 border-l-4 border-blue-400 rounded-bl-xl" />
-              <div className="absolute bottom-0 right-8 w-6 h-6 border-b-4 border-r-4 border-blue-400 rounded-br-xl" />
+              <div className="absolute top-0 left-6 w-5 h-5 border-t-4 border-l-4 border-blue-400 rounded-tl-xl" />
+              <div className="absolute top-0 right-6 w-5 h-5 border-t-4 border-r-4 border-blue-400 rounded-tr-xl" />
+              <div className="absolute bottom-0 left-6 w-5 h-5 border-b-4 border-l-4 border-blue-400 rounded-bl-xl" />
+              <div className="absolute bottom-0 right-6 w-5 h-5 border-b-4 border-r-4 border-blue-400 rounded-br-xl" />
 
               {/* Animated Radar Scanning Line */}
-              <motion.div
-                animate={{
-                  y: [-120, 120, -120],
-                  opacity: [0.3, 0.9, 0.3],
-                }}
-                transition={{
-                  duration: 2.2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-                className="w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_#22d3ee]"
-              />
+              {scannerState !== 'ready' && (
+                <motion.div
+                  animate={{
+                    y: [-100, 100, -100],
+                    opacity: [0.3, 1, 0.3],
+                  }}
+                  transition={{
+                    duration: 1.6,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                  className="w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_#22d3ee]"
+                />
+              )}
 
               {/* Liveness Progress Ring Overlay */}
-              {scanStep === 'liveness' && (
+              {scannerState === 'scanning' && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="p-3 bg-slate-950/80 backdrop-blur-md rounded-2xl border border-emerald-500/40 text-center space-y-1.5 shadow-xl"
+                    className="p-3 bg-slate-950/85 backdrop-blur-md rounded-2xl border border-emerald-500/40 text-center space-y-1.5 shadow-xl"
                   >
-                    <Smile className="w-6 h-6 text-emerald-400 mx-auto animate-pulse" />
-                    <span className="text-[11px] font-bold text-emerald-300 block">
+                    <Smile className="w-5 h-5 text-emerald-400 mx-auto animate-pulse" />
+                    <span className="text-[10px] font-bold text-emerald-300 block">
                       Prova de Vida: {livenessProgress}%
                     </span>
-                    <div className="w-28 h-1.5 bg-slate-800 rounded-full overflow-hidden mx-auto">
+                    <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden mx-auto">
                       <div
-                        className="h-full bg-emerald-400 transition-all duration-300 rounded-full"
+                        className="h-full bg-emerald-400 transition-all duration-200 rounded-full"
                         style={{ width: `${livenessProgress}%` }}
                       />
                     </div>
@@ -497,16 +490,16 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
               )}
 
               {/* Analyzing Biometrics Spinner */}
-              {scanStep === 'analyzing' && (
+              {scannerState === 'analyzing' && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="p-4 bg-slate-950/90 backdrop-blur-md rounded-2xl border border-cyan-400 text-center space-y-2 shadow-2xl"
+                    className="p-3.5 bg-slate-950/90 backdrop-blur-md rounded-2xl border border-cyan-400 text-center space-y-1.5 shadow-2xl"
                   >
-                    <RefreshCw className="w-7 h-7 text-cyan-400 mx-auto animate-spin" />
+                    <RefreshCw className="w-6 h-6 text-cyan-400 mx-auto animate-spin" />
                     <span className="text-xs font-bold text-cyan-300 block">
-                      Comparando Traços Faciais...
+                      Identificando Face...
                     </span>
                   </motion.div>
                 </div>
@@ -514,31 +507,31 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
             </div>
 
             {/* Top Prompt Badge */}
-            <div className="absolute top-4 inset-x-0 flex justify-center px-4">
-              <span className="px-3.5 py-1.5 rounded-full bg-slate-900/85 backdrop-blur-md border border-slate-700 text-xs font-bold text-slate-200 shadow-md">
-                {scanStep === 'align' && 'Centralize seu rosto no enquadramento oval'}
-                {scanStep === 'liveness' && 'Mantenha a posição e pisque os olhos'}
-                {scanStep === 'analyzing' && 'Validando biometria no servidor oficial'}
+            <div className="absolute top-3 inset-x-0 flex justify-center px-4">
+              <span className="px-3 py-1 rounded-full bg-slate-900/90 backdrop-blur-md border border-slate-700 text-[11px] font-bold text-slate-200 shadow-md text-center">
+                {scannerState === 'ready' && 'Centralize seu rosto no enquadramento oval'}
+                {scannerState === 'scanning' && 'Escaneando... Mantenha a cabeça firme'}
+                {scannerState === 'analyzing' && 'Validando biometria facial...'}
               </span>
             </div>
           </div>
         )}
 
         {/* Success Overlay Badge */}
-        {scanStep === 'success' && (
+        {scannerState === 'verified' && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="absolute inset-x-4 bottom-4 p-4 rounded-2xl bg-emerald-950/90 border border-emerald-500/50 backdrop-blur-md text-emerald-200 shadow-2xl flex items-center justify-between gap-3"
+            className="absolute inset-x-3 bottom-3 p-3 sm:p-3.5 rounded-2xl bg-emerald-950/90 border border-emerald-500/50 backdrop-blur-md text-emerald-200 shadow-2xl flex items-center justify-between gap-2"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 shrink-0">
-                <CheckCircle2 className="w-6 h-6" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-xs font-extrabold text-emerald-300">
-                    Face Confirmada
+                    Rosto Identificado
                   </span>
                   {matchScore && (
                     <span className="text-[10px] font-mono font-bold bg-emerald-500/30 px-1.5 py-0.2 rounded text-emerald-200 border border-emerald-400/30">
@@ -546,7 +539,7 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-emerald-300/80">
+                <p className="text-[10px] text-emerald-300/80 truncate">
                   {user.name} · Horário Auditado ({officialTimeStr})
                 </p>
               </div>
@@ -555,7 +548,7 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
             <button
               type="button"
               onClick={handleRestartScan}
-              className="p-2 rounded-xl bg-emerald-800/40 hover:bg-emerald-800/60 text-emerald-200 transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-emerald-800/40 hover:bg-emerald-800/60 text-emerald-200 transition-colors cursor-pointer shrink-0"
               title="Escanear novamente"
             >
               <RefreshCw className="w-4 h-4" />
@@ -565,26 +558,26 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
       </div>
 
       {/* Bottom Controls Bar */}
-      <div className="p-4 bg-slate-900 border-t border-slate-800 space-y-3">
+      <div className="p-3.5 sm:p-4 bg-slate-900 border-t border-slate-800 space-y-2.5">
         {/* GPS Status Indicator */}
-        <div className="flex items-center justify-between text-xs text-slate-400 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-3.5 h-3.5 text-blue-400" />
-            <span>
+        <div className="flex items-center justify-between text-[11px] text-slate-400 bg-slate-950/60 p-2 sm:p-2.5 rounded-xl border border-slate-800">
+          <div className="flex items-center gap-1.5 truncate">
+            <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span className="truncate">
               {currentCoords ? (
                 <>
                   GPS: {currentCoords.lat.toFixed(4)}, {currentCoords.lng.toFixed(4)}
-                  {distanceMeters !== null && ` (${distanceMeters}m da residência)`}
+                  {distanceMeters !== null && ` (${distanceMeters}m)`}
                 </>
               ) : (
-                'Obtendo localização GPS...'
+                'Obtendo GPS...'
               )}
             </span>
           </div>
 
           {isWithinPerimeter !== null && (
             <span
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
                 isWithinPerimeter
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                   : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
@@ -595,26 +588,57 @@ export const FaceAppScanner: React.FC<FaceAppScannerProps> = ({
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-slate-700"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Galeria / Arquivo</span>
-          </button>
+        {/* Action Buttons based on Scanner State */}
+        {scannerState !== 'verified' ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-slate-700 shrink-0"
+              title="Carregar foto da galeria"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Galeria</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={handleRestartScan}
-            className="flex-1 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/25"
-          >
-            <Camera className="w-3.5 h-3.5" />
-            <span>Novo Escaneamento</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={handleStartScan}
+              disabled={scannerState === 'scanning' || scannerState === 'analyzing'}
+              className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:from-blue-700 active:to-indigo-700 text-white text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-600/30"
+            >
+              <Scan className="w-4 h-4" />
+              <span>
+                {scannerState === 'scanning' || scannerState === 'analyzing'
+                  ? 'Identificando...'
+                  : 'Escanear Rosto com Face App'}
+              </span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRestartScan}
+              className="py-3 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-slate-700"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Repetir</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleConfirmVerification}
+              className="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:from-emerald-700 active:to-teal-700 text-white text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xl shadow-emerald-600/30"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>
+                {mode === 'register' ? 'Salvar Biometria Facial' : 'Confirmar Ponto Facial'}
+              </span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

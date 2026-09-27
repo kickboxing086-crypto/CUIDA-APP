@@ -57,7 +57,7 @@ export function AnimatedSelect<T extends string = string>({
   };
 
   return (
-    <div className={`relative ${className}`} ref={containerRef}>
+    <div className={`relative w-full ${className}`} ref={containerRef}>
       {label && (
         <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">
           {label}
@@ -70,7 +70,7 @@ export function AnimatedSelect<T extends string = string>({
         disabled={disabled}
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
         whileTap={!disabled ? { scale: 0.99 } : undefined}
-        className={`w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-colors cursor-pointer text-left ${
+        className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 sm:px-3.5 sm:py-2.5 rounded-xl border text-xs sm:text-sm font-medium transition-colors cursor-pointer text-left ${
           isOpen
             ? 'border-blue-500 ring-2 ring-blue-500/20 bg-white dark:bg-slate-900 shadow-sm'
             : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-slate-400'
@@ -84,7 +84,7 @@ export function AnimatedSelect<T extends string = string>({
             {selectedOption ? selectedOption.label : placeholder}
           </span>
           {selectedOption?.badge && (
-            <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200/60 shrink-0">
+            <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200/60 shrink-0">
               {selectedOption.badge}
             </span>
           )}
@@ -93,7 +93,7 @@ export function AnimatedSelect<T extends string = string>({
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
-          className="shrink-0 text-slate-500"
+          className="shrink-0 text-slate-500 ml-1"
         >
           <ChevronDown className="w-4 h-4" />
         </motion.div>
@@ -107,7 +107,7 @@ export function AnimatedSelect<T extends string = string>({
             animate={{ opacity: 1, y: 4, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute z-50 left-0 right-0 max-h-60 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-1.5 space-y-0.5"
+            className="absolute z-50 left-0 right-0 max-h-56 sm:max-h-64 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-1.5 space-y-0.5 overscroll-contain"
           >
             {options.map((opt) => {
               const isSelected = opt.value === value;
@@ -119,7 +119,7 @@ export function AnimatedSelect<T extends string = string>({
                   type="button"
                   whileHover={{ x: 2 }}
                   onClick={() => handleSelect(opt.value)}
-                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer text-left ${
+                  className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer text-left ${
                     isSelected
                       ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 font-bold'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -130,7 +130,7 @@ export function AnimatedSelect<T extends string = string>({
                       <OptIcon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-blue-600' : 'text-slate-400'}`} />
                     )}
                     <div className="truncate">
-                      <div className="truncate">{opt.label}</div>
+                      <div className="truncate font-semibold">{opt.label}</div>
                       {opt.sublabel && (
                         <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">
                           {opt.sublabel}
@@ -139,7 +139,7 @@ export function AnimatedSelect<T extends string = string>({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0 ml-1">
                     {opt.badge && (
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                         {opt.badge}
@@ -147,7 +147,7 @@ export function AnimatedSelect<T extends string = string>({
                     )}
                     {isSelected && (
                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-blue-600">
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                       </motion.div>
                     )}
                   </div>
@@ -162,7 +162,7 @@ export function AnimatedSelect<T extends string = string>({
 }
 
 /* =========================================================================
-   2. AnimatedSegmentedControl - Smooth sliding pill tabs/choices
+   2. AnimatedSegmentedControl - Smooth sliding pill tabs/choices (Responsive)
    ========================================================================= */
 interface AnimatedSegmentedControlProps<T extends string = string> {
   value: T;
@@ -182,13 +182,13 @@ export function AnimatedSegmentedControl<T extends string = string>({
   className = '',
 }: AnimatedSegmentedControlProps<T>) {
   const sizeClasses = {
-    sm: 'text-[11px] py-1 px-2.5',
-    md: 'text-xs py-1.5 px-3.5',
-    lg: 'text-sm py-2 px-4',
+    sm: 'text-[10px] sm:text-[11px] py-1 px-2 sm:px-2.5',
+    md: 'text-[11px] sm:text-xs py-1.5 px-2.5 sm:px-3.5',
+    lg: 'text-xs sm:text-sm py-2 px-3 sm:px-4',
   };
 
   return (
-    <div className={`inline-flex items-center p-1 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 relative select-none ${className}`}>
+    <div className={`w-full max-w-full overflow-x-auto no-scrollbar flex sm:inline-flex items-center p-1 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 relative select-none gap-1 ${className}`}>
       {options.map((opt) => {
         const isActive = opt.value === value;
         const Icon = opt.icon;
@@ -198,7 +198,7 @@ export function AnimatedSegmentedControl<T extends string = string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`relative flex items-center justify-center gap-1.5 rounded-xl font-bold transition-colors cursor-pointer z-10 whitespace-nowrap ${sizeClasses[size]} ${
+            className={`relative flex-1 sm:flex-initial shrink-0 flex items-center justify-center gap-1.5 rounded-xl font-bold transition-colors cursor-pointer z-10 whitespace-nowrap ${sizeClasses[size]} ${
               isActive
                 ? 'text-white'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -209,7 +209,7 @@ export function AnimatedSegmentedControl<T extends string = string>({
               <motion.div
                 layoutId={layoutId}
                 transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                className="absolute inset-0 bg-blue-600 rounded-xl shadow-sm z-[-1]"
+                className="absolute inset-0 bg-blue-600 rounded-xl shadow-xs z-[-1]"
               />
             )}
             {Icon && <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />}
@@ -233,7 +233,7 @@ export function AnimatedSegmentedControl<T extends string = string>({
 }
 
 /* =========================================================================
-   3. AnimatedChoiceCards - Interactive Grid Option Cards with Micro-Feedback
+   3. AnimatedChoiceCards - Responsive Interactive Option Cards
    ========================================================================= */
 interface AnimatedChoiceCardsProps<T extends string = string> {
   value: T;
@@ -253,12 +253,12 @@ export function AnimatedChoiceCards<T extends string = string>({
   const colClasses = {
     1: 'grid-cols-1',
     2: 'grid-cols-1 sm:grid-cols-2',
-    3: 'grid-cols-1 sm:grid-cols-3',
+    3: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3',
     4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
   };
 
   return (
-    <div className={`grid ${colClasses[columns]} gap-2.5 ${className}`}>
+    <div className={`grid ${colClasses[columns]} gap-2.5 w-full ${className}`}>
       {options.map((opt) => {
         const isSelected = opt.value === value;
         const Icon = opt.icon;
@@ -270,14 +270,14 @@ export function AnimatedChoiceCards<T extends string = string>({
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => onChange(opt.value)}
-            className={`relative p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+            className={`relative p-3 sm:p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between w-full ${
               isSelected
                 ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-600 dark:border-blue-500 shadow-md shadow-blue-500/10 ring-2 ring-blue-500/20'
                 : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 hover:shadow-xs'
             }`}
           >
-            <div className="flex items-start justify-between gap-2 mb-1.5">
-              <div className="flex items-center gap-2">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <div className="flex items-center gap-2 truncate">
                 {Icon && (
                   <div
                     className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
@@ -290,7 +290,7 @@ export function AnimatedChoiceCards<T extends string = string>({
                   </div>
                 )}
                 <span
-                  className={`text-xs font-bold ${
+                  className={`text-xs font-bold truncate ${
                     isSelected ? 'text-blue-900 dark:text-blue-200' : 'text-slate-900 dark:text-white'
                   }`}
                 >

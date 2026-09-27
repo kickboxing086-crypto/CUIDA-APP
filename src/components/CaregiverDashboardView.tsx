@@ -256,49 +256,49 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  <span>Plantão Manual</span>
  </button>
 
- {activeEntry ? (
- <div className="flex items-center gap-2">
- <button
- type="button"
- onClick={handleDirectCheckOut}
- disabled={isRegisteringPoint}
- className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
- >
- <Clock className="w-4 h-4 text-white" />
- <span>{isRegisteringPoint ? 'Encerrando...' : 'Registrar Saída Agora'}</span>
- </button>
+            {activeEntry ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onOpenLiveCamera('check_out')}
+                  className="inline-flex items-center gap-1.5 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+                >
+                  <Scan className="w-4 h-4 text-white" />
+                  <span>Registrar Saída com Face App</span>
+                </button>
 
- <button
- type="button"
- onClick={() => onOpenLiveCamera('check_out')}
- className="p-2.5 rounded-xl bg-rose-700/80 hover:bg-rose-700 text-white border border-rose-500/50 transition-colors cursor-pointer"
- title="Registrar saída com foto opcional"
- >
- <Camera className="w-4 h-4" />
- </button>
- </div>
- ) : (
- <div className="flex items-center gap-2">
- <button
- type="button"
- onClick={handleDirectCheckIn}
- disabled={isRegisteringPoint}
- className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-black text-xs shadow-md transition-all cursor-pointer"
- >
- <Check className="w-4 h-4 stroke-[3]" />
- <span>{isRegisteringPoint ? 'Registrando...' : 'Bater Ponto Agora (Entrada)'}</span>
- </button>
+                <button
+                  type="button"
+                  onClick={handleDirectCheckOut}
+                  disabled={isRegisteringPoint}
+                  className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors cursor-pointer"
+                  title="Saída direta sem câmera"
+                >
+                  <Clock className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onOpenLiveCamera('check_in')}
+                  className="inline-flex items-center gap-1.5 py-2.5 px-4 rounded-xl bg-emerald-400 hover:bg-emerald-300 active:bg-emerald-500 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+                >
+                  <Scan className="w-4 h-4 text-slate-950" />
+                  <span>Bater Ponto com Face App</span>
+                </button>
 
- <button
- type="button"
- onClick={() => onOpenLiveCamera('check_in')}
- className="p-2.5 rounded-xl bg-blue-600/80 hover:bg-blue-600 text-white border border-blue-400/50 transition-colors cursor-pointer"
- title="Bater ponto com foto opcional"
- >
- <Camera className="w-4 h-4" />
- </button>
- </div>
- )}
+                <button
+                  type="button"
+                  onClick={handleDirectCheckIn}
+                  disabled={isRegisteringPoint}
+                  className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors cursor-pointer"
+                  title="Entrada direta sem câmera"
+                >
+                  <Clock className="w-4 h-4" />
+                </button>
+              </div>
+            )}
  </div>
  </div>
 
