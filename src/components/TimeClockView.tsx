@@ -10,7 +10,6 @@ interface TimeClockViewProps {
  onRefreshHistory: () => void;
  onOpenAddPresence?: () => void;
  onOpenResidenceConfig?: () => void;
- onOpenFacialRegistration?: () => void;
 }
 
 export const TimeClockView: React.FC<TimeClockViewProps> = ({
@@ -18,8 +17,7 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  elderly,
  onRefreshHistory,
  onOpenAddPresence,
- onOpenResidenceConfig,
- onOpenFacialRegistration }) => {
+ onOpenResidenceConfig }) => {
  const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
  const [recentEntries, setRecentEntries] = useState<TimeEntry[]>([]);
  const [isLoading, setIsLoading] = useState(true);
@@ -197,7 +195,7 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  photoBase64: params.photoBase64,
  locationLat: params.locationLat || currentCoords?.lat,
  locationLong: params.locationLong || currentCoords?.lng,
- notes: 'Registro de ponto com foto facial auditada.' });
+ notes: 'Check-in registrado com foto no raio da residência.' });
  setActionSuccess(res.message);
  } else if (cameraMode === 'check_out') {
  const currentActive = activeEntry || (await api.getActiveEntry(currentUser.id));
@@ -211,7 +209,7 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  photoBase64: params.photoBase64,
  locationLat: params.locationLat || currentCoords?.lat,
  locationLong: params.locationLong || currentCoords?.lng,
- notes: 'Encerramento de plantão com foto facial auditada.' });
+ notes: 'Check-out registrado com foto no raio da residência.' });
  setActionSuccess(res.message);
  }
  await loadShiftState();
@@ -398,14 +396,23 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  <p className="text-xs text-slate-600">
  O encerramento do plantão será registrado com o <strong>horário oficial auditado</strong>.
  </p>
-            <div className="w-full sm:w-auto">
+            <div className="w-full sm:w-auto flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleOpenCheckIn}
+                className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <Camera className="w-4 h-4 text-emerald-400" />
+                <span>Check in</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleOpenCheckOut}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:from-rose-700 active:to-red-700 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:from-rose-700 active:to-red-700 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-rose-600/25 ring-2 ring-rose-400/50 flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <Camera className="w-4 h-4 text-white" />
-                <span>Tirar Foto do Ponto (Saída de Plantão)</span>
+                <span>Check out</span>
               </button>
             </div>
  </div>
@@ -420,18 +427,27 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  Iniciar Novo Plantão de Assistência
  </h3>
  <p className="text-xs text-slate-600">
- Registre a sua entrada com validação de horário oficial e confirmação no local.
+ Registre o seu Check in com foto no raio da residência (não é necessário cadastrar o rosto).
  </p>
  </div>
 
-          <div className="pt-2 flex justify-center max-w-lg mx-auto w-full">
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto w-full">
             <button
               type="button"
               onClick={handleOpenCheckIn}
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 active:from-emerald-700 active:to-teal-700 text-white font-black text-sm sm:text-base shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-2.5 transition-all cursor-pointer"
+              className="w-full sm:flex-1 px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 active:from-emerald-700 text-white font-black text-sm sm:text-base shadow-xl shadow-emerald-600/30 ring-2 ring-emerald-400/50 flex items-center justify-center gap-2.5 transition-all cursor-pointer"
             >
               <Camera className="w-5 h-5 text-white animate-pulse" />
-              <span>Tirar Foto do Ponto (Entrada)</span>
+              <span>Check in</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleOpenCheckOut}
+              className="w-full sm:flex-1 px-5 py-3.5 rounded-2xl bg-rose-950/70 hover:bg-rose-900 border border-rose-800/60 text-rose-200 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <Camera className="w-4 h-4 text-rose-400" />
+              <span>Check out</span>
             </button>
           </div>
  </div>
@@ -441,48 +457,6 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
 
  {/* Right Col: Segurança & Regras Anti-Fraude */}
  <div className="space-y-6">
- {/* Face App Biometric Status Card */}
- <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border border-blue-500/40 rounded-2xl p-5 text-white shadow-md space-y-3">
- <div className="flex items-center justify-between">
- <div className="flex items-center gap-2">
- <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-400/30">
- <Scan className="w-5 h-5" />
- </div>
- <div>
- <span className="text-xs font-black uppercase text-blue-400 tracking-wider block">
- Face App
- </span>
- <h3 className="text-sm font-bold text-white">Biometria Facial</h3>
- </div>
- </div>
-
- <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
- currentUser.facial_registered
- ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
- : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
- }`}>
- {currentUser.facial_registered ? 'Ativa' : 'Pendente'}
- </span>
- </div>
-
- <p className="text-xs text-blue-200/90 leading-relaxed">
- {currentUser.facial_registered
- ? 'Sua biometria facial está cadastrada para validação nas batidas de ponto.'
- : 'Cadastre seu rosto agora para habilitar o reconhecimento facial automático e a prova de vida.'}
- </p>
-
- {onOpenFacialRegistration && (
- <button
- type="button"
- onClick={onOpenFacialRegistration}
- className="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/30"
- >
- <Scan className="w-4 h-4" />
- <span>{currentUser.facial_registered ? 'Recadastrar Facial' : 'Cadastrar Rosto com Face App'}</span>
- </button>
- )}
- </div>
-
  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
  <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -493,20 +467,20 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
  <strong className="text-slate-900 block flex items-center gap-1.5">
  <MapPin className="w-3.5 h-3.5 text-blue-600" />
- 1. Localização & GPS
+ 1. Localização & Raio da Residência
  </strong>
  <span>
- O ponto registra a coordenada geográfica e verifica a presença na residência de {elderly.full_name}.
+ O ponto registra a coordenada geográfica e verifica a presença dentro do raio da residência de {elderly.full_name}.
  </span>
  </div>
 
  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
  <strong className="text-slate-900 block flex items-center gap-1.5">
  <Camera className="w-3.5 h-3.5 text-blue-600" />
- 2. Foto Facial Auditada
+ 2. Check in & Check out com Foto (Sem Cadastro Facial)
  </strong>
  <span>
- Foto capturada no momento da entrada ou saída com carimbo de data e hora inviolável.
+ Foto capturada no Check in e Check out comprovando presença dentro do raio da residência, sem necessidade de cadastramento de rosto prévio.
  </span>
  </div>
 
@@ -630,11 +604,12 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  isOpen={isCameraOpen}
  onClose={() => setIsCameraOpen(false)}
  onCapture={handlePhotoCaptured}
- title={cameraMode === 'check_in' ? 'Check-in: Ponto de Entrada' : 'Check-out: Ponto de Saída'}
- subtitle="Validação facial com perímetro de segurança GPS"
+ title={cameraMode === 'check_in' ? 'Check in (Entrada)' : 'Check out (Saída)'}
+ subtitle="Foto de confirmação dentro do raio da residência"
  officialTimeStr={new Date().toLocaleTimeString('pt-BR')}
  userName={currentUser.name}
  elderly={elderly}
+ currentUser={currentUser}
  />
  )}
  </div>

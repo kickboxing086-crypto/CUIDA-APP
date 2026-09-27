@@ -1073,7 +1073,7 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
  )}
  <span className={roleDef.permissions.can_clock_in ? 'font-semibold text-amber-300' : 'text-slate-500'}>
- Bater Ponto Facial com Câmera ao Vivo
+ Check in e Check out com Foto no Local
  </span>
  </div>
 

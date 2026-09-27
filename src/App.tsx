@@ -26,8 +26,6 @@ import { ElderlyProfile, User } from './types';
 import { ElderCaneLogo } from './components/ElderCaneLogo';
 import { ShieldCheck } from "lucide-react";
 import { ResidenceAddressNotice } from './components/ResidenceAddressNotice';
-import { FacialBiometricAlert } from './components/FacialBiometricAlert';
-import { FacialRegistrationModal } from './components/FacialRegistrationModal';
 import { FooterBranding } from './components/FooterBranding';
 
 export default function App() {
@@ -69,7 +67,6 @@ export default function App() {
  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
  const [isResidenceModalOpen, setIsResidenceModalOpen] = useState(false);
  const [isFamilyInvitesOpen, setIsFamilyInvitesOpen] = useState(false);
- const [isFacialRegistrationOpen, setIsFacialRegistrationOpen] = useState(false);
  const [cameraMode, setCameraMode] = useState<'check_in' | 'check_out'>('check_in');
 
  // Load Elderly Profile and Users on refresh
@@ -165,16 +162,6 @@ export default function App() {
  setIsCameraModalOpen(true);
  };
 
- const handleFacialRegistrationSuccess = (updatedUser: User) => {
- setCurrentUser(updatedUser);
- try {
- localStorage.setItem('cuida_session_user', JSON.stringify(updatedUser));
- } catch {
- // ignore
- }
- handleRefreshHistory();
- };
-
  const handleCameraPhotoCaptured = async (params: {
  photoBase64: string;
  locationLat?: number;
@@ -189,7 +176,7 @@ export default function App() {
  photoBase64: params.photoBase64,
  locationLat: params.locationLat,
  locationLong: params.locationLong,
- notes: 'Registro biométrico facial confirmado via câmera frontal com geolocalização.' });
+ notes: 'Check-in confirmado com foto no raio da residência.' });
  } else {
  const active = await api.getActiveEntry(currentUser.id);
  if (active) {
@@ -199,13 +186,21 @@ export default function App() {
  locationLat: params.locationLat,
  locationLong: params.locationLong,
  userId: currentUser.id,
-notes: 'Encerramento de plantão validado com selfie facial e geolocalização.' });
+ notes: 'Check-out confirmado com foto no raio da residência.' });
+ } else {
+ await api.checkOut({
+ entryId: '',
+ photoBase64: params.photoBase64,
+ locationLat: params.locationLat,
+ locationLong: params.locationLong,
+ userId: currentUser.id,
+ notes: 'Check-out confirmado com foto no raio da residência.' });
  }
  }
  handleRefreshHistory();
  } catch (err: any) {
- console.error('Erro ao validar ponto:', err);
- alert(`️ Erro na validação de ponto:\n\n${err.message || 'Falha ao registrar ponto.'}`);
+ console.error('Erro ao registrar Check-in / Check-out:', err);
+ alert(`⚠️ Erro ao registrar ponto:\n\n${err.message || 'Falha ao registrar ponto.'}`);
  }
  };
 
@@ -266,7 +261,6 @@ notes: 'Encerramento de plantão validado com selfie facial e geolocalização.'
  onOpenResidenceConfig={() => setIsResidenceModalOpen(true)}
  onOpenFamilyInvites={() => setIsFamilyInvitesOpen(true)}
  onOpenNotifications={() => setIsNotificationsOpen(true)}
- onOpenFacialModal={() => setIsFacialRegistrationOpen(true)}
  onUserUpdated={(updated) => {
  setCurrentUser(updated);
  setUsersList((prev) =>
@@ -307,12 +301,6 @@ notes: 'Encerramento de plantão validado com selfie facial e geolocalização.'
  onOpenResidenceModal={() => setIsResidenceModalOpen(true)}
  />
 
- {/* Alerta de Biometria Facial Face App Pendente */}
- <FacialBiometricAlert
- currentUser={currentUser}
- onOpenFacialModal={() => setIsFacialRegistrationOpen(true)}
- />
-
  {/* Tab View Routing */}
  {activeTab === 'caregiver_dashboard' && (
  <CaregiverDashboardView
@@ -324,7 +312,6 @@ notes: 'Encerramento de plantão validado com selfie facial e geolocalização.'
  onOpenResidenceConfig={() => setIsResidenceModalOpen(true)}
  onOpenInvites={() => setIsFamilyInvitesOpen(true)}
  onOpenNotifications={() => setIsNotificationsOpen(true)}
- onOpenFacialRegistration={() => setIsFacialRegistrationOpen(true)}
  unreadCount={unreadCount}
  unreadLogs={unreadLogs}
  />
@@ -360,7 +347,6 @@ notes: 'Encerramento de plantão validado com selfie facial e geolocalização.'
  onRefreshHistory={handleRefreshHistory}
  onOpenAddPresence={() => setIsAddPresenceModalOpen(true)}
  onOpenResidenceConfig={() => setIsResidenceModalOpen(true)}
- onOpenFacialRegistration={() => setIsFacialRegistrationOpen(true)}
  />
  )}
 
@@ -430,23 +416,15 @@ notes: 'Encerramento de plantão validado com selfie facial e geolocalização.'
  isOpen={isCameraModalOpen}
  onClose={() => setIsCameraModalOpen(false)}
  onCapture={handleCameraPhotoCaptured}
- title={cameraMode === 'check_in' ? 'Check-in de Entrada' : 'Check-out de Saída'}
+ title={cameraMode === 'check_in' ? 'Check in (Entrada)' : 'Check out (Saída)'}
  subtitle={
- cameraMode === 'check_in' ? 'Tire uma selfie frontal nítida para comprovar presença no endereço cadastrado'
- : 'Tire uma selfie frontal para validar e encerrar seu turno'
+ cameraMode === 'check_in' ? 'Tire uma foto dentro do raio da residência para confirmar seu Check in'
+ : 'Tire uma foto dentro do raio da residência para confirmar seu Check out'
  }
  officialTimeStr={new Date().toLocaleTimeString('pt-BR')}
  userName={currentUser.name}
  elderly={elderly}
  currentUser={currentUser}
- />
-
- {/* Modal: Cadastro Posterior de Biometria Facial */}
- <FacialRegistrationModal
- isOpen={isFacialRegistrationOpen}
- onClose={() => setIsFacialRegistrationOpen(false)}
- currentUser={currentUser}
- onSuccess={handleFacialRegistrationSuccess}
  />
 
  {/* Footer */}

@@ -14,7 +14,6 @@ interface CaregiverDashboardViewProps {
  unreadCount?: number;
  unreadLogs?: FamilyActivityLog[];
  onOpenInvites?: () => void;
- onOpenFacialRegistration?: () => void;
 }
 
 export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
@@ -27,8 +26,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  onOpenNotifications,
  unreadCount = 0,
  unreadLogs = [],
- onOpenInvites,
- onOpenFacialRegistration }) => {
+ onOpenInvites }) => {
  const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
  const [missions, setMissions] = useState<DailyMission[]>([]);
  const [notices, setNotices] = useState<FamilyNotice[]>([]);
@@ -213,47 +211,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  </div>
  )}
 
- {/* Banner de Cadastro / Status Face App */}
-      {onOpenFacialRegistration && (
-        <div className="bg-gradient-to-r from-blue-950/80 via-slate-900 to-indigo-950/80 border border-blue-500/40 rounded-3xl p-4 sm:p-5 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className="p-3 bg-blue-500/20 border border-blue-400/30 rounded-2xl text-blue-400 shrink-0">
-              <Scan className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="bg-blue-500/30 text-blue-200 border border-blue-400/30 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
-                  Face App
-                </span>
-                <span className={`text-xs font-bold ${currentUser.facial_registered ? 'text-emerald-300' : 'text-amber-300'}`}>
-                  {currentUser.facial_registered ? 'Biometria Facial Cadastrada e Ativa' : 'Cadastre sua Biometria Facial'}
-                </span>
-              </div>
-              <h3 className="text-sm sm:text-base font-black text-white mt-1">
-                {currentUser.facial_registered
-                  ? 'Reconhecimento Facial Habilitado para Ponto'
-                  : 'Ativar Reconhecimento Facial para Bater Ponto'}
-              </h3>
-              <p className="text-xs text-blue-200/90 leading-relaxed max-w-xl">
-                {currentUser.facial_registered
-                  ? 'Ao bater o ponto, o sistema utiliza a câmera para identificação facial com prova de vida e auditoria oficial.'
-                  : 'Cadastre seu rosto agora no Face App para realizar as batidas de ponto com selfie e validação de presença.'}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onOpenFacialRegistration}
-            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-extrabold text-xs shrink-0 shadow-lg shadow-blue-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
-          >
-            <Scan className="w-4 h-4" />
-            <span>{currentUser.facial_registered ? 'Recadastrar Biometria' : 'Cadastrar Facial Face App'}</span>
-          </button>
-        </div>
-      )}
-
-      {/* 1. Header do Painel do Cuidador */}
+ {/* 1. Header do Painel do Cuidador */}
  <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 rounded-3xl p-6 text-white shadow-md relative overflow-hidden">
  <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
 
@@ -297,25 +255,34 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  <span>Plantão Manual</span>
  </button>
 
-            {activeEntry ? (
-              <button
-                type="button"
-                onClick={() => onOpenLiveCamera('check_out')}
-                className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-black text-xs shadow-md transition-all cursor-pointer"
-              >
-                <Camera className="w-4 h-4 text-white" />
-                <span>Tirar Foto do Ponto (Saída)</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => onOpenLiveCamera('check_in')}
-                className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-400 hover:bg-emerald-300 active:bg-emerald-500 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
-              >
-                <Camera className="w-4 h-4 text-slate-950" />
-                <span>Tirar Foto do Ponto (Entrada)</span>
-              </button>
-            )}
+            {/* Check in & Check out Buttons */}
+            <button
+              type="button"
+              onClick={() => onOpenLiveCamera('check_in')}
+              className={`inline-flex items-center gap-2 py-2.5 px-4 rounded-xl font-black text-xs transition-all cursor-pointer ${
+                !activeEntry
+                  ? 'bg-emerald-400 hover:bg-emerald-300 active:bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-300'
+                  : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/60'
+              }`}
+              title="Registrar Check-in com foto no endereço da residência"
+            >
+              <Camera className="w-4 h-4" />
+              <span>Check in</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onOpenLiveCamera('check_out')}
+              className={`inline-flex items-center gap-2 py-2.5 px-4 rounded-xl font-black text-xs transition-all cursor-pointer ${
+                activeEntry
+                  ? 'bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white shadow-lg shadow-rose-600/30 ring-2 ring-rose-400 animate-pulse'
+                  : 'bg-rose-950/70 hover:bg-rose-900 text-rose-200 border border-rose-800/60'
+              }`}
+              title="Registrar Check-out com foto no endereço da residência"
+            >
+              <Camera className="w-4 h-4" />
+              <span>Check out</span>
+            </button>
  </div>
  </div>
 
@@ -628,7 +595,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
  <ul className="space-y-2 text-xs text-slate-600">
  <li className="flex items-start gap-2">
  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 shrink-0" />
- <span>Registrar ponto com biometria facial frontal no início e término.</span>
+ <span>Registrar Check in e Check out com foto dentro do raio da residência.</span>
  </li>
  <li className="flex items-start gap-2">
  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 shrink-0" />

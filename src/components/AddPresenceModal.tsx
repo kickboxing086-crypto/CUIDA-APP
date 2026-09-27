@@ -163,7 +163,7 @@ export const AddPresenceModal: React.FC<AddPresenceModalProps> = ({
               className="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-xs hover:bg-blue-700 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
             >
               <Camera className="w-3.5 h-3.5 text-blue-200" />
-              Bater Ponto com Foto
+              Check in com Foto
             </button>
           </div>
         </div>
