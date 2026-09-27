@@ -10,6 +10,7 @@ interface TimeClockViewProps {
  onRefreshHistory: () => void;
  onOpenAddPresence?: () => void;
  onOpenResidenceConfig?: () => void;
+ onOpenFacialRegistration?: () => void;
 }
 
 export const TimeClockView: React.FC<TimeClockViewProps> = ({
@@ -17,7 +18,8 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
  elderly,
  onRefreshHistory,
  onOpenAddPresence,
- onOpenResidenceConfig }) => {
+ onOpenResidenceConfig,
+ onOpenFacialRegistration }) => {
  const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
  const [recentEntries, setRecentEntries] = useState<TimeEntry[]>([]);
  const [isLoading, setIsLoading] = useState(true);
@@ -460,6 +462,48 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
 
  {/* Right Col: Segurança & Regras Anti-Fraude */}
  <div className="space-y-6">
+ {/* Face App Biometric Status Card */}
+ <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border border-blue-500/40 rounded-2xl p-5 text-white shadow-md space-y-3">
+ <div className="flex items-center justify-between">
+ <div className="flex items-center gap-2">
+ <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-400/30">
+ <Scan className="w-5 h-5" />
+ </div>
+ <div>
+ <span className="text-xs font-black uppercase text-blue-400 tracking-wider block">
+ Face App
+ </span>
+ <h3 className="text-sm font-bold text-white">Biometria Facial</h3>
+ </div>
+ </div>
+
+ <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+ currentUser.facial_registered
+ ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+ : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+ }`}>
+ {currentUser.facial_registered ? 'Ativa' : 'Pendente'}
+ </span>
+ </div>
+
+ <p className="text-xs text-blue-200/90 leading-relaxed">
+ {currentUser.facial_registered
+ ? 'Sua biometria facial está cadastrada para validação nas batidas de ponto.'
+ : 'Cadastre seu rosto agora para habilitar o reconhecimento facial automático e a prova de vida.'}
+ </p>
+
+ {onOpenFacialRegistration && (
+ <button
+ type="button"
+ onClick={onOpenFacialRegistration}
+ className="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/30"
+ >
+ <Scan className="w-4 h-4" />
+ <span>{currentUser.facial_registered ? 'Recadastrar Facial' : 'Cadastrar Rosto com Face App'}</span>
+ </button>
+ )}
+ </div>
+
  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
  <ShieldCheck className="w-4 h-4 text-emerald-600" />

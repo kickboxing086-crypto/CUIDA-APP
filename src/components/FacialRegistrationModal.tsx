@@ -24,12 +24,9 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
 
   if (!isOpen) return null;
 
-  const handleVerified = (res: FaceAppVerificationResult) => {
-    setCapturedPhoto(res.photoBase64);
-  };
-
-  const handleSaveBiometrics = async () => {
+  const handleSaveBiometrics = async (overridePhoto?: string) => {
     const photoToSave =
+      overridePhoto ||
       capturedPhoto ||
       currentUser.avatar_url ||
       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
@@ -38,7 +35,7 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
       setIsSaving(true);
       setErrorMessage(null);
 
-      const updatedUser: User = {
+      let updatedUser: User = {
         ...currentUser,
         facial_registered: true,
         facial_photo_url: photoToSave || undefined,
@@ -47,7 +44,10 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
       };
 
       try {
-        await api.registerFacialBiometrics(currentUser.id, photoToSave || '');
+        const savedApiUser = await api.registerFacialBiometrics(currentUser.id, photoToSave || '');
+        if (savedApiUser && savedApiUser.id) {
+          updatedUser = { ...updatedUser, ...savedApiUser };
+        }
       } catch {
         // Safe fallback
       }
@@ -59,6 +59,11 @@ export const FacialRegistrationModal: React.FC<FacialRegistrationModalProps> = (
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleVerified = (res: FaceAppVerificationResult) => {
+    setCapturedPhoto(res.photoBase64);
+    handleSaveBiometrics(res.photoBase64);
   };
 
   return (

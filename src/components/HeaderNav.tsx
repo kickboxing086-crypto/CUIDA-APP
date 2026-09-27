@@ -357,6 +357,20 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
  <span className="text-xs font-bold leading-tight">Adicionar Presença</span>
  </button>
 
+ {onOpenFacialModal && (
+ <button
+ type="button"
+ onClick={() => {
+ setIsMenuOpen(false);
+ onOpenFacialModal();
+ }}
+ className="p-2.5 bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-800/50 rounded-xl text-left text-indigo-200 transition-all cursor-pointer flex items-center gap-2"
+ >
+ <Scan className="w-4 h-4 text-indigo-400 shrink-0" />
+ <span className="text-xs font-bold leading-tight">Cadastrar Facial</span>
+ </button>
+ )}
+
  {isFamilyAdmin && onOpenFamilyInvites && (
  <button
  type="button"
@@ -701,6 +715,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
  if (onUserUpdated) onUserUpdated(updated);
  }}
  onLogout={onLogout}
+ onOpenFacialModal={onOpenFacialModal}
  />
  )}
  </>

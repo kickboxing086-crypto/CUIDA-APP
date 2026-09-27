@@ -307,6 +307,12 @@ notes: 'Encerramento de plantão validado com selfie facial e geolocalização.'
  onOpenResidenceModal={() => setIsResidenceModalOpen(true)}
  />
 
+ {/* Alerta de Biometria Facial Face App Pendente */}
+ <FacialBiometricAlert
+ currentUser={currentUser}
+ onOpenFacialModal={() => setIsFacialRegistrationOpen(true)}
+ />
+
  {/* Tab View Routing */}
  {activeTab === 'caregiver_dashboard' && (
  <CaregiverDashboardView
@@ -318,6 +324,7 @@ notes: 'Encerramento de plantão validado com selfie facial e geolocalização.'
  onOpenResidenceConfig={() => setIsResidenceModalOpen(true)}
  onOpenInvites={() => setIsFamilyInvitesOpen(true)}
  onOpenNotifications={() => setIsNotificationsOpen(true)}
+ onOpenFacialRegistration={() => setIsFacialRegistrationOpen(true)}
  unreadCount={unreadCount}
  unreadLogs={unreadLogs}
  />
@@ -353,6 +360,7 @@ notes: 'Encerramento de plantão validado com selfie facial e geolocalização.'
  onRefreshHistory={handleRefreshHistory}
  onOpenAddPresence={() => setIsAddPresenceModalOpen(true)}
  onOpenResidenceConfig={() => setIsResidenceModalOpen(true)}
+ onOpenFacialRegistration={() => setIsFacialRegistrationOpen(true)}
  />
  )}
 
