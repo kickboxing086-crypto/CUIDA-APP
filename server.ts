@@ -1073,6 +1073,28 @@ async function startServer() {
     res.json({ success: true, user: safeUser });
   });
 
+  // Atualizar Perfil de Usuário Geral
+  app.put('/api/users/:id', (req, res) => {
+    const { id } = req.params;
+    const { name, last_name, email, phone, avatar_url, facial_registered, facial_photo_url } = req.body;
+
+    const user = db.users.find((u) => u.id === id);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+    if (name) user.name = String(name).trim();
+    if (last_name !== undefined) (user as any).last_name = String(last_name).trim();
+    if (email !== undefined) user.email = String(email).trim();
+    if (phone !== undefined) (user as any).phone = String(phone).trim();
+    if (avatar_url) user.avatar_url = avatar_url;
+    if (facial_registered !== undefined) (user as any).facial_registered = Boolean(facial_registered);
+    if (facial_photo_url) (user as any).facial_photo_url = facial_photo_url;
+
+    saveDb();
+
+    const { password: _, ...safeUser } = user;
+    res.json({ success: true, user: safeUser });
+  });
+
   // Atualizar Nível de Acesso (RBAC) do Usuário (Apenas Admin Geral)
   app.put('/api/users/:id/level', (req, res) => {
     const { id } = req.params;
