@@ -60,13 +60,13 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
  id: 'caregiver_dashboard',
  label: 'Painel do Cuidador',
  icon: LayoutDashboard,
- badge: 'Principal',
+ badge: 'Início',
  categoryGroup: 'principal' },
  {
  id: 'clock',
- label: 'Check-in & Check-out',
+ label: 'Check-in / Ponto',
  icon: Clock,
- badge: 'Auditado',
+ badge: 'Ponto',
  categoryKey: 'Controle de Ponto',
  categoryGroup: 'principal' },
  {
@@ -132,7 +132,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 
  // Quick primary tabs for fast switching on top bar
  const quickTabs = allTabs.filter((t) =>
- ['caregiver_dashboard', 'clock', 'missions', 'health'].includes(t.id)
+ ['caregiver_dashboard', 'clock', 'missions', 'health', 'meds'].includes(t.id)
  );
 
  const handleSelectTab = (tabId: AppTabType) => {
@@ -189,7 +189,13 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
  />
  )}
  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-500'}`} />
- <span>{tab.label.split(' ')[0]}</span>
+ <span>
+ {tab.id === 'caregiver_dashboard'
+ ? 'Início'
+ : tab.id === 'clock'
+ ? 'Check-in / Ponto'
+ : tab.label.split(' ')[0]}
+ </span>
  {tabUnread > 0 && (
  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse ml-0.5" />
  )}
@@ -701,6 +707,67 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
  onLogout={onLogout}
  />
  )}
+
+ {/* Barra de Navegação Rápida Inferior para Celular */}
+ <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-2 py-1.5 flex items-center justify-around shadow-lg print:hidden">
+ <button
+ type="button"
+ onClick={() => setActiveTab('caregiver_dashboard')}
+ className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-[10px] font-bold transition-colors cursor-pointer ${
+ activeTab === 'caregiver_dashboard' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'
+ }`}
+ >
+ <LayoutDashboard className="w-4 h-4" />
+ <span>Início</span>
+ </button>
+
+ <button
+ type="button"
+ onClick={() => setActiveTab('clock')}
+ className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-[10px] font-bold transition-colors cursor-pointer ${
+ activeTab === 'clock'
+ ? 'text-blue-600 font-extrabold'
+ : 'text-slate-600 hover:text-slate-900'
+ }`}
+ >
+ <div className="relative">
+ <Clock className={`w-4 h-4 ${activeTab === 'clock' ? 'text-blue-600' : 'text-slate-600'}`} />
+ <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />
+ </div>
+ <span>Check-in/Out</span>
+ </button>
+
+ <button
+ type="button"
+ onClick={() => setActiveTab('missions')}
+ className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-[10px] font-bold transition-colors cursor-pointer ${
+ activeTab === 'missions' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'
+ }`}
+ >
+ <CheckSquare className="w-4 h-4" />
+ <span>Missões</span>
+ </button>
+
+ <button
+ type="button"
+ onClick={() => setActiveTab('health')}
+ className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-[10px] font-bold transition-colors cursor-pointer ${
+ activeTab === 'health' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'
+ }`}
+ >
+ <Heart className="w-4 h-4" />
+ <span>Saúde</span>
+ </button>
+
+ <button
+ type="button"
+ onClick={() => setIsMenuOpen(true)}
+ className="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-[10px] font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+ >
+ <Menu className="w-4 h-4" />
+ <span>Mais</span>
+ </button>
+ </nav>
  </>
  );
 };

@@ -3,6 +3,7 @@ import { LogIn, LogOut, MapPin, ShieldCheck, UserCheck, Clock, AlertTriangle, Hi
 import { ElderlyProfile, TimeEntry, User } from '../types';
 import { api } from '../services/api';
 import { CameraCaptureModal } from './CameraCaptureModal';
+import { OfficialClockBadge } from './OfficialClockBadge';
 
 interface TimeClockViewProps {
  currentUser: User;
@@ -221,6 +222,9 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
 
  return (
  <div className="space-y-6">
+ {/* Relógio Oficial Auditado */}
+ <OfficialClockBadge />
+
  {/* Top Banner: Elderly in care & Residence Geofence Info */}
  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

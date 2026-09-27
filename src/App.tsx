@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { HeaderNav, AppTabType } from './components/HeaderNav';
-import { OfficialClockBadge } from './components/OfficialClockBadge';
 import { CaregiverDashboardView } from './components/CaregiverDashboardView';
 import { DailyMissionsAdminView } from './components/DailyMissionsAdminView';
 import { DailyIncidentReportView } from './components/DailyIncidentReportView';
@@ -25,7 +24,6 @@ import { api, loadInitialElderly, persistElderlyCache } from './services/api';
 import { ElderlyProfile, User } from './types';
 import { ElderCaneLogo } from './components/ElderCaneLogo';
 import { ShieldCheck } from "lucide-react";
-import { ResidenceAddressNotice } from './components/ResidenceAddressNotice';
 import { FooterBranding } from './components/FooterBranding';
 
 export default function App() {
@@ -288,19 +286,7 @@ export default function App() {
  />
 
  {/* Main Content Area with complete mobile scrolling */}
- <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 space-y-4 sm:space-y-6 pb-20 sm:pb-16 overflow-y-visible">
- {/* Real-time Official Server Clock Banner (Always visible in all operations) */}
- <div className="print:hidden">
- <OfficialClockBadge />
- </div>
-
- {/* Aviso Obrigatório de Endereço da Residência Pendente */}
- <ResidenceAddressNotice
- currentUser={currentUser}
- elderly={elderly}
- onOpenResidenceModal={() => setIsResidenceModalOpen(true)}
- />
-
+ <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 space-y-4 sm:space-y-6 pb-24 sm:pb-16 overflow-y-visible">
  {/* Tab View Routing */}
  {activeTab === 'caregiver_dashboard' && (
  <CaregiverDashboardView
@@ -308,7 +294,6 @@ export default function App() {
  elderly={elderly}
  onNavigateTab={setActiveTab}
  onOpenAddPresence={() => setIsAddPresenceModalOpen(true)}
- onOpenLiveCamera={handleOpenLiveCamera}
  onOpenResidenceConfig={() => setIsResidenceModalOpen(true)}
  onOpenInvites={() => setIsFamilyInvitesOpen(true)}
  onOpenNotifications={() => setIsNotificationsOpen(true)}
