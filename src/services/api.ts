@@ -71,12 +71,12 @@ function persistFamiliesCache(fams: Family[]) {
 
 function loadInitialUsers(): User[] {
   const master: User = {
-    id: 'usr-admin-samuel',
-    name: 'Samuel (Administrador Geral)',
+    id: 'usr-admin-master',
+    name: 'Administrador Geral',
     last_name: 'Geral',
-    username: 'Samuel_02',
-    password: '072131Sa@',
-    email: 'samuel.admin@cuida.com.br',
+    username: 'adm1234@',
+    password: '072131sa',
+    email: 'admin@cuida.com.br',
     phone: '(11) 99999-0000',
     role: 'admin_geral',
     roles: ['admin_geral'],
@@ -98,8 +98,8 @@ function loadInitialUsers(): User[] {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const hasSamuel = parsed.some((u: User) => u.username?.toLowerCase() === 'samuel_02');
-        if (!hasSamuel) parsed.unshift(master);
+        const hasAdmin = parsed.some((u: User) => u.username?.toLowerCase() === 'adm1234@' || u.id === 'usr-admin-master');
+        if (!hasAdmin) parsed.unshift(master);
         return parsed;
       }
     }
@@ -111,8 +111,8 @@ let INITIAL_USERS: User[] = loadInitialUsers();
 
 function persistUsersToCache(newList: User[]) {
   INITIAL_USERS = [...newList];
-  const hasSamuel = INITIAL_USERS.some((u) => u.username?.toLowerCase() === 'samuel_02');
-  if (!hasSamuel) {
+  const hasAdmin = INITIAL_USERS.some((u) => u.username?.toLowerCase() === 'adm1234@' || u.id === 'usr-admin-master');
+  if (!hasAdmin) {
     const master = loadInitialUsers()[0];
     INITIAL_USERS.unshift(master);
   }
@@ -1313,6 +1313,23 @@ export const api = {
     }
     if (!res.ok && res.error) {
       throw new Error(res.error || 'Falha ao remover login');
+    }
+  },
+
+  async selfDeleteAccount(userId: string): Promise<void> {
+    const res = await safeFetchJson(`/api/users/${userId}?is_self_delete=true&requesting_user_id=${userId}`, {
+      method: 'DELETE',
+    });
+    const idx = INITIAL_USERS.findIndex((u) => u.id === userId);
+    if (idx !== -1) {
+      INITIAL_USERS.splice(idx, 1);
+      persistUsersToCache(INITIAL_USERS);
+    }
+    try {
+      localStorage.removeItem('cuida_session_user');
+    } catch {}
+    if (!res.ok && res.error) {
+      throw new Error(res.error || 'Falha ao excluir a própria conta.');
     }
   },
 

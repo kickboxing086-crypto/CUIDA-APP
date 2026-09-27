@@ -35,12 +35,12 @@ async function startServer() {
 
   const defaultUsers = [
     {
-      id: 'usr-admin-samuel',
-      name: 'Samuel (Administrador Geral)',
+      id: 'usr-admin-master',
+      name: 'Administrador Geral',
       last_name: 'Geral',
-      username: 'Samuel_02',
-      password: '072131Sa@',
-      email: 'samuel.admin@cuida.com.br',
+      username: 'adm1234@',
+      password: '072131sa',
+      email: 'admin@cuida.com.br',
       phone: '(11) 99999-0000',
       role: 'admin_geral',
       roles: ['admin_geral'],
@@ -95,20 +95,21 @@ async function startServer() {
     if (fs.existsSync(DB_FILE)) {
       const loaded = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
       if (loaded.users && Array.isArray(loaded.users)) {
-        // Ensure Samuel_02 is always present with official credentials
-        const samuelInDb = loaded.users.find((u: any) => u.username === 'Samuel_02');
-        if (!samuelInDb) {
+        // Ensure adm1234@ is always present with official credentials
+        const adminInDb = loaded.users.find((u: any) => u.username?.toLowerCase() === 'adm1234@' || u.id === 'usr-admin-master');
+        if (!adminInDb) {
           loaded.users.unshift(defaultUsers[0]);
         } else {
-          samuelInDb.password = '072131Sa@';
-          samuelInDb.role = 'admin_geral';
+          adminInDb.username = 'adm1234@';
+          adminInDb.password = '072131sa';
+          adminInDb.role = 'admin_geral';
         }
         db.users = loaded.users;
       }
       if (loaded.elderly && typeof loaded.elderly === 'object' && loaded.elderly.id) {
         db.elderly = loaded.elderly;
       }
-      if (loaded.families && Array.isArray(loaded.families) && loaded.families.length > 0) {
+      if (loaded.families && Array.isArray(loaded.families)) {
         db.families = loaded.families;
       }
       if (loaded.timeEntries) db.timeEntries = loaded.timeEntries;
@@ -125,150 +126,17 @@ async function startServer() {
     console.warn('[CUIDA DB] Aviso ao ler cuida-data-store.json:', err);
   }
 
-  // Ensure default shift schedule exists if empty
-  if (!db.shiftSchedules || db.shiftSchedules.length === 0) {
-    db.shiftSchedules = [
-      {
-        id: 'sch-default-01',
-        family_id: 'fam-01',
-        user_id: 'usr-01',
-        user_name: 'Clara Mendes',
-        user_role: 'caregiver',
-        day_of_week_number: 1, // Segunda
-        day_label: 'Segunda-feira',
-        start_time: '08:00',
-        end_time: '20:00',
-        tolerance_minutes: 60,
-        active: true,
-        notes: 'Plantão diurno titular (8h às 20h)',
-        created_at: '2026-01-01T00:00:00Z',
-        created_by_user_id: 'usr-admin-samuel',
-        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
-      },
-      {
-        id: 'sch-default-02',
-        family_id: 'fam-01',
-        user_id: 'usr-01',
-        user_name: 'Clara Mendes',
-        user_role: 'caregiver',
-        day_of_week_number: 2, // Terça
-        day_label: 'Terça-feira',
-        start_time: '08:00',
-        end_time: '20:00',
-        tolerance_minutes: 60,
-        active: true,
-        notes: 'Plantão diurno titular (8h às 20h)',
-        created_at: '2026-01-01T00:00:00Z',
-        created_by_user_id: 'usr-admin-samuel',
-        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
-      },
-      {
-        id: 'sch-default-03',
-        family_id: 'fam-01',
-        user_id: 'usr-01',
-        user_name: 'Clara Mendes',
-        user_role: 'caregiver',
-        day_of_week_number: 3, // Quarta
-        day_label: 'Quarta-feira',
-        start_time: '08:00',
-        end_time: '20:00',
-        tolerance_minutes: 60,
-        active: true,
-        notes: 'Plantão diurno titular (8h às 20h)',
-        created_at: '2026-01-01T00:00:00Z',
-        created_by_user_id: 'usr-admin-samuel',
-        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
-      },
-      {
-        id: 'sch-default-04',
-        family_id: 'fam-01',
-        user_id: 'usr-01',
-        user_name: 'Clara Mendes',
-        user_role: 'caregiver',
-        day_of_week_number: 4, // Quinta
-        day_label: 'Quinta-feira',
-        start_time: '08:00',
-        end_time: '20:00',
-        tolerance_minutes: 60,
-        active: true,
-        notes: 'Plantão diurno titular (8h às 20h)',
-        created_at: '2026-01-01T00:00:00Z',
-        created_by_user_id: 'usr-admin-samuel',
-        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
-      },
-      {
-        id: 'sch-default-05',
-        family_id: 'fam-01',
-        user_id: 'usr-01',
-        user_name: 'Clara Mendes',
-        user_role: 'caregiver',
-        day_of_week_number: 5, // Sexta
-        day_label: 'Sexta-feira',
-        start_time: '08:00',
-        end_time: '20:00',
-        tolerance_minutes: 60,
-        active: true,
-        notes: 'Plantão diurno titular (8h às 20h)',
-        created_at: '2026-01-01T00:00:00Z',
-        created_by_user_id: 'usr-admin-samuel',
-        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
-      },
-      {
-        id: 'sch-default-06',
-        family_id: 'fam-01',
-        user_id: 'usr-01',
-        user_name: 'Clara Mendes',
-        user_role: 'caregiver',
-        day_of_week_number: 6, // Sábado
-        day_label: 'Sábado',
-        start_time: '08:00',
-        end_time: '20:00',
-        tolerance_minutes: 60,
-        active: true,
-        notes: 'Plantão de fim de semana (8h às 20h)',
-        created_at: '2026-01-01T00:00:00Z',
-        created_by_user_id: 'usr-admin-samuel',
-        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
-      },
-      {
-        id: 'sch-default-07',
-        family_id: 'fam-01',
-        user_id: 'usr-01',
-        user_name: 'Clara Mendes',
-        user_role: 'caregiver',
-        day_of_week_number: 0, // Domingo
-        day_label: 'Domingo',
-        start_time: '08:00',
-        end_time: '20:00',
-        tolerance_minutes: 60,
-        active: true,
-        notes: 'Plantão de fim de semana (8h às 20h)',
-        created_at: '2026-01-01T00:00:00Z',
-        created_by_user_id: 'usr-admin-samuel',
-        created_by_name: 'Dr. Fernando Silveira (Administrador Familiar)',
-      },
-    ];
+  // Shift schedules list starts clean
+  if (!db.shiftSchedules) {
+    db.shiftSchedules = [];
   }
 
-  // Ensure default elderly and family exist
+  // Ensure elderly object format
   if (!db.elderly || !db.elderly.id) {
     db.elderly = { ...defaultElderly };
   }
-  if (!db.families || db.families.length === 0) {
-    db.families = [
-      {
-        id: 'fam-01',
-        name: 'Família Silveira',
-        elderly_name: db.elderly.full_name || 'Dona Maria Silveira',
-        elderly_id: db.elderly.id || 'eld-01',
-        residence_address: db.elderly.residence_address || 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP',
-        residence_lat: db.elderly.residence_lat || -23.5505,
-        residence_long: db.elderly.residence_long || -46.6333,
-        allowed_radius_meters: db.elderly.allowed_radius_meters || 150,
-        residence_cep: db.elderly.residence_cep || '01310-100',
-        created_at: '2026-01-01T00:00:00Z',
-      },
-    ];
+  if (!db.families) {
+    db.families = [];
   }
 
   function saveDb() {
@@ -471,8 +339,8 @@ async function startServer() {
     res.json({
       families: directory,
       master_admin: {
-        username: 'Samuel_02',
-        name: 'Samuel (Administrador Geral)',
+        username: 'adm1234@',
+        name: 'Administrador Geral',
         role: 'admin_geral',
         role_label: 'Administrador Geral Master',
       },
@@ -1347,30 +1215,27 @@ async function startServer() {
     res.status(201).json({ success: true, log });
   });
 
-  // Excluir Login (Admin Geral ou Admin Familiar)
-  app.delete('/api/users/:id', (req, res) => {
+  // Excluir Login (Admin Geral, Admin Familiar ou Autoexclusão pelo próprio usuário)
+  app.delete(['/api/users/:id', '/api/users/:id/self-delete'], (req, res) => {
     const { id } = req.params;
-    const { requesting_user_id } = req.query;
+    const { requesting_user_id, is_self_delete } = req.query;
 
-    const requester = db.users.find((u) => u.id === requesting_user_id);
-    if (requester && requester.role !== 'admin_geral' && requester.role !== 'admin_family' && !requester.roles?.includes('admin_family')) {
-      return res.status(403).json({
-        error: 'Permissão negada',
-        message: 'Apenas Administradores podem excluir logins.',
-      });
+    const isSelfDelete = is_self_delete === 'true' || requesting_user_id === id;
+    const requester = db.users.find((u) => u.id === requesting_user_id) || (isSelfDelete ? db.users.find((u) => u.id === id) : null);
+
+    if (!isSelfDelete) {
+      if (requester && requester.role !== 'admin_geral' && requester.role !== 'admin_family' && !requester.roles?.includes('admin_family')) {
+        return res.status(403).json({
+          error: 'Permissão negada',
+          message: 'Apenas Administradores podem excluir logins de outros usuários.',
+        });
+      }
     }
 
-    if (id === 'usr-admin-samuel') {
+    if (id === 'usr-admin-master' || id === 'usr-admin-samuel') {
       return res.status(400).json({
         error: 'Ação não permitida',
-        message: 'A conta de Administrador Geral Master Samuel_02 não pode ser removida.',
-      });
-    }
-
-    if (requester && requester.id === id) {
-      return res.status(400).json({
-        error: 'Ação não permitida',
-        message: 'Você não pode excluir sua própria conta de login ativa.',
+        message: 'A conta de Administrador Geral Master adm1234@ é protegida e não pode ser removida.',
       });
     }
 
@@ -1388,18 +1253,22 @@ async function startServer() {
 
     logActivity({
       family_id: removed.family_id || 'fam-01',
-      user_id: requester?.id || 'usr-admin-samuel',
-      user_name: requester?.name || 'Administrador',
-      user_role: requester?.role || 'admin_geral',
+      user_id: removed.id,
+      user_name: removed.name,
+      user_role: removed.role || 'caregiver',
       action_type: 'vitals_edited',
       category: 'Mural',
-      description: `Login "${removed.username}" (${removed.name}) foi excluído pelo administrador.`,
-      details: `Funções: ${removed.roles?.join(', ') || removed.role}.`,
+      description: isSelfDelete
+        ? `Conta "${removed.username}" (${removed.name}) foi encerrada e excluída pelo próprio usuário.`
+        : `Login "${removed.username}" (${removed.name}) foi excluído pelo administrador.`,
+      details: `Funções que foram revogadas: ${removed.roles?.join(', ') || removed.role}.`,
     });
 
     res.json({
       success: true,
-      message: `Login "${removed.username}" (${removed.name}) foi excluído com sucesso.`,
+      message: isSelfDelete
+        ? `Sua conta "${removed.username}" foi excluída definitivamente com sucesso.`
+        : `Login "${removed.username}" (${removed.name}) foi excluído com sucesso.`,
     });
   });
 
