@@ -1,4 +1,5 @@
 export type FamilyMemberClassification =
+
   | 'irmao_irma'
   | 'filho_filha'
   | 'esposo_esposa'
@@ -177,6 +178,7 @@ export interface FamilyActivityLog {
     | 'Mural';
   description: string;
   details?: string;
+  photo_url?: string;
   created_at: string;
   formatted_time?: string;
 }
@@ -206,6 +208,9 @@ export interface TimeEntry {
   user_id: string;
   user_name?: string;
   elderly_id: string;
+  family_id?: string;
+  family_name?: string;
+  residence_address?: string;
   entry_time: string;
   entry_photo_url: string;
   exit_time: string | null;

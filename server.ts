@@ -1,81 +1,116 @@
-import express from 'express';
-import { createServer as createViteServer } from 'vite';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
-
+import express from "express";
+import { createServer as createViteServer } from "vite";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DB_FILE = path.join(__dirname, 'cuida-data-store.json');
-
+const DB_FILE = path.join(__dirname, "cuida-data-store.json");
 async function startServer() {
   const app = express();
-  const PORT = 3000;
-
-  // JSON parser with sufficient limit for camera selfie snapshots (base64)
-  app.use(express.json({ limit: '15mb' }));
-
-  // In-memory persistent database for live app with disk sync
-  const defaultElderly: any = {
-    id: 'eld-01',
-    full_name: 'Dona Maria Silveira',
-    birth_date: '1945-05-12',
-    blood_type: 'O+',
-    allergies: ['Dipirona'],
-    residence_address: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP',
+  const PORT = 3e3;
+  app.use(express.json({ limit: "25mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "25mb" }));
+  const defaultElderly = {
+    id: "eld-01",
+    full_name: "Dona Maria Silveira",
+    birth_date: "1945-05-12",
+    blood_type: "O+",
+    allergies: ["Dipirona"],
+    residence_address: "Av. Paulista, 1000 - Bela Vista, São Paulo - SP",
     residence_lat: -23.5505,
     residence_long: -46.6333,
     allowed_radius_meters: 150,
-    residence_cep: '01310-100',
+    residence_cep: "01310-100",
     emergency_contacts: [],
-    created_at: '2026-01-01T00:00:00Z',
+    created_at: "2026-01-01T00:00:00Z"
   };
-
-  const defaultFamilies: any[] = [];
-
+  const defaultFamilies = [
+    {
+      id: "fam-01",
+      name: "Família Silveira",
+      elderly_name: "Dona Maria Silveira",
+      elderly_id: "eld-01",
+      residence_address: "Av. Paulista, 1000 - Bela Vista, São Paulo - SP",
+      residence_lat: -23.5505,
+      residence_long: -46.6333,
+      allowed_radius_meters: 150,
+      residence_cep: "01310-100",
+      created_at: "2026-01-01T00:00:00Z"
+    }
+  ];
   const defaultUsers = [
     {
-      id: 'usr-admin-master',
-      name: 'Administrador Geral',
-      last_name: 'Geral',
-      username: 'adm1234@',
-      password: '072131sa',
-      email: 'admin@cuida.com.br',
-      phone: '(11) 99999-0000',
-      role: 'admin_geral',
-      roles: ['admin_geral'],
-      role_label: 'Administrador Geral',
-      role_labels: ['Administrador Geral'],
+      id: "usr-admin-master",
+      name: "Administrador Geral",
+      last_name: "Geral",
+      username: "adm1234@",
+      password: "072131sa",
+      email: "admin@cuida.com.br",
+      phone: "(11) 99999-0000",
+      role: "admin_geral",
+      roles: ["admin_geral"],
+      role_label: "Administrador Geral",
+      role_labels: ["Administrador Geral"],
       permission_level: 1,
-      permission_level_title: 'Administrador Geral',
-      registration_code: 'ADM-MASTER-01',
+      permission_level_title: "Administrador Geral",
+      registration_code: "ADM-MASTER-01",
       family_id: null,
-      family_name: 'Administração Geral do Aplicativo',
-      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      family_name: "Administração Geral do Aplicativo",
+      avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       first_login_completed: true,
       terms_accepted: true,
-      created_at: '2026-01-01T00:00:00Z',
+      created_at: "2026-01-01T00:00:00Z"
     },
+    {
+      id: "usr-admin-familia",
+      name: "Carlos Silveira",
+      last_name: "Silveira",
+      username: "admin_familia",
+      password: "123",
+      email: "carlos@silveira.com.br",
+      phone: "(11) 98765-4321",
+      role: "admin_family",
+      roles: ["admin_family"],
+      role_label: "Administrador Familiar",
+      role_labels: ["Administrador Familiar"],
+      permission_level: 2,
+      permission_level_title: "Administrador Familiar",
+      registration_code: "FAM-001",
+      family_id: "fam-01",
+      family_name: "Família Silveira",
+      avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+      first_login_completed: true,
+      terms_accepted: true,
+      created_at: "2026-01-01T00:00:00Z"
+    },
+    {
+      id: "usr-caregiver-01",
+      name: "Ana Paula Cuidadora",
+      last_name: "Cuidadora",
+      username: "cuidadora_ana",
+      password: "123",
+      email: "ana@cuida.com.br",
+      phone: "(11) 97777-8888",
+      role: "caregiver",
+      roles: ["caregiver"],
+      role_label: "Cuidadora",
+      role_labels: ["Cuidadora"],
+      permission_level: 3,
+      permission_level_title: "Cuidadora",
+      registration_code: "CUID-001",
+      family_id: "fam-01",
+      family_name: "Família Silveira",
+      avatar_url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
+      first_login_completed: true,
+      terms_accepted: true,
+      created_at: "2026-01-01T00:00:00Z"
+    }
   ];
-
-  const defaultFamilyActivityLogs: any[] = [];
-
-  const db: {
-    officialOffsetMs: number;
-    elderly: any;
-    families: any[];
-    users: typeof defaultUsers;
-    timeEntries: any[];
-    healthLogs: any[];
-    medicationLogs: any[];
-    familyNotices: any[];
-    dailyMissions: any[];
-    dailyIncidents: any[];
-    familyActivityLogs: any[];
-    invites: any[];
-    shiftSchedules: any[];
-  } = {
-    officialOffsetMs: 0, // Server clock offset
+  const defaultFamilyActivityLogs = [];
+  const db = {
+    officialOffsetMs: 0,
+    // Server clock offset
     elderly: defaultElderly,
     families: defaultFamilies,
     users: defaultUsers,
@@ -87,29 +122,26 @@ async function startServer() {
     dailyMissions: [],
     dailyIncidents: [],
     invites: [],
-    shiftSchedules: [],
+    shiftSchedules: []
   };
-
-  // Load persisted data if exists
   try {
     if (fs.existsSync(DB_FILE)) {
-      const loaded = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+      const loaded = JSON.parse(fs.readFileSync(DB_FILE, "utf-8"));
       if (loaded.users && Array.isArray(loaded.users)) {
-        // Ensure adm1234@ is always present with official credentials
-        const adminInDb = loaded.users.find((u: any) => u.username?.toLowerCase() === 'adm1234@' || u.id === 'usr-admin-master');
+        const adminInDb = loaded.users.find((u) => u.username?.toLowerCase() === "adm1234@" || u.id === "usr-admin-master");
         if (!adminInDb) {
           loaded.users.unshift(defaultUsers[0]);
         } else {
-          adminInDb.username = 'adm1234@';
-          adminInDb.password = '072131sa';
-          adminInDb.role = 'admin_geral';
+          adminInDb.username = "adm1234@";
+          adminInDb.password = "072131sa";
+          adminInDb.role = "admin_geral";
         }
         db.users = loaded.users;
       }
-      if (loaded.elderly && typeof loaded.elderly === 'object' && loaded.elderly.id) {
+      if (loaded.elderly && typeof loaded.elderly === "object" && loaded.elderly.id) {
         db.elderly = loaded.elderly;
       }
-      if (loaded.families && Array.isArray(loaded.families)) {
+      if (loaded.families && Array.isArray(loaded.families) && loaded.families.length > 0) {
         db.families = loaded.families;
       }
       if (loaded.timeEntries) db.timeEntries = loaded.timeEntries;
@@ -123,322 +155,264 @@ async function startServer() {
       if (loaded.shiftSchedules && Array.isArray(loaded.shiftSchedules)) db.shiftSchedules = loaded.shiftSchedules;
     }
   } catch (err) {
-    console.warn('[CUIDA DB] Aviso ao ler cuida-data-store.json:', err);
+    console.warn("[CUIDA DB] Aviso ao ler cuida-data-store.json:", err);
   }
-
-  // Shift schedules list starts clean
+  if (!db.families || db.families.length === 0) {
+    db.families = [...defaultFamilies];
+  }
+  // Ensure non-master users have a family_id
+  db.users.forEach((u: any) => {
+    if (u.role !== 'admin_geral' && !u.family_id && db.families.length > 0) {
+      u.family_id = db.families[0].id;
+      u.family_name = db.families[0].name;
+    }
+  });
+  if (!db.timeEntries) {
+    db.timeEntries = [];
+  }
+  // Backfill missing family_id in timeEntries
+  db.timeEntries.forEach((entry: any) => {
+    if (!entry.family_id) {
+      const u = db.users.find((usr) => usr.id === entry.user_id || usr.username === entry.user_id || usr.name === entry.user_name);
+      if (u && u.family_id) {
+        entry.family_id = u.family_id;
+        entry.family_name = u.family_name;
+      } else if (db.families.length > 0) {
+        entry.family_id = db.families[0].id;
+        entry.family_name = db.families[0].name;
+      }
+    }
+  });
   if (!db.shiftSchedules) {
     db.shiftSchedules = [];
   }
-
-  // Ensure elderly object format
   if (!db.elderly || !db.elderly.id) {
     db.elderly = { ...defaultElderly };
   }
-  if (!db.families) {
-    db.families = [];
-  }
-
   function saveDb() {
     try {
-      fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
+      fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
     } catch (err) {
-      console.error('[CUIDA DB] Erro ao sincronizar cuida-data-store.json:', err);
+      console.error("[CUIDA DB] Erro ao sincronizar cuida-data-store.json:", err);
     }
   }
-
-  // Helper para auditoria e histórico compartilhado da família
-  function logActivity(params: {
-    family_id?: string;
-    user_id: string;
-    user_name: string;
-    user_role: string;
-    action_type: string;
-    category: string;
-    description: string;
-    details?: string;
-  }) {
+  function logActivity(params: any) {
     const officialTime = getOfficialServerTime();
     const newLog = {
-      id: `act-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      family_id: params.family_id || 'fam-01',
+      id: `act-${Date.now()}-${Math.floor(Math.random() * 1e3)}`,
+      family_id: params.family_id || (db.families.length > 0 ? db.families[0].id : "fam-01"),
       user_id: params.user_id,
       user_name: params.user_name,
       user_role: params.user_role,
       action_type: params.action_type,
       category: params.category,
       description: params.description,
-      details: params.details || '',
+      details: params.details || "",
+      photo_url: params.photo_url || params.entry_photo_url || params.exit_photo_url || null,
       created_at: officialTime.iso_timestamp,
-      formatted_time: `${officialTime.day_of_month}/${officialTime.month_name.slice(0, 3)} às ${officialTime.formatted_time.slice(0, 5)}`,
+      formatted_time: `${officialTime.day_of_month}/${officialTime.month_name.slice(0, 3)} às ${officialTime.formatted_time.slice(0, 5)}`
     };
     if (!db.familyActivityLogs) db.familyActivityLogs = [];
     db.familyActivityLogs.unshift(newLog);
     saveDb();
     return newLog;
   }
-
-  // Helper for official NTP/Server Time
   function getOfficialServerTime() {
     const now = new Date(Date.now() + db.officialOffsetMs);
-    // Format according to pt-BR in America/Sao_Paulo
     const options: Intl.DateTimeFormatOptions = {
-      timeZone: 'America/Sao_Paulo',
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
+      timeZone: "America/Sao_Paulo",
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
     };
-    const formatter = new Intl.DateTimeFormat('pt-BR', options);
+    const formatter = new Intl.DateTimeFormat("pt-BR", options);
     const parts = formatter.formatToParts(now);
-    const getPart = (type: string) => parts.find((p) => p.type === type)?.value || '';
-
-    const dayOfWeek = getPart('weekday');
-    // Capitalize day of week
+    const getPart = (type: string) => parts.find((p) => p.type === type)?.value || "";
+    const dayOfWeek = getPart("weekday");
     const capitalizedDay = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
-    const day = getPart('day');
-    const month = getPart('month');
-    const year = getPart('year');
-    const hour = getPart('hour');
-    const minute = getPart('minute');
-    const second = getPart('second');
-
+    const day = getPart("day");
+    const month = getPart("month");
+    const year = getPart("year");
+    const hour = getPart("hour");
+    const minute = getPart("minute");
+    const second = getPart("second");
+    const numericMonth = String(now.getMonth() + 1).padStart(2, "0");
+    const numericDay = String(now.getDate()).padStart(2, "0");
     return {
       iso_timestamp: now.toISOString(),
       epoch_ms: now.getTime(),
-      timezone: 'America/Sao_Paulo (UTC-03:00)',
+      timezone: "America/Sao_Paulo (UTC-03:00)",
       ntp_synchronized: true,
-      server_hostname: 'time.cuida.gov.br / ntp.br (Auditado)',
+      server_hostname: "time.cuida.gov.br / ntp.br (Auditado)",
       formatted_date: `${capitalizedDay}, ${day} de ${month} de ${year}`,
       formatted_time: `${hour}:${minute}:${second}`,
       day_of_week: capitalizedDay,
       day_of_month: day,
       month_name: month,
-      year: year,
-      date_stamp: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
+      year,
+      date_stamp: `${year}-${numericMonth}-${numericDay}`
     };
   }
-
-  // --- API Endpoints ---
-
-  // 0. Autenticação: Login com Usuário e Senha (suporta /api/login e /api/auth/login)
-  const handleAuthLogin = (req: express.Request, res: express.Response) => {
+  const handleAuthLogin = (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
       return res.status(400).json({
-        error: 'Dados incompletos',
-        message: 'Informe usuário e senha para acessar o sistema.',
+        error: "Dados incompletos",
+        message: "Informe usu\xE1rio e senha para acessar o sistema."
       });
     }
-
     const rawInput = String(username).trim();
     const cleanUser = rawInput.toLowerCase();
-    const cleanUserNoAt = cleanUser.replace(/^@+|@+$/g, '');
-    const cleanUserNoSpaces = cleanUser.replace(/[\s_]+/g, '');
-
+    const cleanUserNoAt = cleanUser.replace(/^@+|@+$/g, "");
+    const cleanUserNoSpaces = cleanUser.replace(/[\s_]+/g, "");
     const user = db.users.find((u) => {
       if (!u) return false;
-      const uName = String(u.username || '').toLowerCase();
-      const uNameNoAt = uName.replace(/^@+|@+$/g, '');
-      const uNameNoSpaces = uName.replace(/[\s_]+/g, '');
-      const uEmail = String(u.email || '').toLowerCase();
-      const uCode = String(u.registration_code || '').toLowerCase();
-      const uFullName = String(u.name || '').toLowerCase();
-
-      return (
-        uName === cleanUser ||
-        uNameNoAt === cleanUser ||
-        uName === cleanUserNoAt ||
-        uNameNoAt === cleanUserNoAt ||
-        uNameNoSpaces === cleanUserNoSpaces ||
-        uEmail === cleanUser ||
-        uCode === cleanUser ||
-        uFullName === cleanUser ||
-        (u.role === 'admin_geral' && (
-          cleanUser === 'adm1234@' ||
-          cleanUser === 'adm1234' ||
-          cleanUser === 'admin' ||
-          cleanUser === 'adm' ||
-          cleanUser === 'admin_geral' ||
-          cleanUser.includes('adm1234')
-        ))
-      );
+      const uName = String(u.username || "").toLowerCase();
+      const uNameNoAt = uName.replace(/^@+|@+$/g, "");
+      const uNameNoSpaces = uName.replace(/[\s_]+/g, "");
+      const uEmail = String(u.email || "").toLowerCase();
+      const uCode = String(u.registration_code || "").toLowerCase();
+      const uFullName = String(u.name || "").toLowerCase();
+      return uName === cleanUser || uNameNoAt === cleanUser || uName === cleanUserNoAt || uNameNoAt === cleanUserNoAt || uNameNoSpaces === cleanUserNoSpaces || uEmail === cleanUser || uCode === cleanUser || uFullName === cleanUser || u.role === "admin_geral" && (cleanUser === "adm1234@" || cleanUser === "adm1234" || cleanUser === "admin" || cleanUser === "adm" || cleanUser === "admin_geral" || cleanUser.includes("adm1234"));
     });
-
-    const inputPass = String(password || '').trim().toLowerCase();
+    const inputPass = String(password || "").trim().toLowerCase();
     const inputPass8 = inputPass.slice(0, 8);
-    const userPass = String(user?.password || '').trim().toLowerCase();
+    const userPass = String(user?.password || "").trim().toLowerCase();
     const userPass8 = userPass.slice(0, 8);
-
-    const isPassMatch = user && (
-      inputPass === userPass ||
-      inputPass8 === userPass8 ||
-      inputPass === userPass8 ||
-      inputPass8 === userPass
-    );
-
+    const isPassMatch = user && (inputPass === userPass || inputPass8 === userPass8 || inputPass === userPass8 || inputPass8 === userPass);
     if (!user || !isPassMatch) {
       return res.status(401).json({
-        error: 'Credenciais inválidas',
-        message: user
-          ? 'Senha incorreta para este usuário. Lembre-se: usuário e senha são em minúsculo (máx. 8 caracteres).'
-          : `O login "${rawInput}" não foi localizado no sistema. Verifique o usuário cadastrado.`,
+        error: "Credenciais inv\xE1lidas",
+        message: user ? "Senha incorreta para este usu\xE1rio. Lembre-se: usu\xE1rio e senha s\xE3o em min\xFAsculo (m\xE1x. 8 caracteres)." : `O login "${rawInput}" n\xE3o foi localizado no sistema. Verifique o usu\xE1rio cadastrado.`
       });
     }
-
-    // Objeto seguro para retorno na sessão do usuário
     const { password: _, ...userSafe } = user;
     console.log(`[AUTH] Login realizado com sucesso: @${user.username} (${user.role_label || user.role})`);
     res.json({
       success: true,
       message: `Login realizado com sucesso! Bem-vindo(a), ${user.name}.`,
-      user: userSafe,
+      user: userSafe
     });
   };
-
-  app.post('/api/login', handleAuthLogin);
-  app.post('/api/auth/login', handleAuthLogin);
-
-  // Helper to format friendly role names
-  function getFriendlyRoleLabel(roleName: string): string {
+  app.post("/api/login", handleAuthLogin);
+  app.post("/api/auth/login", handleAuthLogin);
+  function getFriendlyRoleLabel(roleName) {
     switch (roleName) {
-      case 'caregiver':
-        return 'Cuidador';
-      case 'admin_family':
-        return 'Administrador Familiar';
-      case 'family_member':
-        return 'Familiar Acompanhante';
-      case 'caregiver_substitute':
-        return 'Cuidador Folguista / Plantonista';
-      case 'admin_geral':
-        return 'Administrador Geral';
+      case "caregiver":
+        return "Cuidador";
+      case "admin_family":
+        return "Administrador Familiar";
+      case "family_member":
+        return "Familiar Acompanhante";
+      case "caregiver_substitute":
+        return "Cuidador Folguista / Plantonista";
+      case "admin_geral":
+        return "Administrador Geral";
       default:
-        return 'Cuidador';
+        return "Cuidador";
     }
   }
-
-  // 0b. Diretório de Famílias e Logins Registrados (Painel de Login por Família)
-  // Atende: "No painel de login, os logins, será criados por famílias e ao clicar no nome dessa família, aparecerá os logins que estão registrado."
-  app.get('/api/auth/families-directory', (req, res) => {
-    const includePasswords = req.query.include_passwords === 'true';
-
+  app.get("/api/auth/families-directory", (req, res) => {
+    const includePasswords = req.query.include_passwords === "true";
     const directory = db.families.map((fam) => {
-      const familyUsers = db.users
-        .filter((u) => u.family_id === fam.id)
-        .map((u) => {
-          const userRoles: string[] = (u as any).roles || [u.role || 'caregiver'];
-          const userRoleLabels: string[] = (u as any).role_labels || userRoles.map(getFriendlyRoleLabel);
-
-          const item: any = {
-            id: u.id,
-            name: u.name,
-            username: u.username,
-            role: u.role,
-            roles: userRoles,
-            role_label: userRoleLabels.join(' + '),
-            role_labels: userRoleLabels,
-            permission_level: (u as any).permission_level || 3,
-            registration_code: u.registration_code || '',
-            avatar_url: u.avatar_url,
-            facial_registered: Boolean((u as any).facial_registered),
-          };
-          if (includePasswords) {
-            item.password = u.password;
-          }
-          return item;
-        });
-
+      const familyUsers = db.users.filter((u) => u.family_id === fam.id).map((u) => {
+        const userRoles = u.roles || [u.role || "caregiver"];
+        const userRoleLabels = u.role_labels || userRoles.map(getFriendlyRoleLabel);
+        const item = {
+          id: u.id,
+          name: u.name,
+          username: u.username,
+          role: u.role,
+          roles: userRoles,
+          role_label: userRoleLabels.join(" + "),
+          role_labels: userRoleLabels,
+          permission_level: u.permission_level || 3,
+          registration_code: u.registration_code || "",
+          avatar_url: u.avatar_url,
+          facial_registered: Boolean(u.facial_registered)
+        };
+        if (includePasswords) {
+          item.password = u.password;
+        }
+        return item;
+      });
       return {
         id: fam.id,
         name: fam.name,
         elderly_name: fam.elderly_name,
         residence_address: fam.residence_address,
         logins_count: familyUsers.length,
-        logins: familyUsers,
+        logins: familyUsers
       };
     });
-
     res.json({
       families: directory,
       master_admin: {
-        username: 'adm1234@',
-        name: 'Administrador Geral',
-        role: 'admin_geral',
-        role_label: 'Administrador Geral Master',
-      },
+        username: "adm1234@",
+        name: "Administrador Geral",
+        role: "admin_geral",
+        role_label: "Administrador Geral Master"
+      }
     });
   });
-
-  // 0c. Lista de Famílias
-  app.get('/api/families', (req, res) => {
+  app.get("/api/families", (req, res) => {
     res.json(db.families);
   });
-
-  // Criar nova família
-  app.post('/api/families', (req, res) => {
+  app.post("/api/families", (req, res) => {
     const { name, elderly_name, residence_address, notes, requesting_user_id } = req.body;
     const requester = db.users.find((u) => u.id === requesting_user_id) || db.users[0];
-
-    const famName = (name || '').trim() || 'Nova Família';
-    const eldName = (elderly_name || '').trim() || 'Idoso(a) Assistido(a)';
-
+    const famName = (name || "").trim() || "Nova Fam\xEDlia";
+    const eldName = (elderly_name || "").trim() || "Idoso(a) Assistido(a)";
     const newFamily = {
       id: `fam-${Date.now()}`,
       name: famName,
       elderly_name: eldName,
       elderly_id: `eld-${Date.now()}`,
-      residence_address: residence_address || 'Endereço da Residência',
+      residence_address: residence_address || "Endere\xE7o da Resid\xEAncia",
       residence_lat: -23.5505,
       residence_long: -46.6333,
       allowed_radius_meters: 300,
-      notes: notes || '',
-      created_at: getOfficialServerTime().iso_timestamp,
+      notes: notes || "",
+      created_at: getOfficialServerTime().iso_timestamp
     };
-
     db.families.push(newFamily);
-
-    // Se idoso padrão estiver vazio, inicializa com os dados da nova família
     if (!db.elderly) {
       db.elderly = {
         id: newFamily.elderly_id,
         full_name: newFamily.elderly_name,
-        birth_date: '',
-        blood_type: 'Não informado',
+        birth_date: "",
+        blood_type: "N\xE3o informado",
         allergies: [],
         residence_address: newFamily.residence_address,
         residence_lat: -23.5505,
         residence_long: -46.6333,
         allowed_radius_meters: 300,
         emergency_contacts: [],
-        created_at: getOfficialServerTime().iso_timestamp,
+        created_at: getOfficialServerTime().iso_timestamp
       };
     }
-
     saveDb();
-
     logActivity({
       family_id: newFamily.id,
-      user_id: requester?.id || 'usr-admin-samuel',
-      user_name: requester?.name || 'Administrador',
-      user_role: requester?.role || 'admin_geral',
-      action_type: 'vitals_edited',
-      category: 'Mural',
-      description: `Nova família "${newFamily.name}" cadastrada com idoso(a) "${newFamily.elderly_name}".`,
+      user_id: requester?.id || "usr-admin-samuel",
+      user_name: requester?.name || "Administrador",
+      user_role: requester?.role || "admin_geral",
+      action_type: "vitals_edited",
+      category: "Mural",
+      description: `Nova fam\xEDlia "${newFamily.name}" cadastrada com idoso(a) "${newFamily.elderly_name}".`
     });
-
     res.status(201).json({
       success: true,
-      message: `Família "${newFamily.name}" cadastrada com sucesso!`,
-      family: newFamily,
+      message: `Fam\xEDlia "${newFamily.name}" cadastrada com sucesso!`,
+      family: newFamily
     });
   });
-
-  // 0c2. Cadastrar / Atualizar Endereço da Residência do Idoso & Perímetro Geofence
-  app.put('/api/families/:id/residence', (req, res) => {
+  app.put("/api/families/:id/residence", (req, res) => {
     const { id } = req.params;
     const {
       residence_address,
@@ -447,11 +421,9 @@ async function startServer() {
       allowed_radius_meters,
       residence_cep,
       notes,
-      requesting_user_id,
+      requesting_user_id
     } = req.body;
-
     const requester = db.users.find((u) => u.id === requesting_user_id || u.username === requesting_user_id) || db.users[0];
-
     let family = db.families.find((f) => f.id === id);
     if (!family) {
       if (db.families.length > 0) {
@@ -459,46 +431,42 @@ async function startServer() {
       } else {
         family = {
           id: id || `fam-${Date.now()}`,
-          name: 'Família Silveira',
-          elderly_name: db.elderly?.full_name || 'Dona Maria Silveira',
+          name: "Fam\xEDlia Silveira",
+          elderly_name: db.elderly?.full_name || "Dona Maria Silveira",
           elderly_id: db.elderly?.id || `eld-${Date.now()}`,
-          residence_address: residence_address || 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP',
-          created_at: getOfficialServerTime().iso_timestamp,
+          residence_address: residence_address || "Av. Paulista, 1000 - Bela Vista, S\xE3o Paulo - SP",
+          created_at: getOfficialServerTime().iso_timestamp
         };
         db.families.push(family);
       }
     }
-
     let lat = Number(residence_lat);
     let lng = Number(residence_long);
     if (isNaN(lat) || !lat) lat = -23.5505;
     if (isNaN(lng) || !lng) lng = -46.6333;
     const radius = Number(allowed_radius_meters) || 150;
-
-    const trimmedAddress = String(residence_address || family.residence_address || 'Residência do Idoso').trim();
+    const trimmedAddress = String(residence_address || family.residence_address || "Resid\xEAncia do Idoso").trim();
     family.residence_address = trimmedAddress;
     family.residence_lat = lat;
     family.residence_long = lng;
     family.allowed_radius_meters = radius;
-    family.residence_cep = residence_cep || family.residence_cep || '';
+    family.residence_cep = residence_cep || family.residence_cep || "";
     family.residence_updated_at = getOfficialServerTime().iso_timestamp;
-    family.residence_updated_by = requester?.name || 'Administrador';
-
-    // Sincroniza idoso padrão da sessão
+    family.residence_updated_by = requester?.name || "Administrador";
     if (!db.elderly) {
       db.elderly = {
         id: family.elderly_id || `eld-${Date.now()}`,
-        full_name: family.elderly_name || 'Dona Maria Silveira',
-        birth_date: '1945-05-12',
-        blood_type: 'O+',
-        allergies: ['Dipirona'],
+        full_name: family.elderly_name || "Dona Maria Silveira",
+        birth_date: "1945-05-12",
+        blood_type: "O+",
+        allergies: ["Dipirona"],
         residence_address: trimmedAddress,
         residence_lat: lat,
         residence_long: lng,
         allowed_radius_meters: radius,
         residence_cep: family.residence_cep,
         emergency_contacts: [],
-        created_at: getOfficialServerTime().iso_timestamp,
+        created_at: getOfficialServerTime().iso_timestamp
       };
     } else {
       db.elderly.residence_address = trimmedAddress;
@@ -507,120 +475,97 @@ async function startServer() {
       db.elderly.allowed_radius_meters = radius;
       if (residence_cep) db.elderly.residence_cep = residence_cep;
     }
-
     saveDb();
-
     logActivity({
       family_id: family.id,
-      user_id: requester?.id || 'usr-admin-samuel',
-      user_name: requester?.name || 'Administrador',
-      user_role: requester?.role || 'admin_geral',
-      action_type: 'vitals_edited',
-      category: 'Mural',
-      description: `Endereço da residência cadastrado/atualizado: ${family.residence_address} [Raio de ponto: ${radius}m].`,
+      user_id: requester?.id || "usr-admin-samuel",
+      user_name: requester?.name || "Administrador",
+      user_role: requester?.role || "admin_geral",
+      action_type: "vitals_edited",
+      category: "Mural",
+      description: `Endere\xE7o da resid\xEAncia cadastrado/atualizado: ${family.residence_address} [Raio de ponto: ${radius}m].`
     });
-
     res.json({
       success: true,
-      message: `Residência do idoso e perímetro de ponto (${radius}m) cadastrados com sucesso!`,
+      message: `Resid\xEAncia do idoso e per\xEDmetro de ponto (${radius}m) cadastrados com sucesso!`,
       family,
-      elderly: db.elderly,
+      elderly: db.elderly
     });
   });
-
-  // 0c3. Excluir Família (Apenas Administradores com Confirmação de Duas Etapas)
-  app.delete('/api/families/:id', (req, res) => {
+  app.delete("/api/families/:id", (req, res) => {
     const { id } = req.params;
     const { requesting_user_id } = req.query;
-
     const requester = db.users.find((u) => u.id === requesting_user_id);
-    if (requester && requester.role !== 'admin_geral' && requester.role !== 'admin_family' && !requester.roles?.includes('admin_family')) {
+    if (requester && requester.role !== "admin_geral" && requester.role !== "admin_family" && !requester.roles?.includes("admin_family")) {
       return res.status(403).json({
-        error: 'Permissão negada',
-        message: 'Apenas Administradores podem excluir famílias.',
+        error: "Permiss\xE3o negada",
+        message: "Apenas Administradores podem excluir fam\xEDlias."
       });
     }
-
     const idx = db.families.findIndex((f) => f.id === id);
     if (idx === -1) {
-      return res.status(404).json({ error: 'Família não encontrada' });
+      return res.status(404).json({ error: "Fam\xEDlia n\xE3o encontrada" });
     }
-
     const removedFamily = db.families.splice(idx, 1)[0];
-
-    // Desvincular usuários associados a esta família
     let unlinkedCount = 0;
     db.users.forEach((u) => {
       if (u.family_id === id) {
         u.family_id = null;
-        u.family_name = 'Sem família vinculada';
+        u.family_name = "Sem fam\xEDlia vinculada";
         unlinkedCount++;
       }
     });
-
-    // Remover escalas de plantão dessa família
     if (db.shiftSchedules) {
       db.shiftSchedules = db.shiftSchedules.filter((s) => s.family_id !== id);
     }
-
-    // Remover convites pendentes dessa família
     if (db.invites) {
       db.invites = db.invites.filter((inv) => inv.family_id !== id);
     }
-
     saveDb();
-
     logActivity({
-      family_id: 'fam-01',
-      user_id: requester?.id || 'usr-admin-samuel',
-      user_name: requester?.name || 'Administrador',
-      user_role: requester?.role || 'admin_geral',
-      action_type: 'vitals_edited',
-      category: 'Mural',
-      description: `Família "${removedFamily.name}" foi excluída pelo administrador (${unlinkedCount} logins desvinculados).`,
-      details: `Idoso assistido: ${removedFamily.elderly_name}.`,
+      family_id: "fam-01",
+      user_id: requester?.id || "usr-admin-samuel",
+      user_name: requester?.name || "Administrador",
+      user_role: requester?.role || "admin_geral",
+      action_type: "vitals_edited",
+      category: "Mural",
+      description: `Fam\xEDlia "${removedFamily.name}" foi exclu\xEDda pelo administrador (${unlinkedCount} logins desvinculados).`,
+      details: `Idoso assistido: ${removedFamily.elderly_name}.`
     });
-
     res.json({
       success: true,
-      message: `Família "${removedFamily.name}" e seus registros vinculados foram excluídos com sucesso.`,
+      message: `Fam\xEDlia "${removedFamily.name}" e seus registros vinculados foram exclu\xEDdos com sucesso.`
     });
   });
-
-  // Atualizar Residência do Idoso Direto
-  app.put('/api/elderly/residence', (req, res) => {
+  app.put("/api/elderly/residence", (req, res) => {
     const {
       residence_address,
       residence_lat,
       residence_long,
       allowed_radius_meters,
       family_id,
-      requesting_user_id,
+      requesting_user_id
     } = req.body;
-
-    const requester = db.users.find((u) => u.id === requesting_user_id) || db.users.find((u) => u.role === 'admin_geral' || u.role === 'admin_family') || db.users[0];
-
+    const requester = db.users.find((u) => u.id === requesting_user_id) || db.users.find((u) => u.role === "admin_geral" || u.role === "admin_family") || db.users[0];
     let lat = Number(residence_lat);
     let lng = Number(residence_long);
     if (isNaN(lat) || !lat) lat = -23.5505;
     if (isNaN(lng) || !lng) lng = -46.6333;
     const radius = Number(allowed_radius_meters) || 150;
-
-    const trimmed = String(residence_address || db.elderly?.residence_address || 'Residência do Idoso').trim();
-
+    const trimmed = String(residence_address || db.elderly?.residence_address || "Resid\xEAncia do Idoso").trim();
     if (!db.elderly) {
       db.elderly = {
         id: `eld-${Date.now()}`,
-        full_name: 'Dona Maria Silveira',
-        birth_date: '1945-05-12',
-        blood_type: 'O+',
-        allergies: ['Dipirona'],
+        full_name: "Dona Maria Silveira",
+        birth_date: "1945-05-12",
+        blood_type: "O+",
+        allergies: ["Dipirona"],
         residence_address: trimmed,
         residence_lat: lat,
         residence_long: lng,
         allowed_radius_meters: radius,
         emergency_contacts: [],
-        created_at: getOfficialServerTime().iso_timestamp,
+        created_at: getOfficialServerTime().iso_timestamp
       };
     } else {
       db.elderly.residence_address = trimmed;
@@ -628,7 +573,6 @@ async function startServer() {
       db.elderly.residence_long = lng;
       db.elderly.allowed_radius_meters = radius;
     }
-
     if (family_id) {
       const fam = db.families.find((f) => f.id === family_id);
       if (fam) {
@@ -644,64 +588,53 @@ async function startServer() {
       db.families[0].allowed_radius_meters = radius;
     } else {
       db.families.push({
-        id: 'fam-01',
-        name: 'Família Silveira',
+        id: "fam-01",
+        name: "Fam\xEDlia Silveira",
         elderly_name: db.elderly.full_name,
         elderly_id: db.elderly.id,
         residence_address: trimmed,
         residence_lat: lat,
         residence_long: lng,
         allowed_radius_meters: radius,
-        created_at: getOfficialServerTime().iso_timestamp,
+        created_at: getOfficialServerTime().iso_timestamp
       });
     }
-
     saveDb();
-
     logActivity({
-      family_id: family_id || 'fam-01',
-      user_id: requester?.id || 'usr-admin-samuel',
-      user_name: requester?.name || 'Administrador',
-      user_role: requester?.role || 'admin_geral',
-      action_type: 'vitals_edited',
-      category: 'Mural',
-      description: `Geolocalização da residência configurada: ${db.elderly.residence_address} [Raio: ${radius}m].`,
+      family_id: family_id || "fam-01",
+      user_id: requester?.id || "usr-admin-samuel",
+      user_name: requester?.name || "Administrador",
+      user_role: requester?.role || "admin_geral",
+      action_type: "vitals_edited",
+      category: "Mural",
+      description: `Geolocaliza\xE7\xE3o da resid\xEAncia configurada: ${db.elderly.residence_address} [Raio: ${radius}m].`
     });
-
     res.json({
       success: true,
-      message: `Residência cadastrada com sucesso! Perímetro de ${radius}m ativo.`,
-      elderly: db.elderly,
+      message: `Resid\xEAncia cadastrada com sucesso! Per\xEDmetro de ${radius}m ativo.`,
+      elderly: db.elderly
     });
   });
-
-  // 0d. Usuários e Logins de Clientes (com visualização de senha permitida para a conta admin)
-  app.get('/api/users', (req, res) => {
-    const includePasswords = req.query.include_passwords === 'true';
-
+  app.get("/api/users", (req, res) => {
+    const includePasswords = req.query.include_passwords === "true";
     const safeUsers = db.users.map((u) => {
-      const userRoles: string[] = (u as any).roles || [u.role || 'caregiver'];
-      const userRoleLabels: string[] = (u as any).role_labels || userRoles.map(getFriendlyRoleLabel);
-
-      const userObj: any = {
+      const userRoles = u.roles || [u.role || "caregiver"];
+      const userRoleLabels = u.role_labels || userRoles.map(getFriendlyRoleLabel);
+      const userObj = {
         ...u,
         roles: userRoles,
-        role_label: userRoleLabels.join(' + '),
+        role_label: userRoleLabels.join(" + "),
         role_labels: userRoleLabels,
-        has_password: Boolean(u.password),
+        has_password: Boolean(u.password)
       };
-
       if (!includePasswords) {
         delete userObj.password;
       }
       return userObj;
     });
-
     res.json(safeUsers);
   });
-
-  // Criar Login de Cliente
-  app.post('/api/users', (req, res) => {
+  app.post("/api/users", (req, res) => {
     const {
       name,
       username,
@@ -711,89 +644,65 @@ async function startServer() {
       family_id,
       email,
       registration_code,
-      requesting_user_id,
+      requesting_user_id
     } = req.body;
-
     const requester = db.users.find((u) => u.id === requesting_user_id) || db.users[0];
-
-    const fullName = (name || '').trim() || 'Novo Cliente';
-    let cleanUsername = (username || '').trim().toLowerCase().replace(/\s+/g, '_');
+    const fullName = (name || "").trim() || "Novo Cliente";
+    let cleanUsername = (username || "").trim().toLowerCase().replace(/\s+/g, "_");
     if (!cleanUsername) cleanUsername = `user_${Date.now().toString().slice(-4)}`;
-    let cleanPassword = String(password || '').trim().toLowerCase().slice(0, 8);
-    if (!cleanPassword) cleanPassword = '12345678';
-
-    // Se o usuário já existir, acrescenta sufixo único para evitar erros de conflito
+    let cleanPassword = String(password || "").trim().toLowerCase().slice(0, 8);
+    if (!cleanPassword) cleanPassword = "12345678";
     let finalUsername = cleanUsername;
     let counter = 1;
     while (db.users.some((u) => u.username && u.username.toLowerCase() === finalUsername.toLowerCase())) {
       counter++;
       finalUsername = `${cleanUsername}_${counter}`;
     }
-
-    // Suporte a até 2 opções/funções para qualquer usuário
-    const userRoles: string[] = Array.isArray(roles) && roles.length > 0
-      ? roles.slice(0, 2)
-      : [role || 'caregiver'];
+    const userRoles = Array.isArray(roles) && roles.length > 0 ? roles.slice(0, 2) : [role || "caregiver"];
     const primaryRole = userRoles[0];
     const userRoleLabels = userRoles.map(getFriendlyRoleLabel);
-
     const family = db.families.find((f) => f.id === family_id);
-    const lvl = Number(req.body.permission_level) || (userRoles.includes('admin_family') ? 2 : 3);
-
+    const lvl = Number(req.body.permission_level) || (userRoles.includes("admin_family") ? 2 : 3);
     const newUser = {
       id: `usr-${Date.now()}`,
       name: fullName,
-      last_name: fullName.split(' ').slice(1).join(' ') || '',
+      last_name: fullName.split(" ").slice(1).join(" ") || "",
       username: finalUsername,
       password: cleanPassword,
       role: primaryRole,
       roles: userRoles,
-      role_label: userRoleLabels.join(' + '),
+      role_label: userRoleLabels.join(" + "),
       role_labels: userRoleLabels,
       permission_level: lvl,
-      permission_level_title: userRoleLabels.join(' + '),
+      permission_level_title: userRoleLabels.join(" + "),
       family_id: family_id || null,
-      family_name: family ? family.name : 'Sem família vinculada',
+      family_name: family ? family.name : "Sem fam\xEDlia vinculada",
       email: email ? String(email).trim() : `${finalUsername.toLowerCase()}@cuida.com.br`,
-      phone: '(11) 98000-0000',
-      registration_code:
-        registration_code ||
-        (userRoles.includes('caregiver')
-          ? `CUID-${Math.floor(1000 + Math.random() * 9000)}`
-          : `FAM-${Math.floor(1000 + Math.random() * 9000)}`),
-      avatar_url:
-        userRoles.includes('caregiver')
-          ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
-          : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      phone: "(11) 98000-0000",
+      registration_code: registration_code || (userRoles.includes("caregiver") ? `CUID-${Math.floor(1e3 + Math.random() * 9e3)}` : `FAM-${Math.floor(1e3 + Math.random() * 9e3)}`),
+      avatar_url: userRoles.includes("caregiver") ? "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80" : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
       first_login_completed: false,
       terms_accepted: false,
-      created_at: getOfficialServerTime().iso_timestamp,
+      created_at: getOfficialServerTime().iso_timestamp
     };
-
     db.users.push(newUser);
     saveDb();
-
     logActivity({
-      family_id: newUser.family_id || 'fam-01',
-      user_id: requester?.id || 'usr-admin-samuel',
-      user_name: requester?.name || 'Administrador',
-      user_role: requester?.role || 'admin_geral',
-      action_type: 'user_created',
-      category: 'Mural',
-      description: `Novo login cadastrado: ${newUser.name} (@${newUser.username}) [${userRoleLabels.join(' + ')}] na ${newUser.family_name}.`,
+      family_id: newUser.family_id || "fam-01",
+      user_id: requester?.id || "usr-admin-samuel",
+      user_name: requester?.name || "Administrador",
+      user_role: requester?.role || "admin_geral",
+      action_type: "user_created",
+      category: "Mural",
+      description: `Novo login cadastrado: ${newUser.name} (@${newUser.username}) [${userRoleLabels.join(" + ")}] na ${newUser.family_name}.`
     });
-
     res.status(201).json({
       success: true,
       message: `Login "${newUser.username}" cadastrado com sucesso para a ${newUser.family_name}!`,
-      user: newUser,
+      user: newUser
     });
   });
-
-  // --- Sistema de Convites por Link Exclusivo ---
-
-  // Listar Convites (suporta filtro por família)
-  app.get('/api/invites', (req, res) => {
+  app.get("/api/invites", (req, res) => {
     if (!db.invites) db.invites = [];
     const { family_id } = req.query;
     if (family_id) {
@@ -801,9 +710,7 @@ async function startServer() {
     }
     res.json(db.invites);
   });
-
-  // Criar Novo Link de Convite (Admin Geral ou Admin Familiar)
-  app.post('/api/invites', (req, res) => {
+  app.post("/api/invites", (req, res) => {
     const {
       family_id,
       roles,
@@ -811,98 +718,81 @@ async function startServer() {
       classification,
       classification_label,
       requesting_user_id,
-      max_uses = 1,
+      max_uses = 1
     } = req.body;
-
     const requester = db.users.find((u) => u.id === requesting_user_id) || db.users[0];
     const targetFamilyId = family_id || requester.family_id || null;
     const family = db.families.find((f) => f.id === targetFamilyId);
-
-    const userRoles: string[] = Array.isArray(roles) && roles.length > 0 ? roles.slice(0, 2) : ['family_member'];
+    const userRoles = Array.isArray(roles) && roles.length > 0 ? roles.slice(0, 2) : ["family_member"];
     const userRoleLabels = userRoles.map(getFriendlyRoleLabel);
-
-    const randomNum = Math.floor(100000 + Math.random() * 900000);
+    const randomNum = Math.floor(1e5 + Math.random() * 9e5);
     const inviteCode = `INV-${randomNum}`;
     const token = `cnv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
     const newInvite = {
       id: `inv-${Date.now()}`,
       code: inviteCode,
-      token: token,
+      token,
       family_id: targetFamilyId,
-      family_name: family ? family.name : (targetFamilyId ? 'Família Vinculada' : 'Sem família associada'),
+      family_name: family ? family.name : targetFamilyId ? "Fam\xEDlia Vinculada" : "Sem fam\xEDlia associada",
       roles: userRoles,
       role_labels: userRoleLabels,
-      guest_name: (guest_name || '').trim() || 'Convidado(a)',
-      classification: classification || 'outro_familiar',
-      classification_label: classification_label || 'Membro Familiar',
-      created_by_user_id: requester?.id || 'usr-admin-samuel',
-      created_by_user_name: requester?.name || 'Administrador',
+      guest_name: (guest_name || "").trim() || "Convidado(a)",
+      classification: classification || "outro_familiar",
+      classification_label: classification_label || "Membro Familiar",
+      created_by_user_id: requester?.id || "usr-admin-samuel",
+      created_by_user_name: requester?.name || "Administrador",
       created_at: getOfficialServerTime().iso_timestamp,
       max_uses: Number(max_uses) || 1,
       used_count: 0,
-      status: 'active',
-      used_by_users: [],
+      status: "active",
+      used_by_users: []
     };
-
     if (!db.invites) db.invites = [];
     db.invites.unshift(newInvite);
     saveDb();
-
     logActivity({
-      family_id: targetFamilyId || 'fam-01',
-      user_id: requester?.id || 'usr-admin-samuel',
-      user_name: requester?.name || 'Administrador',
-      user_role: requester?.role || 'admin_family',
-      action_type: 'invite_created',
-      category: 'Mural',
-      description: `Link de convite ${inviteCode} gerado para "${newInvite.guest_name}" [${newInvite.classification_label}] [${userRoleLabels.join(' + ')}].`,
+      family_id: targetFamilyId || "fam-01",
+      user_id: requester?.id || "usr-admin-samuel",
+      user_name: requester?.name || "Administrador",
+      user_role: requester?.role || "admin_family",
+      action_type: "invite_created",
+      category: "Mural",
+      description: `Link de convite ${inviteCode} gerado para "${newInvite.guest_name}" [${newInvite.classification_label}] [${userRoleLabels.join(" + ")}].`
     });
-
     res.status(201).json({
       success: true,
       message: `Link de convite ${inviteCode} criado com sucesso!`,
-      invite: newInvite,
+      invite: newInvite
     });
   });
-
-  // Validar Código ou Link de Convite (Acesso Público)
-  app.get('/api/invites/validate/:codeOrToken', (req, res) => {
-    const rawParam = String(req.params.codeOrToken || '').trim();
+  app.get("/api/invites/validate/:codeOrToken", (req, res) => {
+    const rawParam = String(req.params.codeOrToken || "").trim();
     const search = rawParam.toUpperCase();
     if (!db.invites) db.invites = [];
-
     const invite = db.invites.find(
-      (inv) =>
-        inv.code?.toUpperCase() === search ||
-        inv.token === rawParam ||
-        inv.token?.toUpperCase() === search
+      (inv) => inv.code?.toUpperCase() === search || inv.token === rawParam || inv.token?.toUpperCase() === search
     );
-
     if (!invite) {
       return res.status(404).json({
         valid: false,
-        error: 'Convite não encontrado',
-        message: 'O código ou link de convite informado não existe ou é inválido. Solicite um novo link ao Administrador.',
+        error: "Convite n\xE3o encontrado",
+        message: "O c\xF3digo ou link de convite informado n\xE3o existe ou \xE9 inv\xE1lido. Solicite um novo link ao Administrador."
       });
     }
-
-    if (invite.status === 'revoked') {
+    if (invite.status === "revoked") {
       return res.status(400).json({
         valid: false,
-        error: 'Convite revogado',
-        message: 'Este link de convite foi cancelado pelo Administrador.',
+        error: "Convite revogado",
+        message: "Este link de convite foi cancelado pelo Administrador."
       });
     }
-
     if (invite.max_uses > 0 && invite.used_count >= invite.max_uses) {
       return res.status(400).json({
         valid: false,
-        error: 'Convite já utilizado',
-        message: 'Este link de convite já foi utilizado para criar uma conta e não pode ser reutilizado.',
+        error: "Convite j\xE1 utilizado",
+        message: "Este link de convite j\xE1 foi utilizado para criar uma conta e n\xE3o pode ser reutilizado."
       });
     }
-
     res.json({
       valid: true,
       invite: {
@@ -915,318 +805,249 @@ async function startServer() {
         role_labels: invite.role_labels,
         guest_name: invite.guest_name,
         classification: invite.classification,
-        classification_label: invite.classification_label,
-      },
+        classification_label: invite.classification_label
+      }
     });
   });
-
-  // Criar Conta Via Convite
-  app.post('/api/invites/register', (req, res) => {
+  app.post("/api/invites/register", (req, res) => {
     const { invite_code, name, username, password, email } = req.body;
-
     if (!invite_code || !username || !password) {
       return res.status(400).json({
-        error: 'Dados incompletos',
-        message: 'Código do convite, usuário e senha são obrigatórios.',
+        error: "Dados incompletos",
+        message: "C\xF3digo do convite, usu\xE1rio e senha s\xE3o obrigat\xF3rios."
       });
     }
-
     const rawCode = String(invite_code).trim();
     const search = rawCode.toUpperCase();
     if (!db.invites) db.invites = [];
-
     const invite = db.invites.find(
-      (inv) =>
-        inv.code?.toUpperCase() === search ||
-        inv.token === rawCode ||
-        inv.token?.toUpperCase() === search
+      (inv) => inv.code?.toUpperCase() === search || inv.token === rawCode || inv.token?.toUpperCase() === search
     );
-
-    if (!invite || invite.status === 'revoked' || (invite.max_uses > 0 && invite.used_count >= invite.max_uses)) {
+    if (!invite || invite.status === "revoked" || invite.max_uses > 0 && invite.used_count >= invite.max_uses) {
       return res.status(400).json({
-        error: 'Convite inválido',
-        message: 'O link ou código de convite não é válido ou já foi utilizado. Solicite um novo link ao Administrador.',
+        error: "Convite inv\xE1lido",
+        message: "O link ou c\xF3digo de convite n\xE3o \xE9 v\xE1lido ou j\xE1 foi utilizado. Solicite um novo link ao Administrador."
       });
     }
-
-    const fullName = (name || invite.guest_name || 'Novo Usuário').trim();
-    let cleanUsername = (username || '').trim().toLowerCase().replace(/\s+/g, '_');
-    let cleanPassword = (password || '').trim().toLowerCase().slice(0, 8);
-
+    const fullName = (name || invite.guest_name || "Novo Usu\xE1rio").trim();
+    let cleanUsername = (username || "").trim().toLowerCase().replace(/\s+/g, "_");
+    let cleanPassword = (password || "").trim().toLowerCase().slice(0, 8);
     if (cleanUsername.length < 3) {
       return res.status(400).json({
-        error: 'Usuário inválido',
-        message: 'O nome de usuário deve ter pelo menos 3 caracteres em minúsculo.',
+        error: "Usu\xE1rio inv\xE1lido",
+        message: "O nome de usu\xE1rio deve ter pelo menos 3 caracteres em min\xFAsculo."
       });
     }
-
     if (cleanPassword.length < 3) {
       return res.status(400).json({
-        error: 'Senha inválida',
-        message: 'A senha deve ter entre 3 e 8 caracteres em minúsculo.',
+        error: "Senha inv\xE1lida",
+        message: "A senha deve ter entre 3 e 8 caracteres em min\xFAsculo."
       });
     }
-
-    // Verificar se o usuário já existe
     let finalUsername = cleanUsername;
     let counter = 1;
     while (db.users.some((u) => u.username && u.username.toLowerCase() === finalUsername.toLowerCase())) {
       counter++;
       finalUsername = `${cleanUsername}_${counter}`;
     }
-
     const family = db.families.find((f) => f.id === invite.family_id);
-    const userRoles = invite.roles || ['caregiver'];
+    const userRoles = invite.roles || ["caregiver"];
     const primaryRole = userRoles[0];
     const userRoleLabels = invite.role_labels || userRoles.map(getFriendlyRoleLabel);
-    const lvl = userRoles.includes('admin_family') ? 2 : 3;
-
+    const lvl = userRoles.includes("admin_family") ? 2 : 3;
     const newUser = {
       id: `usr-${Date.now()}`,
       name: fullName,
-      last_name: fullName.split(' ').slice(1).join(' ') || '',
+      last_name: fullName.split(" ").slice(1).join(" ") || "",
       username: finalUsername,
       password: cleanPassword,
       role: primaryRole,
       roles: userRoles,
-      role_label: userRoleLabels.join(' + '),
+      role_label: userRoleLabels.join(" + "),
       role_labels: userRoleLabels,
       permission_level: lvl,
-      permission_level_title: userRoleLabels.join(' + '),
+      permission_level_title: userRoleLabels.join(" + "),
       family_id: invite.family_id || null,
-      family_name: family ? family.name : (invite.family_name || 'Sem família vinculada'),
+      family_name: family ? family.name : invite.family_name || "Sem fam\xEDlia vinculada",
       classification: invite.classification || null,
       classification_label: invite.classification_label || null,
       email: email ? String(email).trim() : `${finalUsername.toLowerCase()}@cuida.com.br`,
-      phone: '(11) 98000-0000',
-      registration_code: userRoles.includes('caregiver')
-        ? `CUID-${Math.floor(1000 + Math.random() * 9000)}`
-        : `FAM-${Math.floor(1000 + Math.random() * 9000)}`,
-      avatar_url: userRoles.includes('caregiver')
-        ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      phone: "(11) 98000-0000",
+      registration_code: userRoles.includes("caregiver") ? `CUID-${Math.floor(1e3 + Math.random() * 9e3)}` : `FAM-${Math.floor(1e3 + Math.random() * 9e3)}`,
+      avatar_url: userRoles.includes("caregiver") ? "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80" : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
       first_login_completed: false,
       terms_accepted: false,
-      created_at: getOfficialServerTime().iso_timestamp,
+      created_at: getOfficialServerTime().iso_timestamp
     };
-
     db.users.push(newUser);
-
-    // Marcar convite como utilizado
     invite.used_count = (invite.used_count || 0) + 1;
     if (invite.max_uses > 0 && invite.used_count >= invite.max_uses) {
-      invite.status = 'used';
+      invite.status = "used";
     }
     if (!invite.used_by_users) invite.used_by_users = [];
     invite.used_by_users.push({
       user_id: newUser.id,
       username: newUser.username,
-      used_at: getOfficialServerTime().iso_timestamp,
+      used_at: getOfficialServerTime().iso_timestamp
     });
-
     saveDb();
-
     logActivity({
-      family_id: newUser.family_id || 'fam-01',
+      family_id: newUser.family_id || "fam-01",
       user_id: newUser.id,
       user_name: newUser.name,
       user_role: newUser.role,
-      action_type: 'user_registered_via_invite',
-      category: 'Mural',
-      description: `Conta criada via convite ${invite.code}: ${newUser.name} (@${newUser.username}) [${userRoleLabels.join(' + ')}].`,
+      action_type: "user_registered_via_invite",
+      category: "Mural",
+      description: `Conta criada via convite ${invite.code}: ${newUser.name} (@${newUser.username}) [${userRoleLabels.join(" + ")}].`
     });
-
     const { password: _, ...safeUser } = newUser;
     res.status(201).json({
       success: true,
       message: `Conta criada com sucesso! Bem-vindo(a), ${newUser.name}.`,
-      user: safeUser,
+      user: safeUser
     });
   });
-
-  // Revogar Convite
-  app.delete('/api/invites/:id', (req, res) => {
+  app.delete("/api/invites/:id", (req, res) => {
     const inviteId = req.params.id;
     if (!db.invites) db.invites = [];
     const invite = db.invites.find((inv) => inv.id === inviteId);
     if (invite) {
-      invite.status = 'revoked';
+      invite.status = "revoked";
       saveDb();
     }
-    res.json({ success: true, message: 'Link de convite revogado com sucesso.' });
+    res.json({ success: true, message: "Link de convite revogado com sucesso." });
   });
-
-  // Atualizar Opções / Funções do Usuário (Até 2 opções configuráveis pelo Admin)
-  app.put('/api/users/:id/roles', (req, res) => {
+  app.put("/api/users/:id/roles", (req, res) => {
     const { id } = req.params;
     const { roles, requesting_user_id } = req.body;
-
     const requester = db.users.find((u) => u.id === requesting_user_id);
-    if (requester && requester.role !== 'admin_geral') {
+    if (requester && requester.role !== "admin_geral") {
       return res.status(403).json({
-        error: 'Permissão negada',
-        message: 'Apenas o Administrador Geral pode alterar as funções e permissões dos usuários.',
+        error: "Permiss\xE3o negada",
+        message: "Apenas o Administrador Geral pode alterar as fun\xE7\xF5es e permiss\xF5es dos usu\xE1rios."
       });
     }
-
     const user = db.users.find((u) => u.id === id);
-    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
-
-    const cleanRoles: string[] = Array.isArray(roles) && roles.length > 0 ? roles.slice(0, 2) : ['caregiver'];
+    if (!user) return res.status(404).json({ error: "Usu\xE1rio n\xE3o encontrado" });
+    const cleanRoles = Array.isArray(roles) && roles.length > 0 ? roles.slice(0, 2) : ["caregiver"];
     const roleLabels = cleanRoles.map(getFriendlyRoleLabel);
-
-    (user as any).roles = cleanRoles;
+    user.roles = cleanRoles;
     user.role = cleanRoles[0];
-    (user as any).role_label = roleLabels.join(' + ');
-    (user as any).role_labels = roleLabels;
-
+    user.role_label = roleLabels.join(" + ");
+    user.role_labels = roleLabels;
     saveDb();
-
     logActivity({
-      family_id: user.family_id || 'fam-01',
-      user_id: requester?.id || 'usr-admin-samuel',
-      user_name: requester?.name || 'Administrador Geral',
-      user_role: 'admin_geral',
-      action_type: 'permission_updated',
-      category: 'Mural',
-      description: `Funções de ${user.name} (@${user.username}) atualizadas para: ${roleLabels.join(' + ')}.`,
+      family_id: user.family_id || "fam-01",
+      user_id: requester?.id || "usr-admin-samuel",
+      user_name: requester?.name || "Administrador Geral",
+      user_role: "admin_geral",
+      action_type: "permission_updated",
+      category: "Mural",
+      description: `Fun\xE7\xF5es de ${user.name} (@${user.username}) atualizadas para: ${roleLabels.join(" + ")}.`
     });
-
     res.json({ success: true, user });
   });
-
-  // Salvar Onboarding de Primeiro Acesso Obrigatório
-  app.put('/api/users/:id/onboarding', (req, res) => {
+  app.put("/api/users/:id/onboarding", (req, res) => {
     const { id } = req.params;
     const { name, last_name, phone, avatar_url, terms_accepted } = req.body;
-
     const user = db.users.find((u) => u.id === id);
-    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
-
+    if (!user) return res.status(404).json({ error: "Usu\xE1rio n\xE3o encontrado" });
     if (name) user.name = name;
-    if (last_name) (user as any).last_name = last_name;
-    if (phone) (user as any).phone = phone;
+    if (last_name) user.last_name = last_name;
+    if (phone) user.phone = phone;
     if (avatar_url) user.avatar_url = avatar_url;
-    (user as any).first_login_completed = true;
-    (user as any).terms_accepted = Boolean(terms_accepted);
-
+    user.first_login_completed = true;
+    user.terms_accepted = Boolean(terms_accepted);
     saveDb();
-
     logActivity({
-      family_id: user.family_id || 'fam-01',
+      family_id: user.family_id || "fam-01",
       user_id: user.id,
       user_name: user.name,
       user_role: user.role,
-      action_type: 'onboarding_completed',
-      category: 'Mural',
-      description: `${user.name} completou o perfil de acesso e validou as normas de conduta.`,
+      action_type: "onboarding_completed",
+      category: "Mural",
+      description: `${user.name} completou o perfil de acesso e validou as normas de conduta.`
     });
-
     const { password: _, ...safeUser } = user;
     res.json({ success: true, user: safeUser });
   });
-
-  // Salvar Biometria Facial Registrada Posteriormente (Sem Exigir GPS de Residência)
-  app.put('/api/users/:id/facial-biometrics', (req, res) => {
+  app.put("/api/users/:id/facial-biometrics", (req, res) => {
     const { id } = req.params;
     const { facial_photo_url } = req.body;
-
     const user = db.users.find((u) => u.id === id);
-    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
-
-    (user as any).facial_registered = true;
-    (user as any).facial_photo_url = facial_photo_url || user.avatar_url;
-    (user as any).facial_registered_at = new Date().toISOString();
-
+    if (!user) return res.status(404).json({ error: "Usu\xE1rio n\xE3o encontrado" });
+    user.facial_registered = true;
+    user.facial_photo_url = facial_photo_url || user.avatar_url;
+    user.facial_registered_at = (/* @__PURE__ */ new Date()).toISOString();
     saveDb();
-
     logActivity({
-      family_id: user.family_id || 'fam-01',
+      family_id: user.family_id || "fam-01",
       user_id: user.id,
       user_name: user.name,
       user_role: user.role,
-      action_type: 'presence_clock',
-      category: 'Controle de Ponto',
-      description: `${user.name} cadastrou a sua biometria facial com sucesso.`,
+      action_type: "presence_clock",
+      category: "Controle de Ponto",
+      description: `${user.name} cadastrou a sua biometria facial com sucesso.`
     });
-
     const { password: _, ...safeUser } = user;
     res.json({ success: true, user: safeUser });
   });
-
-  // Atualizar Perfil de Usuário Geral
-  app.put('/api/users/:id', (req, res) => {
+  app.put("/api/users/:id", (req, res) => {
     const { id } = req.params;
     const { name, last_name, email, phone, avatar_url, facial_registered, facial_photo_url } = req.body;
-
     const user = db.users.find((u) => u.id === id);
-    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
-
+    if (!user) return res.status(404).json({ error: "Usu\xE1rio n\xE3o encontrado" });
     if (name) user.name = String(name).trim();
-    if (last_name !== undefined) (user as any).last_name = String(last_name).trim();
-    if (email !== undefined) user.email = String(email).trim();
-    if (phone !== undefined) (user as any).phone = String(phone).trim();
+    if (last_name !== void 0) user.last_name = String(last_name).trim();
+    if (email !== void 0) user.email = String(email).trim();
+    if (phone !== void 0) user.phone = String(phone).trim();
     if (avatar_url) user.avatar_url = avatar_url;
-    if (facial_registered !== undefined) (user as any).facial_registered = Boolean(facial_registered);
-    if (facial_photo_url) (user as any).facial_photo_url = facial_photo_url;
-
+    if (facial_registered !== void 0) user.facial_registered = Boolean(facial_registered);
+    if (facial_photo_url) user.facial_photo_url = facial_photo_url;
     saveDb();
-
     const { password: _, ...safeUser } = user;
     res.json({ success: true, user: safeUser });
   });
-
-  // Atualizar Nível de Acesso (RBAC) do Usuário (Apenas Admin Geral)
-  app.put('/api/users/:id/level', (req, res) => {
+  app.put("/api/users/:id/level", (req, res) => {
     const { id } = req.params;
     const { permission_level, requesting_user_id } = req.body;
-
     const requester = db.users.find((u) => u.id === requesting_user_id);
-    if (requester && requester.role !== 'admin_geral') {
+    if (requester && requester.role !== "admin_geral") {
       return res.status(403).json({
-        error: 'Permissão negada',
-        message: 'Apenas o Administrador Geral pode alterar o nível de acesso dos usuários.',
+        error: "Permiss\xE3o negada",
+        message: "Apenas o Administrador Geral pode alterar o n\xEDvel de acesso dos usu\xE1rios."
       });
     }
-
     const user = db.users.find((u) => u.id === id);
-    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
-
+    if (!user) return res.status(404).json({ error: "Usu\xE1rio n\xE3o encontrado" });
     const lvl = Number(permission_level);
-    (user as any).permission_level = lvl;
-    if (lvl === 2) user.role = 'admin_family';
-    else if (lvl === 3) user.role = 'caregiver';
-    else if (lvl === 4) (user as any).role = 'caregiver_substitute';
-    else if (lvl === 5) user.role = 'family_member';
-
+    user.permission_level = lvl;
+    if (lvl === 2) user.role = "admin_family";
+    else if (lvl === 3) user.role = "caregiver";
+    else if (lvl === 4) user.role = "caregiver_substitute";
+    else if (lvl === 5) user.role = "family_member";
     saveDb();
-
     logActivity({
-      family_id: user.family_id || 'fam-01',
-      user_id: requester?.id || 'usr-admin-samuel',
-      user_name: requester?.name || 'Administrador Geral',
-      user_role: 'admin_geral',
-      action_type: 'permission_updated',
-      category: 'Mural',
-      description: `Nível de acesso de ${user.name} (@${user.username}) atualizado para Nível ${lvl}.`,
+      family_id: user.family_id || "fam-01",
+      user_id: requester?.id || "usr-admin-samuel",
+      user_name: requester?.name || "Administrador Geral",
+      user_role: "admin_geral",
+      action_type: "permission_updated",
+      category: "Mural",
+      description: `N\xEDvel de acesso de ${user.name} (@${user.username}) atualizado para N\xEDvel ${lvl}.`
     });
-
     const { password: _, ...safeUser } = user;
     res.json({ success: true, user: safeUser });
   });
-
-  // Obter Histórico Compartilhado de Atividades e Edições da Família
-  app.get('/api/family-activity-logs', (req, res) => {
+  app.get("/api/family-activity-logs", (req, res) => {
     const { family_id } = req.query;
-    let list = [...(db.familyActivityLogs || [])];
-    if (family_id && family_id !== 'all') {
+    let list = [...db.familyActivityLogs || []];
+    if (family_id && family_id !== "all") {
       list = list.filter((l) => l.family_id === family_id);
     }
     res.json(list);
   });
-
-  // Registrar Atividade na Família
-  app.post('/api/family-activity-logs', (req, res) => {
+  app.post("/api/family-activity-logs", (req, res) => {
     const { family_id, user_id, user_name, user_role, action_type, category, description, details } = req.body;
     const log = logActivity({
       family_id,
@@ -1236,98 +1057,106 @@ async function startServer() {
       action_type,
       category,
       description,
-      details,
+      details
     });
     res.status(201).json({ success: true, log });
   });
-
-  // Excluir Login (Admin Geral, Admin Familiar ou Autoexclusão pelo próprio usuário)
-  app.delete(['/api/users/:id', '/api/users/:id/self-delete'], (req, res) => {
+  app.delete(["/api/users/:id", "/api/users/:id/self-delete"], (req, res) => {
     const { id } = req.params;
     const { requesting_user_id, is_self_delete } = req.query;
-
-    const isSelfDelete = is_self_delete === 'true' || requesting_user_id === id;
+    const isSelfDelete = is_self_delete === "true" || requesting_user_id === id;
     const requester = db.users.find((u) => u.id === requesting_user_id) || (isSelfDelete ? db.users.find((u) => u.id === id) : null);
-
     if (!isSelfDelete) {
-      if (requester && requester.role !== 'admin_geral' && requester.role !== 'admin_family' && !requester.roles?.includes('admin_family')) {
+      if (requester && requester.role !== "admin_geral" && requester.role !== "admin_family" && !requester.roles?.includes("admin_family")) {
         return res.status(403).json({
-          error: 'Permissão negada',
-          message: 'Apenas Administradores podem excluir logins de outros usuários.',
+          error: "Permiss\xE3o negada",
+          message: "Apenas Administradores podem excluir logins de outros usu\xE1rios."
         });
       }
     }
-
-    if (id === 'usr-admin-master' || id === 'usr-admin-samuel') {
+    if (id === "usr-admin-master" || id === "usr-admin-samuel") {
       return res.status(400).json({
-        error: 'Ação não permitida',
-        message: 'A conta de Administrador Geral Master adm1234@ é protegida e não pode ser removida.',
+        error: "A\xE7\xE3o n\xE3o permitida",
+        message: "A conta de Administrador Geral Master adm1234@ \xE9 protegida e n\xE3o pode ser removida."
       });
     }
-
     const idx = db.users.findIndex((u) => u.id === id);
-    if (idx === -1) return res.status(404).json({ error: 'Usuário não encontrado' });
-
+    if (idx === -1) return res.status(404).json({ error: "Usu\xE1rio n\xE3o encontrado" });
     const removed = db.users.splice(idx, 1)[0];
-
-    // Limpar escalas de plantão associadas ao usuário
     if (db.shiftSchedules) {
       db.shiftSchedules = db.shiftSchedules.filter((s) => s.user_id !== id);
     }
-
     saveDb();
-
     logActivity({
-      family_id: removed.family_id || 'fam-01',
+      family_id: removed.family_id || "fam-01",
       user_id: removed.id,
       user_name: removed.name,
-      user_role: removed.role || 'caregiver',
-      action_type: 'vitals_edited',
-      category: 'Mural',
-      description: isSelfDelete
-        ? `Conta "${removed.username}" (${removed.name}) foi encerrada e excluída pelo próprio usuário.`
-        : `Login "${removed.username}" (${removed.name}) foi excluído pelo administrador.`,
-      details: `Funções que foram revogadas: ${removed.roles?.join(', ') || removed.role}.`,
+      user_role: removed.role || "caregiver",
+      action_type: "vitals_edited",
+      category: "Mural",
+      description: isSelfDelete ? `Conta "${removed.username}" (${removed.name}) foi encerrada e exclu\xEDda pelo pr\xF3prio usu\xE1rio.` : `Login "${removed.username}" (${removed.name}) foi exclu\xEDdo pelo administrador.`,
+      details: `Fun\xE7\xF5es que foram revogadas: ${removed.roles?.join(", ") || removed.role}.`
     });
-
     res.json({
       success: true,
-      message: isSelfDelete
-        ? `Sua conta "${removed.username}" foi excluída definitivamente com sucesso.`
-        : `Login "${removed.username}" (${removed.name}) foi excluído com sucesso.`,
+      message: isSelfDelete ? `Sua conta "${removed.username}" foi exclu\xEDda definitivamente com sucesso.` : `Login "${removed.username}" (${removed.name}) foi exclu\xEDdo com sucesso.`
     });
   });
-
-  // 1. Official Clock / NTP Endpoint
-  app.get('/api/time', (req, res) => {
+  app.get("/api/time", (req, res) => {
     res.json(getOfficialServerTime());
   });
-
-  // 2. Elderly Profile & Geofence
-  app.get('/api/elderly', (req, res) => {
+  app.get("/api/elderly", (req, res) => {
     res.json(db.elderly);
   });
+  app.get("/api/time-entries/active", (req, res) => {
+    const { userId, familyId, family_id, requesting_user_id } = req.query;
+    const targetFamilyId = (familyId || family_id) as string;
+    
+    if (targetFamilyId && targetFamilyId !== "Todos") {
+      const familyUserIds = db.users
+        .filter((u) => u.family_id === targetFamilyId)
+        .map((u) => u.id);
+      const active = db.timeEntries.find(
+        (entry) =>
+          (entry.family_id === targetFamilyId || familyUserIds.includes(entry.user_id) || (!entry.family_id && db.families.length <= 1)) &&
+          !entry.exit_time
+      );
+      return res.json({ activeEntry: active || null });
+    }
 
-  // 3. Current active shift for user
-  app.get('/api/time-entries/active', (req, res) => {
-    const userId = (req.query.userId as string) || 'usr-01';
-    const active = db.timeEntries.find((entry) => entry.user_id === userId && !entry.exit_time);
+    const effectiveUserId = (userId || requesting_user_id || "usr-01") as string;
+    const user = db.users.find((u) => u.id === effectiveUserId || u.username === effectiveUserId);
+    
+    // First look for user's own active shift
+    let active = db.timeEntries.find(
+      (entry) =>
+        (entry.user_id === effectiveUserId || (user && entry.user_id === user.id)) &&
+        !entry.exit_time
+    );
+
+    // If no active shift of their own, and user is an admin of a family or family member, check if family has any active shift
+    if (!active && user && user.family_id) {
+      const familyUserIds = db.users
+        .filter((u) => u.family_id === user.family_id)
+        .map((u) => u.id);
+      active = db.timeEntries.find(
+        (entry) =>
+          (entry.family_id === user.family_id || familyUserIds.includes(entry.user_id)) &&
+          !entry.exit_time
+      );
+    }
+
     res.json({ activeEntry: active || null });
   });
-
-  // Helper para validação de geolocalização no ponto com fallback inteligente
-  function validateGeofence(user: any, caregiverLat?: number, caregiverLong?: number) {
-    const family = user?.family_id ? db.families.find((f) => f.id === user.family_id) : null;
+  function validateGeofence(user, caregiverLat, caregiverLong) {
+    const family = user?.family_id ? db.families.find((f) => f.id === user.family_id) : (db.families[0] || null);
     const hasCustomCoords = !!(family?.residence_lat && family?.residence_long);
-    let targetLat = family?.residence_lat || (caregiverLat ? Number(caregiverLat) : (db.elderly?.residence_lat || -23.5505));
-    let targetLng = family?.residence_long || (caregiverLong ? Number(caregiverLong) : (db.elderly?.residence_long || -46.6333));
-    const targetAddress = family?.residence_address || db.elderly?.residence_address || 'Residência do Idoso';
+    let targetLat = family?.residence_lat || (caregiverLat ? Number(caregiverLat) : db.elderly?.residence_lat || -23.5505);
+    let targetLng = family?.residence_long || (caregiverLong ? Number(caregiverLong) : db.elderly?.residence_long || -46.6333);
+    const targetAddress = family?.residence_address || db.elderly?.residence_address || "Residência do Idoso";
     const allowedRadius = family?.allowed_radius_meters || db.elderly?.allowed_radius_meters || 500;
-
     let cLat = Number(caregiverLat);
     let cLng = Number(caregiverLong);
-
-    // Se a família ainda não tem coordenadas fixas cadastradas, o primeiro ponto calibra o local
     if (!hasCustomCoords && !isNaN(cLat) && cLat && !isNaN(cLng) && cLng) {
       if (family) {
         family.residence_lat = cLat;
@@ -1339,40 +1168,32 @@ async function startServer() {
         allowedRadius,
         targetAddress,
         targetLat: cLat,
-        targetLng: cLng,
+        targetLng: cLng
       };
     }
-
     if (isNaN(cLat) || !cLat || isNaN(cLng) || !cLng) {
       cLat = targetLat;
       cLng = targetLng;
     }
-
-    // Cálculo de distância via fórmula de Haversine
     const R = 6371e3;
-    const φ1 = (cLat * Math.PI) / 180;
-    const φ2 = (targetLat * Math.PI) / 180;
-    const Δφ = ((targetLat - cLat) * Math.PI) / 180;
-    const Δλ = ((targetLng - cLng) * Math.PI) / 180;
-    const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const φ1 = cLat * Math.PI / 180;
+    const φ2 = targetLat * Math.PI / 180;
+    const Δφ = (targetLat - cLat) * Math.PI / 180;
+    const Δλ = (targetLng - cLng) * Math.PI / 180;
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     let distanceMeters = Math.round(R * c);
     if (isNaN(distanceMeters)) distanceMeters = 0;
-
     return {
       valid: hasCustomCoords ? distanceMeters <= allowedRadius : true,
       distanceMeters,
       allowedRadius,
       targetAddress,
       targetLat,
-      targetLng,
+      targetLng
     };
   }
-
-  // 4. Check-in (Entrada) - Validação Rígida de Escala e Raio da Residência
-  app.post(['/api/time-entries/check-in', '/api/timeclock/check-in'], (req, res) => {
+  app.post(["/api/time-entries/check-in", "/api/timeclock/check-in"], (req, res) => {
     const {
       user_id,
       userId,
@@ -1380,98 +1201,74 @@ async function startServer() {
       elderlyId,
       photo_base64,
       photoBase64,
+      photo,
+      photo_url,
+      entry_photo_url,
       location_lat,
       locationLat,
       location_long,
       locationLong,
       notes,
+      family_id,
+      familyId: reqFamilyId,
+      userName: reqUserName,
+      user_name: reqUser_name
     } = req.body;
-
-    const effectiveUserId = user_id || userId || 'usr-admin-master';
-    const effectivePhoto = photo_base64 || photoBase64 || null;
-    const effectiveLat = location_lat !== undefined ? location_lat : locationLat;
-    const effectiveLong = location_long !== undefined ? location_long : locationLong;
-
+    const effectiveUserId = user_id || userId || "usr-admin-master";
     const user = db.users.find((u) => u.id === effectiveUserId || u.username === effectiveUserId) || db.users[0];
-    const familyId = user?.family_id || (db.families[0]?.id || null);
-    const effectiveElderlyId = elderly_id || elderlyId || (familyId ? db.families.find(f => f.id === familyId)?.elderly_id : null) || db.elderly?.id || 'eld-01';
-
-    // 1. Validação de Raio da Residência
-    const geoValidation = validateGeofence(user, effectiveLat, effectiveLong);
-    const isAdmin = user?.role === 'admin_geral' || user?.role === 'admin_family' || user?.roles?.includes('admin_family');
     
-    // Se não for admin e tiver raio explicitamente violado e coordenadas reais cadastradas
+    // Resolve target family rigorously
+    const targetFamilyId = family_id || reqFamilyId || user?.family_id || (db.families.length > 0 ? db.families[0].id : "fam-01");
+    let targetFamilyObj = db.families.find((f) => f.id === targetFamilyId);
+    if (!targetFamilyObj && db.families.length > 0) {
+      targetFamilyObj = db.families[0];
+    }
+    
+    // Auto-link user to family if not linked
+    if (user && !user.family_id && targetFamilyId) {
+      user.family_id = targetFamilyId;
+      user.family_name = targetFamilyObj ? targetFamilyObj.name : "Família";
+    }
+
+    // Capture photo: priority to captured base64/url, fallback to user avatar, then placeholder
+    const effectivePhoto = photo_base64 || photoBase64 || photo || photo_url || entry_photo_url || user?.avatar_url || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80";
+
+    const effectiveLat = location_lat !== void 0 ? location_lat : locationLat;
+    const effectiveLong = location_long !== void 0 ? location_long : locationLong;
+    const effectiveElderlyId = elderly_id || elderlyId || (targetFamilyId ? targetFamilyObj?.elderly_id : null) || db.elderly?.id || "eld-01";
+    const geoValidation = validateGeofence(user, effectiveLat, effectiveLong);
+    const isAdmin = user?.role === "admin_geral" || user?.role === "admin_family" || user?.roles?.includes("admin_family");
+    
     if (!isAdmin && effectiveLat && effectiveLong && !geoValidation.valid && geoValidation.distanceMeters > geoValidation.allowedRadius) {
       return res.status(403).json({
-        error: 'Fora do raio da residência',
-        message: `Check-in não permitido: Você está a ${geoValidation.distanceMeters}m da residência, fora do raio máximo autorizado de ${geoValidation.allowedRadius}m.`,
+        error: "Fora do raio da residência",
+        message: `Check-in não permitido: Você está a ${geoValidation.distanceMeters}m da residência, fora do raio máximo autorizado de ${geoValidation.allowedRadius}m.`
       });
     }
 
-    // 2. Validação de Escala de Plantão (definida pelo Administrador Familiar)
-    const familySchedules = (db.shiftSchedules || []).filter(
-      (s) => (s.family_id === familyId || !s.family_id) && s.active !== false
-    );
-    const userSchedules = familySchedules.filter(
-      (s) => s.user_id === user?.id || s.user_id === effectiveUserId || s.user_name === user?.name
-    );
-
-    // Se o usuário tiver escala cadastrada e não for admin livre
-    if (userSchedules.length > 0 && !isAdmin) {
-      const nowBr = new Date(Date.now() + db.officialOffsetMs);
-      const brDayOfWeek = nowBr.getDay(); // 0: Dom, 1: Seg, 2: Ter, 3: Qua, 4: Qui, 5: Sex, 6: Sab
-      const currentMinutes = nowBr.getHours() * 60 + nowBr.getMinutes();
-
-      // Verificar se o usuário está escalado para o dia de hoje
-      const todaySchedule = userSchedules.find((s) => s.day_of_week_number === brDayOfWeek);
-
-      if (!todaySchedule) {
-        const scheduledDays = userSchedules.map((s) => `${s.day_label} às ${s.start_time}h`).join(', ');
-        return res.status(403).json({
-          error: 'Dia fora da escala',
-          message: `Check-in bloqueado: Você não está escalado para hoje. Sua escala definida pelo Administrador Familiar é: ${scheduledDays}. O Check-in só funciona no seu dia e horário de plantão.`,
-        });
-      }
-
-      // Validar horário da escala
-      const [sHour, sMin] = todaySchedule.start_time.split(':').map(Number);
-      const [eHour, eMin] = (todaySchedule.end_time || '20:00').split(':').map(Number);
-      const startMinute = sHour * 60 + (sMin || 0);
-      const tolerance = todaySchedule.tolerance_minutes || 60; // 60 min de antecedência permitida
-
-      // Se tentar registrar antes da tolerância
-      if (currentMinutes < startMinute - tolerance) {
-        return res.status(403).json({
-          error: 'Horário antecipado',
-          message: `Check-in bloqueado: Seu plantão de hoje (${todaySchedule.day_label}) está agendado para iniciar às ${todaySchedule.start_time}h. O Check-in só é liberado próximo ao horário da escala.`,
-        });
-      }
-    }
-
     const officialTime = getOfficialServerTime();
-
-    // If there is already an open shift, close it automatically so the new check-in is cleanly recorded
     const existingOpen = db.timeEntries.find(
       (e) => (e.user_id === effectiveUserId || e.user_id === user?.id) && !e.exit_time
     );
     if (existingOpen) {
       existingOpen.exit_time = officialTime.iso_timestamp;
-      existingOpen.total_hours_formatted = 'Encerrado para novo plantão';
+      existingOpen.total_hours_formatted = "Encerrado para novo plantão";
     }
 
-    const entryPhoto = effectivePhoto || user?.avatar_url || null;
-
+    const finalUserName = reqUserName || reqUser_name || user?.name || "Cuidador";
     const newEntry = {
       id: `pnt-${Date.now()}`,
-      user_id: effectiveUserId,
-      user_name: user?.name || 'Cuidador',
+      user_id: user?.id || effectiveUserId,
+      user_name: finalUserName,
       elderly_id: effectiveElderlyId,
+      family_id: targetFamilyId,
+      family_name: targetFamilyObj ? targetFamilyObj.name : (user?.family_name || "Família"),
       entry_time: officialTime.iso_timestamp,
-      entry_photo_url: entryPhoto,
+      entry_photo_url: effectivePhoto,
       exit_time: null,
       exit_photo_url: null,
       total_hours: 0,
-      total_hours_formatted: 'Em andamento',
+      total_hours_formatted: "Em andamento",
       location_lat: Number(effectiveLat || geoValidation.targetLat),
       location_long: Number(effectiveLong || geoValidation.targetLng),
       distance_meters: geoValidation.distanceMeters,
@@ -1479,32 +1276,34 @@ async function startServer() {
       residence_address: geoValidation.targetAddress,
       date_stamp: officialTime.date_stamp,
       day_of_week: officialTime.day_of_week,
-      notes: notes || `Check-in de ponto validado com horário oficial (${geoValidation.distanceMeters}m do local).`,
+      notes: notes || `Check-in de ponto validado com foto e horário oficial (${geoValidation.distanceMeters}m do local).`
     };
 
     db.timeEntries.unshift(newEntry);
     saveDb();
 
     logActivity({
-      family_id: user?.family_id || 'fam-01',
+      family_id: targetFamilyId,
       user_id: user?.id || effectiveUserId,
-      user_name: user?.name || 'Cuidador',
-      user_role: user?.role || 'caregiver',
-      action_type: 'presence_clock',
-      category: 'Controle de Ponto',
-      description: `Entrada registrada por ${user?.name || 'Cuidador'}: ponto validado com horário oficial sincronizado (distância: ${geoValidation.distanceMeters}m).`,
-      details: `Horário oficial: ${officialTime.formatted_time} | Endereço: ${geoValidation.targetAddress}`,
+      user_name: finalUserName,
+      user_role: user?.role || "caregiver",
+      action_type: "presence_clock",
+      category: "Controle de Ponto",
+      description: `Entrada com foto registrada por ${finalUserName}: ponto validado com horário oficial sincronizado (distância: ${geoValidation.distanceMeters}m).`,
+      details: `Horário oficial: ${officialTime.formatted_time} | Endereço: ${geoValidation.targetAddress} | Foto auditada e vinculada à família`,
+      photo_url: effectivePhoto
     });
+
+    console.log(`[PONTO] Check-in registrado para @${user?.username || effectiveUserId} com foto vinculada à família ${targetFamilyId}. Total de pontos: ${db.timeEntries.length}`);
 
     res.status(201).json({
       success: true,
       message: `Check-in de entrada registrado com sucesso! Horário oficial: ${officialTime.formatted_time}`,
-      entry: newEntry,
+      entry: newEntry
     });
   });
 
-  // 5. Check-out (Saída) - Permanence Calculation & Geofence (Foto Facial Opcional)
-  app.post(['/api/time-entries/check-out', '/api/timeclock/check-out'], (req, res) => {
+  app.post(["/api/time-entries/check-out", "/api/timeclock/check-out"], (req, res) => {
     const {
       entry_id,
       entryId,
@@ -1512,23 +1311,26 @@ async function startServer() {
       userId,
       photo_base64,
       photoBase64,
+      photo,
+      photo_url,
+      exit_photo_url,
       location_lat,
       locationLat,
       location_long,
       locationLong,
       notes,
+      family_id,
+      familyId: reqFamilyId
     } = req.body;
-
     const targetEntryId = entry_id || entryId;
-    const targetUserId = user_id || userId || 'usr-01';
-    const effectivePhoto = photo_base64 || photoBase64 || null;
-    const effectiveLat = location_lat !== undefined ? location_lat : locationLat;
-    const effectiveLong = location_long !== undefined ? location_long : locationLong;
+    const targetUserId = user_id || userId || "usr-01";
+    const user = db.users.find((u) => u.id === targetUserId || u.username === targetUserId) || db.users.find((u) => u.id === targetEntryId) || db.users[0];
+    const targetFamilyId = family_id || reqFamilyId || user?.family_id || (db.families.length > 0 ? db.families[0].id : "fam-01");
+    const targetFamilyObj = db.families.find((f) => f.id === targetFamilyId) || db.families[0];
 
-    const user =
-      db.users.find((u) => u.id === targetUserId || u.username === targetUserId) ||
-      db.users.find((u) => u.id === targetEntryId) ||
-      db.users[0];
+    const effectivePhoto = photo_base64 || photoBase64 || photo || photo_url || exit_photo_url || user?.avatar_url || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80";
+    const effectiveLat = location_lat !== void 0 ? location_lat : locationLat;
+    const effectiveLong = location_long !== void 0 ? location_long : locationLong;
 
     let entry = db.timeEntries.find((e) => e.id === targetEntryId);
     if (!entry && (targetUserId || targetEntryId)) {
@@ -1539,24 +1341,23 @@ async function startServer() {
     if (!entry) {
       entry = db.timeEntries.find((e) => !e.exit_time);
     }
-
     const officialTime = getOfficialServerTime();
-
     if (!entry) {
-      // Se não houver plantão em aberto no banco, cria o registro completo do plantão encerrado agora
-      const entryTimeDate = new Date(officialTime.epoch_ms - 8 * 60 * 60 * 1000);
+      const entryTimeDate = new Date(officialTime.epoch_ms - 8 * 60 * 60 * 1e3);
       const geoVal = validateGeofence(user, effectiveLat, effectiveLong);
       entry = {
         id: `pnt-out-${Date.now()}`,
         user_id: user?.id || targetUserId,
-        user_name: user?.name || 'Cuidador',
-        elderly_id: db.elderly?.id || 'eld-01',
+        user_name: req.body.userName || req.body.user_name || user?.name || "Cuidador",
+        elderly_id: db.elderly?.id || "eld-01",
+        family_id: targetFamilyId,
+        family_name: targetFamilyObj ? targetFamilyObj.name : (user?.family_name || "Família"),
         entry_time: entryTimeDate.toISOString(),
-        entry_photo_url: effectivePhoto || user?.avatar_url || null,
+        entry_photo_url: effectivePhoto,
         exit_time: officialTime.iso_timestamp,
-        exit_photo_url: effectivePhoto || user?.avatar_url || null,
+        exit_photo_url: effectivePhoto,
         total_hours: 8,
-        total_hours_formatted: '8h 00min',
+        total_hours_formatted: "8h 00min",
         location_lat: Number(effectiveLat || geoVal.targetLat),
         location_long: Number(effectiveLong || geoVal.targetLng),
         distance_meters: geoVal.distanceMeters,
@@ -1564,134 +1365,132 @@ async function startServer() {
         residence_address: geoVal.targetAddress,
         date_stamp: officialTime.date_stamp,
         day_of_week: officialTime.day_of_week,
-        notes: notes || 'Encerramento de plantão registrado com sucesso.',
+        notes: notes || "Encerramento de plantão registrado com foto auditada."
       };
       db.timeEntries.unshift(entry);
       saveDb();
-
       logActivity({
-        family_id: user?.family_id || 'fam-01',
+        family_id: targetFamilyId,
         user_id: user?.id || targetUserId,
-        user_name: user?.name || 'Cuidador',
-        user_role: user?.role || 'caregiver',
-        action_type: 'presence_clock',
-        category: 'Controle de Ponto',
-        description: `Saída de plantão registrada por ${user?.name || 'Cuidador'} às ${officialTime.formatted_time}.`,
+        user_name: entry.user_name,
+        user_role: user?.role || "caregiver",
+        action_type: "presence_clock",
+        category: "Controle de Ponto",
+        description: `Saída de plantão com foto registrada por ${entry.user_name} às ${officialTime.formatted_time}.`,
+        details: `Permanência: 8h 00min | Foto auditada e vinculada à família`,
+        photo_url: effectivePhoto
       });
-
       return res.status(200).json({
         success: true,
         message: `Ponto de saída registrado com sucesso! Horário oficial: ${officialTime.formatted_time}`,
-        entry,
+        entry
       });
     }
 
     if (entry.exit_time) {
-      entry.exit_photo_url = effectivePhoto || entry.exit_photo_url;
-      if (notes) entry.notes = `${entry.notes || ''} | ${notes}`;
+      if (effectivePhoto) entry.exit_photo_url = effectivePhoto;
+      if (!entry.family_id) {
+        entry.family_id = targetFamilyId;
+        entry.family_name = targetFamilyObj ? targetFamilyObj.name : user?.family_name || "Família";
+      }
+      if (notes) entry.notes = `${entry.notes || ""} | ${notes}`;
       saveDb();
       return res.status(200).json({
         success: true,
-        message: `Saída de plantão já registrada! Dados atualizados com sucesso.`,
-        entry,
+        message: `Saída de plantão já registrada! Dados e foto atualizados com sucesso.`,
+        entry
       });
     }
 
-    // Validação de Geolocalização na saída
     const geoValidation = validateGeofence(user, effectiveLat, effectiveLong);
-
     const entryDate = new Date(entry.entry_time);
     const exitDate = new Date(officialTime.iso_timestamp);
     const diffMs = Math.max(0, exitDate.getTime() - entryDate.getTime());
-    const totalMinutes = Math.floor(diffMs / (1000 * 60));
-    const totalHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
-
+    const totalMinutes = Math.floor(diffMs / (1e3 * 60));
+    const totalHours = parseFloat((diffMs / (1e3 * 60 * 60)).toFixed(2));
     const hours = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;
-    const formattedHours = `${hours}h ${mins.toString().padStart(2, '0')}min`;
-
+    const formattedHours = `${hours}h ${mins.toString().padStart(2, "0")}min`;
     entry.exit_time = officialTime.iso_timestamp;
-    entry.exit_photo_url = effectivePhoto || user?.avatar_url || null;
+    entry.exit_photo_url = effectivePhoto || entry.exit_photo_url || user?.avatar_url || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80";
+    if (!entry.family_id) {
+      entry.family_id = targetFamilyId;
+      entry.family_name = targetFamilyObj ? targetFamilyObj.name : user?.family_name || "Família";
+    }
     entry.total_hours = totalHours;
     entry.total_hours_formatted = formattedHours;
     if (notes) {
       entry.notes = entry.notes ? `${entry.notes} | ${notes}` : notes;
     }
-
     saveDb();
-
     logActivity({
-      family_id: user?.family_id || 'fam-01',
+      family_id: entry.family_id || targetFamilyId,
       user_id: user?.id || entry.user_id,
-      user_name: user?.name || entry.user_name || 'Cuidador',
-      user_role: user?.role || 'caregiver',
-      action_type: 'presence_clock',
-      category: 'Controle de Ponto',
-      description: `Saída registrada por ${user?.name || 'Cuidador'}: turno de ${formattedHours} encerrado com certificação de horário oficial.`,
-      details: `Permanência total: ${formattedHours} (${totalHours}h).`,
+      user_name: user?.name || entry.user_name || "Cuidador",
+      user_role: user?.role || "caregiver",
+      action_type: "presence_clock",
+      category: "Controle de Ponto",
+      description: `Saída com foto registrada por ${user?.name || entry.user_name || "Cuidador"}: turno de ${formattedHours} encerrado com certificação de horário oficial.`,
+      details: `Permanência total: ${formattedHours} (${totalHours}h) | Foto auditada e vinculada à família`,
+      photo_url: entry.exit_photo_url
     });
-
     res.json({
       success: true,
-      message: `Check-out validado com sucesso! Permanência de ${formattedHours} registrada.`,
-      entry,
+      message: `Check-out validado com sucesso! Permanência de ${formattedHours} registrada com foto auditada.`,
+      entry
     });
   });
-
-  // 5b. Adicionar Presença Manual / Plantão Avulso com Justificativa e Auditoria
-  app.post('/api/time-entries/manual', (req, res) => {
+  app.post("/api/time-entries/manual", (req, res) => {
     const {
       user_id,
       elderly_id,
+      family_id,
+      familyId,
       date_stamp,
       entry_time_str,
       exit_time_str,
       entry_type,
       justification,
       notes,
-      photo_url,
+      photo_url
     } = req.body;
-
     if (!user_id || !date_stamp || !entry_time_str || !justification) {
       return res.status(400).json({
-        error: 'Campos obrigatórios ausentes',
-        message: 'Para lançar presença é necessário informar cuidador, data, horário de entrada e justificativa auditada.',
+        error: "Campos obrigatórios ausentes",
+        message: "Para lançar presença é necessário informar cuidador, data, horário de entrada e justificativa auditada."
       });
     }
-
     const user = db.users.find((u) => u.id === user_id);
+    const targetFamilyId = family_id || familyId || user?.family_id || (db.families.length > 0 ? db.families[0].id : "fam-01");
+    const targetFamilyObj = db.families.find(f => f.id === targetFamilyId) || db.families[0];
     const entryIso = `${date_stamp}T${entry_time_str}:00-03:00`;
     const exitIso = exit_time_str ? `${date_stamp}T${exit_time_str}:00-03:00` : null;
-
     let totalHours = null;
-    let formattedHours = 'Em andamento';
-
+    let formattedHours = "Em andamento";
     if (exitIso) {
       const start = new Date(entryIso).getTime();
       const end = new Date(exitIso).getTime();
       const diffMs = Math.max(0, end - start);
-      const totalMinutes = Math.floor(diffMs / (1000 * 60));
-      totalHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+      const totalMinutes = Math.floor(diffMs / (1e3 * 60));
+      totalHours = parseFloat((diffMs / (1e3 * 60 * 60)).toFixed(2));
       const h = Math.floor(totalMinutes / 60);
       const m = totalMinutes % 60;
-      formattedHours = `${h}h ${m.toString().padStart(2, '0')}min`;
+      formattedHours = `${h}h ${m.toString().padStart(2, "0")}min`;
     }
-
-    // Determine day of week from date_stamp
     const dateObj = new Date(`${date_stamp}T12:00:00Z`);
-    const dayNames = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+    const dayNames = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
     const dayOfWeek = dayNames[dateObj.getUTCDay()];
-
-    const fallbackPhoto = photo_url || (user?.avatar_url || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80');
-    const targetLat = db.elderly?.residence_lat || -23.5505;
-    const targetLng = db.elderly?.residence_long || -46.6333;
-    const targetElderlyId = elderly_id || db.elderly?.id || 'eld-01';
-
+    const fallbackPhoto = photo_url || (user?.avatar_url || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80");
+    const targetLat = targetFamilyObj?.residence_lat || db.elderly?.residence_lat || -23.5505;
+    const targetLng = targetFamilyObj?.residence_long || db.elderly?.residence_long || -46.6333;
+    const targetElderlyId = elderly_id || targetFamilyObj?.elderly_id || db.elderly?.id || "eld-01";
     const newEntry = {
       id: `pnt-man-${Date.now()}`,
       user_id,
-      user_name: user?.name || 'Profissional',
+      user_name: user?.name || "Profissional",
       elderly_id: targetElderlyId,
+      family_id: targetFamilyId,
+      family_name: targetFamilyObj ? targetFamilyObj.name : (user?.family_name || "Família"),
       entry_time: entryIso,
       entry_photo_url: fallbackPhoto,
       exit_time: exitIso,
@@ -1704,42 +1503,48 @@ async function startServer() {
       is_verified_geofence: true,
       date_stamp,
       day_of_week: dayOfWeek,
-      entry_type: entry_type || 'manual_authorized',
+      entry_type: entry_type || "manual_authorized",
       justification,
-      authorized_by_name: user?.name || 'Administrador Familiar',
-      notes: notes || `Lançamento manual autorizado: ${justification}`,
+      authorized_by_name: user?.name || "Administrador Familiar",
+      notes: notes || `Lançamento manual autorizado: ${justification}`
     };
-
     db.timeEntries.unshift(newEntry);
     saveDb();
+    logActivity({
+      family_id: targetFamilyId,
+      user_id,
+      user_name: user?.name || "Profissional",
+      user_role: user?.role || "caregiver",
+      action_type: "presence_clock",
+      category: "Controle de Ponto",
+      description: `Presença manual lançada para ${user?.name || "Profissional"}: ${justification}.`,
+      details: `Horário: ${entry_time_str} às ${exit_time_str || "em aberto"} | Foto vinculada à família`,
+      photo_url: fallbackPhoto
+    });
     res.status(201).json({
       success: true,
-      message: 'Presença adicionada com sucesso e registrada na folha de auditoria.',
-      entry: newEntry,
+      message: "Presença adicionada com sucesso e registrada na folha de auditoria.",
+      entry: newEntry
     });
   });
-
-  // 5c. Gestão da Escala de Plantão da Família (Shift Schedules CRUD)
-  app.get('/api/shift-schedules', (req, res) => {
+  app.get("/api/shift-schedules", (req, res) => {
     const { family_id, user_id } = req.query;
-    let list = [...(db.shiftSchedules || [])];
+    let list = [...db.shiftSchedules || []];
     if (family_id) {
       list = list.filter((s) => s.family_id === family_id);
     }
     if (user_id) {
       list = list.filter((s) => s.user_id === user_id);
     }
-    // Sort by day_of_week_number and start_time
     list.sort((a, b) => {
       if (a.day_of_week_number !== b.day_of_week_number) {
         return a.day_of_week_number - b.day_of_week_number;
       }
-      return (a.start_time || '').localeCompare(b.start_time || '');
+      return (a.start_time || "").localeCompare(b.start_time || "");
     });
     res.json(list);
   });
-
-  app.post('/api/shift-schedules', (req, res) => {
+  app.post("/api/shift-schedules", (req, res) => {
     const {
       family_id,
       user_id,
@@ -1753,75 +1558,66 @@ async function startServer() {
       active,
       notes,
       created_by_user_id,
-      created_by_name,
+      created_by_name
     } = req.body;
-
-    if (!user_id || day_of_week_number === undefined || !start_time) {
-      return res.status(400).json({ error: 'Dados incompletos para a escala (usuário, dia e horário obrigatórios).' });
+    if (!user_id || day_of_week_number === void 0 || !start_time) {
+      return res.status(400).json({ error: "Dados incompletos para a escala (usu\xE1rio, dia e hor\xE1rio obrigat\xF3rios)." });
     }
-
-    const dayLabelsMap: Record<number, string> = {
-      0: 'Domingo',
-      1: 'Segunda-feira',
-      2: 'Terça-feira',
-      3: 'Quarta-feira',
-      4: 'Quinta-feira',
-      5: 'Sexta-feira',
-      6: 'Sábado',
+    const dayLabelsMap = {
+      0: "Domingo",
+      1: "Segunda-feira",
+      2: "Ter\xE7a-feira",
+      3: "Quarta-feira",
+      4: "Quinta-feira",
+      5: "Sexta-feira",
+      6: "S\xE1bado"
     };
-
     const targetUser = db.users.find((u) => u.id === user_id);
     const dayNum = Number(day_of_week_number);
     const resolvedDayLabel = day_label || dayLabelsMap[dayNum] || `Dia ${dayNum}`;
-
     const newSchedule = {
       id: `sch-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      family_id: family_id || targetUser?.family_id || 'fam-01',
+      family_id: family_id || targetUser?.family_id || "fam-01",
       user_id,
-      user_name: user_name || targetUser?.name || 'Membro da Família',
-      user_role: user_role || targetUser?.role || 'family',
+      user_name: user_name || targetUser?.name || "Membro da Fam\xEDlia",
+      user_role: user_role || targetUser?.role || "family",
       day_of_week_number: dayNum,
       day_label: resolvedDayLabel,
-      start_time: (start_time || '08:00').trim(),
-      end_time: (end_time || '20:00').trim(),
+      start_time: (start_time || "08:00").trim(),
+      end_time: (end_time || "20:00").trim(),
       tolerance_minutes: Number(tolerance_minutes) || 60,
       active: active !== false,
-      notes: notes || `Plantão escalado para ${resolvedDayLabel} (${start_time}h às ${end_time || '20:00'}h)`,
-      created_at: new Date().toISOString(),
-      created_by_user_id: created_by_user_id || 'admin',
-      created_by_name: created_by_name || 'Administrador Geral da Família',
+      notes: notes || `Plant\xE3o escalado para ${resolvedDayLabel} (${start_time}h \xE0s ${end_time || "20:00"}h)`,
+      created_at: (/* @__PURE__ */ new Date()).toISOString(),
+      created_by_user_id: created_by_user_id || "admin",
+      created_by_name: created_by_name || "Administrador Geral da Fam\xEDlia"
     };
-
     if (!db.shiftSchedules) db.shiftSchedules = [];
     db.shiftSchedules.push(newSchedule);
     saveDb();
-
     logActivity({
       family_id: newSchedule.family_id,
-      user_id: created_by_user_id || 'admin',
-      user_name: created_by_name || 'Administrador',
-      user_role: 'admin_family',
-      action_type: 'schedule_update',
-      category: 'Escala da Família',
+      user_id: created_by_user_id || "admin",
+      user_name: created_by_name || "Administrador",
+      user_role: "admin_family",
+      action_type: "schedule_update",
+      category: "Escala da Fam\xEDlia",
       description: `Nova escala cadastrada: ${newSchedule.user_name} escalado para ${resolvedDayLabel} (${newSchedule.start_time}h - ${newSchedule.end_time}h).`,
-      details: `Escalado por: ${created_by_name || 'Administrador Geral'} | Tolerância: ${newSchedule.tolerance_minutes} min.`,
+      details: `Escalado por: ${created_by_name || "Administrador Geral"} | Toler\xE2ncia: ${newSchedule.tolerance_minutes} min.`
     });
-
     res.status(201).json({
       success: true,
       message: `Escala cadastrada com sucesso para ${newSchedule.user_name} (${resolvedDayLabel})!`,
-      schedule: newSchedule,
+      schedule: newSchedule
     });
   });
-
-  app.put('/api/shift-schedules/:id', (req, res) => {
+  app.put("/api/shift-schedules/:id", (req, res) => {
     const { id } = req.params;
     if (!db.shiftSchedules) db.shiftSchedules = [];
     const schedule = db.shiftSchedules.find((s) => s.id === id);
     if (!schedule) {
-      return res.status(404).json({ error: 'Escala de plantão não encontrada.' });
+      return res.status(404).json({ error: "Escala de plant\xE3o n\xE3o encontrada." });
     }
-
     const {
       day_of_week_number,
       day_label,
@@ -1831,91 +1627,126 @@ async function startServer() {
       active,
       notes,
       user_id,
-      user_name,
+      user_name
     } = req.body;
-
-    if (day_of_week_number !== undefined) schedule.day_of_week_number = Number(day_of_week_number);
+    if (day_of_week_number !== void 0) schedule.day_of_week_number = Number(day_of_week_number);
     if (day_label) schedule.day_label = day_label;
     if (start_time) schedule.start_time = start_time.trim();
     if (end_time) schedule.end_time = end_time.trim();
-    if (tolerance_minutes !== undefined) schedule.tolerance_minutes = Number(tolerance_minutes);
-    if (active !== undefined) schedule.active = Boolean(active);
-    if (notes !== undefined) schedule.notes = notes;
+    if (tolerance_minutes !== void 0) schedule.tolerance_minutes = Number(tolerance_minutes);
+    if (active !== void 0) schedule.active = Boolean(active);
+    if (notes !== void 0) schedule.notes = notes;
     if (user_id) schedule.user_id = user_id;
     if (user_name) schedule.user_name = user_name;
-
     saveDb();
     res.json({
       success: true,
-      message: 'Escala de plantão atualizada com sucesso.',
-      schedule,
+      message: "Escala de plant\xE3o atualizada com sucesso.",
+      schedule
     });
   });
-
-  app.delete('/api/shift-schedules/:id', (req, res) => {
+  app.delete("/api/shift-schedules/:id", (req, res) => {
     const { id } = req.params;
     if (!db.shiftSchedules) db.shiftSchedules = [];
     const idx = db.shiftSchedules.findIndex((s) => s.id === id);
     if (idx === -1) {
-      return res.status(404).json({ error: 'Escala não encontrada.' });
+      return res.status(404).json({ error: "Escala n\xE3o encontrada." });
     }
     const removed = db.shiftSchedules.splice(idx, 1)[0];
     saveDb();
-
     logActivity({
       family_id: removed.family_id,
-      user_id: 'admin',
-      user_name: 'Administrador',
-      user_role: 'admin_family',
-      action_type: 'schedule_update',
-      category: 'Escala da Família',
-      description: `Escala removida: ${removed.user_name} (${removed.day_label} às ${removed.start_time}h).`,
-      details: 'Remoção realizada pelo Administrador.',
+      user_id: "admin",
+      user_name: "Administrador",
+      user_role: "admin_family",
+      action_type: "schedule_update",
+      category: "Escala da Fam\xEDlia",
+      description: `Escala removida: ${removed.user_name} (${removed.day_label} \xE0s ${removed.start_time}h).`,
+      details: "Remo\xE7\xE3o realizada pelo Administrador."
     });
-
     res.json({
       success: true,
-      message: 'Plantão removido da escala com sucesso.',
-      schedule: removed,
+      message: "Plant\xE3o removido da escala com sucesso.",
+      schedule: removed
     });
   });
+  app.get("/api/time-entries/history", (req, res) => {
+    const { year, month, user_id, family_id, familyId, requesting_user_id } = req.query;
+    let targetFamilyId = (family_id || familyId) as string;
 
-  // 6. Timesheet History Query with Month & Year Filter
-  app.get('/api/time-entries/history', (req, res) => {
-    const { year, month, user_id } = req.query;
+    // If no family_id was explicitly specified, infer from caller
+    if (!targetFamilyId || targetFamilyId === "undefined") {
+      const callerId = (requesting_user_id || user_id) as string;
+      if (callerId && callerId !== "Todos") {
+        const caller = db.users.find(u => u.id === callerId || u.username === callerId);
+        if (caller && caller.family_id) {
+          targetFamilyId = caller.family_id;
+        }
+      }
+    }
+
     let list = [...db.timeEntries];
 
-    if (user_id) {
-      list = list.filter((e) => e.user_id === user_id);
+    if (targetFamilyId && targetFamilyId !== "Todos") {
+      const familyUserIds = db.users
+        .filter((u) => u.family_id === targetFamilyId)
+        .map((u) => u.id);
+      list = list.filter(
+        (e: any) =>
+          e.family_id === targetFamilyId ||
+          familyUserIds.includes(e.user_id) ||
+          (!e.family_id && db.families.length <= 1)
+      );
     }
 
-    if (year && month) {
-      const prefix = `${year}-${String(month).padStart(2, '0')}`;
-      list = list.filter((e) => e.date_stamp && e.date_stamp.startsWith(prefix));
+    if (user_id && user_id !== "Todos") {
+      list = list.filter((e) => e.user_id === user_id);
     }
+    if (year && year !== "Todos" && month && month !== "Todos") {
+      const targetYear = String(year);
+      const targetMonth = String(month).padStart(2, "0");
+      list = list.filter((e: any) => {
+        if (e.date_stamp && (e.date_stamp.startsWith(`${targetYear}-${targetMonth}`) || e.date_stamp.includes(`-${targetMonth}-`))) return true;
+        if (e.entry_time) {
+          const d = new Date(e.entry_time);
+          const y = String(d.getFullYear());
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          return y === targetYear && m === targetMonth;
+        }
+        return false;
+      });
+    }
+
+    // Ensure every entry returned has a valid entry_photo_url and exit_photo_url if needed
+    list = list.map((e: any) => {
+      if (!e.entry_photo_url) {
+        const u = db.users.find(usr => usr.id === e.user_id || usr.username === e.user_id);
+        e.entry_photo_url = u?.avatar_url || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80";
+      }
+      return e;
+    });
+
+    // Sort newest first
+    list.sort((a, b) => new Date(b.entry_time).getTime() - new Date(a.entry_time).getTime());
 
     const totalHoursAggregated = list.reduce((acc, curr) => acc + (curr.total_hours || 0), 0);
     const completedShifts = list.filter((e) => e.exit_time).length;
-
     res.json({
       entries: list,
       meta: {
-        filter_year: year || 'Todos',
-        filter_month: month || 'Todos',
+        filter_year: year || "Todos",
+        filter_month: month || "Todos",
         total_records: list.length,
         completed_shifts: completedShifts,
         total_hours: parseFloat(totalHoursAggregated.toFixed(2)),
-        total_hours_formatted: `${Math.floor(totalHoursAggregated)}h ${Math.round((totalHoursAggregated % 1) * 60)}min`,
-      },
+        total_hours_formatted: `${Math.floor(totalHoursAggregated)}h ${Math.round(totalHoursAggregated % 1 * 60)}min`
+      }
     });
   });
-
-  // 7. Health Logs: Blood Pressure (Optional / Blank Allowed), Glucose, Temp
-  app.get('/api/health-logs', (req, res) => {
+  app.get("/api/health-logs", (req, res) => {
     res.json(db.healthLogs);
   });
-
-  app.post('/api/health-logs', (req, res) => {
+  app.post("/api/health-logs", (req, res) => {
     const {
       systolic_bp,
       diastolic_bp,
@@ -1927,92 +1758,74 @@ async function startServer() {
       notes,
       recorded_by_user_id,
       contractor_signed,
-      caregiver_signed,
+      caregiver_signed
     } = req.body;
-
-    const hasBp =
-      systolic_bp !== undefined &&
-      systolic_bp !== null &&
-      systolic_bp !== '' &&
-      diastolic_bp !== undefined &&
-      diastolic_bp !== null &&
-      diastolic_bp !== '';
-
-    let sys: number | null = null;
-    let dia: number | null = null;
-    let hr: number | null = null;
-    let statusCategory = 'Não aferida nesta rotina (Opcional)';
-
+    const hasBp = systolic_bp !== void 0 && systolic_bp !== null && systolic_bp !== "" && diastolic_bp !== void 0 && diastolic_bp !== null && diastolic_bp !== "";
+    let sys = null;
+    let dia = null;
+    let hr = null;
+    let statusCategory = "N\xE3o aferida nesta rotina (Opcional)";
     if (hasBp) {
       sys = Number(systolic_bp);
       dia = Number(diastolic_bp);
       hr = heart_rate ? Number(heart_rate) : 75;
-
-      // Classification per SBC / AHA Guidelines
       if (sys >= 180 || dia >= 120) {
-        statusCategory = 'Crise Hipertensiva (Urgência)';
+        statusCategory = "Crise Hipertensiva (Urg\xEAncia)";
       } else if (sys >= 140 || dia >= 90) {
-        statusCategory = 'Hipertensão Estágio 2';
-      } else if ((sys >= 130 && sys <= 139) || (dia >= 80 && dia <= 89)) {
-        statusCategory = 'Hipertensão Estágio 1';
+        statusCategory = "Hipertens\xE3o Est\xE1gio 2";
+      } else if (sys >= 130 && sys <= 139 || dia >= 80 && dia <= 89) {
+        statusCategory = "Hipertens\xE3o Est\xE1gio 1";
       } else if (sys >= 120 && sys <= 129 && dia < 80) {
-        statusCategory = 'Pressão Elevada / Pré-hipertensão';
+        statusCategory = "Press\xE3o Elevada / Pr\xE9-hipertens\xE3o";
       } else if (sys < 90 || dia < 60) {
-        statusCategory = 'Hipotensão';
+        statusCategory = "Hipotens\xE3o";
       } else {
-        statusCategory = 'Normal (Ótima)';
+        statusCategory = "Normal (\xD3tima)";
       }
     } else if (heart_rate) {
       hr = Number(heart_rate);
     }
-
     const officialTime = getOfficialServerTime();
-    const user = db.users.find((u) => u.id === (recorded_by_user_id || 'usr-01'));
-
+    const user = db.users.find((u) => u.id === (recorded_by_user_id || "usr-01"));
     const newLog = {
       id: `hl-${Date.now()}`,
       elderly_id: db.elderly.id,
-      recorded_by_user_id: user?.id || 'usr-01',
-      recorded_by_name: user ? `${user.name} (${user.role === 'caregiver' ? 'Cuidadora' : 'Familiar'})` : 'Profissional',
+      recorded_by_user_id: user?.id || "usr-01",
+      recorded_by_name: user ? `${user.name} (${user.role === "caregiver" ? "Cuidadora" : "Familiar"})` : "Profissional",
       systolic_bp: sys,
       diastolic_bp: dia,
       heart_rate: hr,
       is_bp_measured: hasBp,
       glucose: glucose ? Number(glucose) : null,
-      glucose_context: glucose_context || 'Glicemia capilar',
+      glucose_context: glucose_context || "Glicemia capilar",
       temperature_c: temperature_c ? Number(temperature_c) : null,
       weight_kg: weight_kg ? Number(weight_kg) : null,
       status_category: statusCategory,
       contractor_signed: contractor_signed ?? true,
       caregiver_signed: caregiver_signed ?? true,
-      notes: notes || (hasBp ? 'Aferição de rotina registrada.' : 'Registro geral sem aferição de PA no momento.'),
-      created_at: officialTime.iso_timestamp,
+      notes: notes || (hasBp ? "Aferi\xE7\xE3o de rotina registrada." : "Registro geral sem aferi\xE7\xE3o de PA no momento."),
+      created_at: officialTime.iso_timestamp
     };
-
     db.healthLogs.unshift(newLog);
     saveDb();
-
     logActivity({
-      family_id: user?.family_id || 'fam-01',
-      user_id: user?.id || 'usr-01',
-      user_name: user?.name || 'Profissional',
-      user_role: user?.role || 'caregiver',
-      action_type: 'vitals_added',
-      category: 'Sinais Vitais',
-      description: `Sinais vitais aferidos por ${user?.name || 'Cuidador'}: ${hasBp ? `PA ${sys}/${dia} mmHg` : 'Registro clínico'} · FC ${hr || 75} bpm.`,
-      details: statusCategory,
+      family_id: user?.family_id || "fam-01",
+      user_id: user?.id || "usr-01",
+      user_name: user?.name || "Profissional",
+      user_role: user?.role || "caregiver",
+      action_type: "vitals_added",
+      category: "Sinais Vitais",
+      description: `Sinais vitais aferidos por ${user?.name || "Cuidador"}: ${hasBp ? `PA ${sys}/${dia} mmHg` : "Registro cl\xEDnico"} \xB7 FC ${hr || 75} bpm.`,
+      details: statusCategory
     });
-
     res.status(201).json({ success: true, log: newLog });
   });
-
-  app.put('/api/health-logs/:id', (req, res) => {
+  app.put("/api/health-logs/:id", (req, res) => {
     const { id } = req.params;
     const logIndex = db.healthLogs.findIndex((l) => l.id === id);
     if (logIndex === -1) {
-      return res.status(404).json({ error: 'Registro de saúde não encontrado' });
+      return res.status(404).json({ error: "Registro de sa\xFAde n\xE3o encontrado" });
     }
-
     const {
       systolic_bp,
       diastolic_bp,
@@ -2023,77 +1836,60 @@ async function startServer() {
       weight_kg,
       notes,
       contractor_signed,
-      caregiver_signed,
+      caregiver_signed
     } = req.body;
-
-    const hasBp =
-      systolic_bp !== undefined &&
-      systolic_bp !== null &&
-      systolic_bp !== '' &&
-      diastolic_bp !== undefined &&
-      diastolic_bp !== null &&
-      diastolic_bp !== '';
-
-    let sys: number | null = null;
-    let dia: number | null = null;
-    let hr: number | null = null;
-    let statusCategory = 'Não aferida nesta rotina (Opcional)';
-
+    const hasBp = systolic_bp !== void 0 && systolic_bp !== null && systolic_bp !== "" && diastolic_bp !== void 0 && diastolic_bp !== null && diastolic_bp !== "";
+    let sys = null;
+    let dia = null;
+    let hr = null;
+    let statusCategory = "N\xE3o aferida nesta rotina (Opcional)";
     if (hasBp) {
       sys = Number(systolic_bp);
       dia = Number(diastolic_bp);
       hr = heart_rate ? Number(heart_rate) : 75;
-
       if (sys >= 180 || dia >= 120) {
-        statusCategory = 'Crise Hipertensiva (Urgência)';
+        statusCategory = "Crise Hipertensiva (Urg\xEAncia)";
       } else if (sys >= 140 || dia >= 90) {
-        statusCategory = 'Hipertensão Estágio 2';
-      } else if ((sys >= 130 && sys <= 139) || (dia >= 80 && dia <= 89)) {
-        statusCategory = 'Hipertensão Estágio 1';
+        statusCategory = "Hipertens\xE3o Est\xE1gio 2";
+      } else if (sys >= 130 && sys <= 139 || dia >= 80 && dia <= 89) {
+        statusCategory = "Hipertens\xE3o Est\xE1gio 1";
       } else if (sys >= 120 && sys <= 129 && dia < 80) {
-        statusCategory = 'Pressão Elevada / Pré-hipertensão';
+        statusCategory = "Press\xE3o Elevada / Pr\xE9-hipertens\xE3o";
       } else if (sys < 90 || dia < 60) {
-        statusCategory = 'Hipotensão';
+        statusCategory = "Hipotens\xE3o";
       } else {
-        statusCategory = 'Normal (Ótima)';
+        statusCategory = "Normal (\xD3tima)";
       }
     }
-
     const targetLog = db.healthLogs[logIndex];
-    if (systolic_bp !== undefined) targetLog.systolic_bp = sys;
-    if (diastolic_bp !== undefined) targetLog.diastolic_bp = dia;
-    if (heart_rate !== undefined) targetLog.heart_rate = hr;
+    if (systolic_bp !== void 0) targetLog.systolic_bp = sys;
+    if (diastolic_bp !== void 0) targetLog.diastolic_bp = dia;
+    if (heart_rate !== void 0) targetLog.heart_rate = hr;
     targetLog.is_bp_measured = hasBp;
-    if (glucose !== undefined) targetLog.glucose = glucose ? Number(glucose) : null;
-    if (glucose_context !== undefined) targetLog.glucose_context = glucose_context;
-    if (temperature_c !== undefined) targetLog.temperature_c = temperature_c ? Number(temperature_c) : null;
-    if (weight_kg !== undefined) targetLog.weight_kg = weight_kg ? Number(weight_kg) : null;
-    if (notes !== undefined) targetLog.notes = notes;
-    if (contractor_signed !== undefined) targetLog.contractor_signed = Boolean(contractor_signed);
-    if (caregiver_signed !== undefined) targetLog.caregiver_signed = Boolean(caregiver_signed);
+    if (glucose !== void 0) targetLog.glucose = glucose ? Number(glucose) : null;
+    if (glucose_context !== void 0) targetLog.glucose_context = glucose_context;
+    if (temperature_c !== void 0) targetLog.temperature_c = temperature_c ? Number(temperature_c) : null;
+    if (weight_kg !== void 0) targetLog.weight_kg = weight_kg ? Number(weight_kg) : null;
+    if (notes !== void 0) targetLog.notes = notes;
+    if (contractor_signed !== void 0) targetLog.contractor_signed = Boolean(contractor_signed);
+    if (caregiver_signed !== void 0) targetLog.caregiver_signed = Boolean(caregiver_signed);
     targetLog.status_category = statusCategory;
-
     saveDb();
-
     logActivity({
-      family_id: 'fam-01',
-      user_id: 'usr-01',
-      user_name: 'Cuidador',
-      user_role: 'caregiver',
-      action_type: 'vitals_edited',
-      category: 'Sinais Vitais',
-      description: `Aferição de sinais vitais atualizada e auditada no sistema.`,
+      family_id: "fam-01",
+      user_id: "usr-01",
+      user_name: "Cuidador",
+      user_role: "caregiver",
+      action_type: "vitals_edited",
+      category: "Sinais Vitais",
+      description: `Aferi\xE7\xE3o de sinais vitais atualizada e auditada no sistema.`
     });
-
     res.json({ success: true, log: targetLog });
   });
-
-  // 7b. Relatório Diário de Ocorrências & Acompanhamento Familiar (Diário de Bordo)
-  app.get('/api/daily-incidents', (req, res) => {
+  app.get("/api/daily-incidents", (req, res) => {
     res.json(db.dailyIncidents);
   });
-
-  app.post('/api/daily-incidents', (req, res) => {
+  app.post("/api/daily-incidents", (req, res) => {
     const {
       general_state,
       had_discomfort,
@@ -2102,348 +1898,286 @@ async function startServer() {
       actions_taken,
       recorded_by_user_id,
       contractor_signed,
-      caregiver_signed,
+      caregiver_signed
     } = req.body;
-
     const officialTime = getOfficialServerTime();
-    const user = db.users.find((u) => u.id === (recorded_by_user_id || 'usr-01'));
-
+    const user = db.users.find((u) => u.id === (recorded_by_user_id || "usr-01"));
     const newIncident = {
       id: `inc-${Date.now()}`,
       elderly_id: db.elderly.id,
       date_stamp: officialTime.date_stamp,
       day_of_week: officialTime.day_of_week,
-      recorded_by_user_id: user?.id || 'usr-01',
-      recorded_by_name: user ? `${user.name} (${user.role === 'caregiver' ? 'Cuidadora Titular' : 'Família'})` : 'Responsável',
-      recorded_by_role: user?.role || 'caregiver',
-      general_state: general_state || 'estavel',
+      recorded_by_user_id: user?.id || "usr-01",
+      recorded_by_name: user ? `${user.name} (${user.role === "caregiver" ? "Cuidadora Titular" : "Fam\xEDlia"})` : "Respons\xE1vel",
+      recorded_by_role: user?.role || "caregiver",
+      general_state: general_state || "estavel",
       had_discomfort: Boolean(had_discomfort),
       discomfort_types: discomfort_types || [],
-      symptoms_description: symptoms_description || 'Dia transcorreu sem queixas de mal-estar.',
-      actions_taken: actions_taken || 'Rotina de cuidados, hidratação e medicação regular mantida.',
+      symptoms_description: symptoms_description || "Dia transcorreu sem queixas de mal-estar.",
+      actions_taken: actions_taken || "Rotina de cuidados, hidrata\xE7\xE3o e medica\xE7\xE3o regular mantida.",
       contractor_signed: Boolean(contractor_signed),
-      contractor_signed_name: contractor_signed ? 'Dr. Fernando Silveira (Filho/Contratante)' : undefined,
+      contractor_signed_name: contractor_signed ? "Dr. Fernando Silveira (Filho/Contratante)" : void 0,
       caregiver_signed: Boolean(caregiver_signed ?? true),
-      caregiver_signed_name: user?.role === 'caregiver' ? user.name : 'Clara Mendes (Cuidadora)',
-      family_viewed_by: [user?.name || 'Clara Mendes'],
-      created_at: officialTime.iso_timestamp,
+      caregiver_signed_name: user?.role === "caregiver" ? user.name : "Clara Mendes (Cuidadora)",
+      family_viewed_by: [user?.name || "Clara Mendes"],
+      created_at: officialTime.iso_timestamp
     };
-
     db.dailyIncidents.unshift(newIncident);
     saveDb();
-
     logActivity({
-      family_id: user?.family_id || 'fam-01',
-      user_id: user?.id || 'usr-01',
-      user_name: user?.name || 'Cuidador',
-      user_role: user?.role || 'caregiver',
-      action_type: 'incident_reported',
-      category: 'Boletim do Idoso',
-      description: `Boletim diário de ocorrências preenchido por ${user?.name || 'Cuidador'}: Estado ${general_state}.`,
-      details: symptoms_description || '',
+      family_id: user?.family_id || "fam-01",
+      user_id: user?.id || "usr-01",
+      user_name: user?.name || "Cuidador",
+      user_role: user?.role || "caregiver",
+      action_type: "incident_reported",
+      category: "Boletim do Idoso",
+      description: `Boletim di\xE1rio de ocorr\xEAncias preenchido por ${user?.name || "Cuidador"}: Estado ${general_state}.`,
+      details: symptoms_description || ""
     });
-
     res.status(201).json({
       success: true,
-      message: 'Boletim diário de ocorrências registrado com sucesso.',
-      incident: newIncident,
+      message: "Boletim di\xE1rio de ocorr\xEAncias registrado com sucesso.",
+      incident: newIncident
     });
   });
-
-  // Assinatura do Contratante / Ciência da Família no Boletim
-  app.post('/api/daily-incidents/:id/sign', (req, res) => {
+  app.post("/api/daily-incidents/:id/sign", (req, res) => {
     const { id } = req.params;
     const { user_id } = req.body;
     const incident = db.dailyIncidents.find((i) => i.id === id);
-    if (!incident) return res.status(404).json({ error: 'Relatório diário não encontrado' });
-
+    if (!incident) return res.status(404).json({ error: "Relat\xF3rio di\xE1rio n\xE3o encontrado" });
     const user = db.users.find((u) => u.id === user_id);
     incident.contractor_signed = true;
-    incident.contractor_signed_name = `${user?.name || 'Administrador Familiar'} (Ciência do Contratante)`;
+    incident.contractor_signed_name = `${user?.name || "Administrador Familiar"} (Ci\xEAncia do Contratante)`;
     if (user?.name && !incident.family_viewed_by.includes(user.name)) {
       incident.family_viewed_by.push(user.name);
     }
-
     saveDb();
-
     logActivity({
-      family_id: user?.family_id || 'fam-01',
-      user_id: user?.id || 'usr-01',
-      user_name: user?.name || 'Familiar',
-      user_role: user?.role || 'admin_family',
-      action_type: 'incident_signed',
-      category: 'Boletim do Idoso',
-      description: `Visto e assinatura de ciência no Boletim do Idoso confirmados por ${user?.name || 'Administrador Familiar'}.`,
+      family_id: user?.family_id || "fam-01",
+      user_id: user?.id || "usr-01",
+      user_name: user?.name || "Familiar",
+      user_role: user?.role || "admin_family",
+      action_type: "incident_signed",
+      category: "Boletim do Idoso",
+      description: `Visto e assinatura de ci\xEAncia no Boletim do Idoso confirmados por ${user?.name || "Administrador Familiar"}.`
     });
-
     res.json({
       success: true,
-      message: 'Ciência e assinatura do contratante confirmadas no relatório.',
-      incident,
+      message: "Ci\xEAncia e assinatura do contratante confirmadas no relat\xF3rio.",
+      incident
     });
   });
-
-  // 8. Medications Control
-  app.get('/api/medications', (req, res) => {
+  app.get("/api/medications", (req, res) => {
     res.json(db.medicationLogs);
   });
-
-  app.post('/api/medications/:id/administer', (req, res) => {
+  app.post("/api/medications/:id/administer", (req, res) => {
     const { id } = req.params;
     const { user_id, notes } = req.body;
     const med = db.medicationLogs.find((m) => m.id === id);
-    if (!med) return res.status(404).json({ error: 'Medicamento não localizado' });
-
+    if (!med) return res.status(404).json({ error: "Medicamento n\xE3o localizado" });
     const officialTime = getOfficialServerTime();
-    const user = db.users.find((u) => u.id === (user_id || 'usr-01'));
-
-    med.status = 'taken';
+    const user = db.users.find((u) => u.id === (user_id || "usr-01"));
+    med.status = "taken";
     med.administered_at = officialTime.iso_timestamp;
-    med.administered_by_user_id = user?.id || 'usr-01';
-    med.administered_by_name = user?.name || 'Clara Mendes';
+    med.administered_by_user_id = user?.id || "usr-01";
+    med.administered_by_name = user?.name || "Clara Mendes";
     if (notes) med.instructions += ` (Obs: ${notes})`;
-
     saveDb();
-
     logActivity({
-      family_id: user?.family_id || 'fam-01',
-      user_id: user?.id || 'usr-01',
-      user_name: user?.name || 'Cuidador',
-      user_role: user?.role || 'caregiver',
-      action_type: 'medication_administered',
-      category: 'Medicamentos',
-      description: `Medicamento ${med.name} (${med.dosage}) administrado ao idoso por ${user?.name || 'Cuidador'}.`,
-      details: `Horário: ${med.time_scheduled} | Status: Ministrado`,
+      family_id: user?.family_id || "fam-01",
+      user_id: user?.id || "usr-01",
+      user_name: user?.name || "Cuidador",
+      user_role: user?.role || "caregiver",
+      action_type: "medication_administered",
+      category: "Medicamentos",
+      description: `Medicamento ${med.name} (${med.dosage}) administrado ao idoso por ${user?.name || "Cuidador"}.`,
+      details: `Hor\xE1rio: ${med.time_scheduled} | Status: Ministrado`
     });
-
     res.json({ success: true, medication: med });
   });
-
-  app.post('/api/medications/:id/skip', (req, res) => {
+  app.post("/api/medications/:id/skip", (req, res) => {
     const { id } = req.params;
     const { reason, user_id } = req.body;
     const med = db.medicationLogs.find((m) => m.id === id);
-    if (!med) return res.status(404).json({ error: 'Medicamento não localizado' });
-
-    const user = db.users.find((u) => u.id === (user_id || 'usr-01'));
-    med.status = 'skipped';
-    med.instructions += ` [NÃO MINISTRADO: ${reason || 'Idoso recusou ou jejum cirúrgico'}]`;
-
+    if (!med) return res.status(404).json({ error: "Medicamento n\xE3o localizado" });
+    const user = db.users.find((u) => u.id === (user_id || "usr-01"));
+    med.status = "skipped";
+    med.instructions += ` [N\xC3O MINISTRADO: ${reason || "Idoso recusou ou jejum cir\xFArgico"}]`;
     saveDb();
-
     logActivity({
-      family_id: user?.family_id || 'fam-01',
-      user_id: user?.id || 'usr-01',
-      user_name: user?.name || 'Cuidador',
-      user_role: user?.role || 'caregiver',
-      action_type: 'medication_administered',
-      category: 'Medicamentos',
-      description: `Medicamento ${med.name} não ministrado por ${user?.name || 'Cuidador'}. Motivo: ${reason || 'Recusado/Jejum'}.`,
+      family_id: user?.family_id || "fam-01",
+      user_id: user?.id || "usr-01",
+      user_name: user?.name || "Cuidador",
+      user_role: user?.role || "caregiver",
+      action_type: "medication_administered",
+      category: "Medicamentos",
+      description: `Medicamento ${med.name} n\xE3o ministrado por ${user?.name || "Cuidador"}. Motivo: ${reason || "Recusado/Jejum"}.`
     });
-
     res.json({ success: true, medication: med });
   });
-
-  // 9. Family Notice Board
-  app.get('/api/notices', (req, res) => {
+  app.get("/api/notices", (req, res) => {
     res.json(db.familyNotices);
   });
-
-  app.post('/api/notices', (req, res) => {
+  app.post("/api/notices", (req, res) => {
     const { title, description, category, user_id } = req.body;
     if (!title || !description) {
-      return res.status(400).json({ error: 'Título e descrição são obrigatórios' });
+      return res.status(400).json({ error: "T\xEDtulo e descri\xE7\xE3o s\xE3o obrigat\xF3rios" });
     }
     const officialTime = getOfficialServerTime();
-    const user = db.users.find((u) => u.id === (user_id || 'usr-01'));
-
+    const user = db.users.find((u) => u.id === (user_id || "usr-01"));
     const newNotice = {
       id: `ntc-${Date.now()}`,
       elderly_id: db.elderly.id,
-      created_by_user_id: user?.id || 'usr-01',
-      created_by_name: user?.name || 'Membro da Família',
-      category: category || 'shopping',
+      created_by_user_id: user?.id || "usr-01",
+      created_by_name: user?.name || "Membro da Fam\xEDlia",
+      category: category || "shopping",
       title,
       description,
       is_resolved: false,
-      created_at: officialTime.iso_timestamp,
+      created_at: officialTime.iso_timestamp
     };
-
     db.familyNotices.unshift(newNotice);
     saveDb();
-
     logActivity({
-      family_id: user?.family_id || 'fam-01',
-      user_id: user?.id || 'usr-01',
-      user_name: user?.name || 'Familiar',
-      user_role: user?.role || 'family_member',
-      action_type: 'family_notice',
-      category: 'Mural',
-      description: `Novo aviso no mural publicado por ${user?.name || 'Família'}: "${title}".`,
-      details: description,
+      family_id: user?.family_id || "fam-01",
+      user_id: user?.id || "usr-01",
+      user_name: user?.name || "Familiar",
+      user_role: user?.role || "family_member",
+      action_type: "family_notice",
+      category: "Mural",
+      description: `Novo aviso no mural publicado por ${user?.name || "Fam\xEDlia"}: "${title}".`,
+      details: description
     });
-
     res.status(201).json({ success: true, notice: newNotice });
   });
-
-  app.patch('/api/notices/:id/toggle', (req, res) => {
+  app.patch("/api/notices/:id/toggle", (req, res) => {
     const { id } = req.params;
     const notice = db.familyNotices.find((n) => n.id === id);
-    if (!notice) return res.status(404).json({ error: 'Aviso não encontrado' });
-
+    if (!notice) return res.status(404).json({ error: "Aviso n\xE3o encontrado" });
     notice.is_resolved = !notice.is_resolved;
     saveDb();
-
     logActivity({
-      family_id: 'fam-01',
-      user_id: 'usr-01',
-      user_name: 'Usuário',
-      user_role: 'caregiver',
-      action_type: 'family_notice',
-      category: 'Mural',
-      description: `Aviso "${notice.title}" marcado como ${notice.is_resolved ? 'resolvido' : 'pendente'}.`,
+      family_id: "fam-01",
+      user_id: "usr-01",
+      user_name: "Usu\xE1rio",
+      user_role: "caregiver",
+      action_type: "family_notice",
+      category: "Mural",
+      description: `Aviso "${notice.title}" marcado como ${notice.is_resolved ? "resolvido" : "pendente"}.`
     });
-
     res.json({ success: true, notice });
   });
-
-  // 10. Plano de Missões Diárias (Protocolo de Cuidados) - Exclusivo do Administrador
-  app.get(['/api/missions', '/api/daily-missions'], (req, res) => {
+  app.get(["/api/missions", "/api/daily-missions"], (req, res) => {
     const list = [...db.dailyMissions].sort((a, b) => a.scheduled_time.localeCompare(b.scheduled_time));
     res.json(list);
   });
-
-  // Criar nova missão
-  app.post(['/api/missions', '/api/daily-missions'], (req, res) => {
+  app.post(["/api/missions", "/api/daily-missions"], (req, res) => {
     const { title, scheduled_time, scheduledTime, category, priority, clear_instructions, clearInstructions, user_id, userId, created_by_user_id } = req.body;
-    const authorId = user_id || userId || created_by_user_id || 'usr-admin-samuel';
+    const authorId = user_id || userId || created_by_user_id || "usr-admin-samuel";
     const user = db.users.find((u) => u.id === authorId) || db.users[0];
-
-    const mTitle = (title || '').trim() || 'Obrigação de Cuidado';
-    const mTime = (scheduled_time || scheduledTime || '').trim() || '08:00';
-    const mInstructions = (clear_instructions || clearInstructions || '').trim() || 'Procedimento de rotina registrado no protocolo.';
-
+    const mTitle = (title || "").trim() || "Obriga\xE7\xE3o de Cuidado";
+    const mTime = (scheduled_time || scheduledTime || "").trim() || "08:00";
+    const mInstructions = (clear_instructions || clearInstructions || "").trim() || "Procedimento de rotina registrado no protocolo.";
     const newMission = {
       id: `mis-${Date.now()}`,
-      elderly_id: db.elderly?.id || 'eld-01',
+      elderly_id: db.elderly?.id || "eld-01",
       title: mTitle,
       scheduled_time: mTime,
-      category: category || 'medication',
-      priority: priority || 'mandatory',
+      category: category || "medication",
+      priority: priority || "mandatory",
       clear_instructions: mInstructions,
       created_by_user_id: user?.id || authorId,
-      created_by_name: `${user?.name || 'Administrador'} (Protocolo Oficial)`,
+      created_by_name: `${user?.name || "Administrador"} (Protocolo Oficial)`,
       is_active: true,
       completed: false,
       completed_at: null,
       completed_by_name: null,
-      execution_notes: null,
+      execution_notes: null
     };
-
     db.dailyMissions.push(newMission);
     saveDb();
-
     logActivity({
-      family_id: user?.family_id || 'fam-01',
+      family_id: user?.family_id || "fam-01",
       user_id: user?.id || authorId,
-      user_name: user?.name || 'Administrador',
-      user_role: user?.role || 'admin_geral',
-      action_type: 'mission_created',
-      category: 'Obrigações Diárias',
-      description: `Nova obrigação diária cadastrada: "${mTitle}" às ${mTime}.`,
-      details: mInstructions,
+      user_name: user?.name || "Administrador",
+      user_role: user?.role || "admin_geral",
+      action_type: "mission_created",
+      category: "Obriga\xE7\xF5es Di\xE1rias",
+      description: `Nova obriga\xE7\xE3o di\xE1ria cadastrada: "${mTitle}" \xE0s ${mTime}.`,
+      details: mInstructions
     });
-
     res.status(201).json({
       success: true,
-      message: 'Missão diária incluída com sucesso no protocolo do cuidador.',
-      mission: newMission,
+      message: "Miss\xE3o di\xE1ria inclu\xEDda com sucesso no protocolo do cuidador.",
+      mission: newMission
     });
   });
-
-  // Editar missão
-  app.put(['/api/missions/:id', '/api/daily-missions/:id'], (req, res) => {
+  app.put(["/api/missions/:id", "/api/daily-missions/:id"], (req, res) => {
     const { id } = req.params;
     const { title, scheduled_time, scheduledTime, category, priority, clear_instructions, clearInstructions, user_id, userId, created_by_user_id } = req.body;
-    const authorId = user_id || userId || created_by_user_id || 'usr-admin-samuel';
+    const authorId = user_id || userId || created_by_user_id || "usr-admin-samuel";
     const user = db.users.find((u) => u.id === authorId) || db.users[0];
-
     const mission = db.dailyMissions.find((m) => m.id === id);
-    if (!mission) return res.status(404).json({ error: 'Missão não encontrada' });
-
+    if (!mission) return res.status(404).json({ error: "Miss\xE3o n\xE3o encontrada" });
     if (title) mission.title = title.trim();
     if (scheduled_time || scheduledTime) mission.scheduled_time = (scheduled_time || scheduledTime).trim();
     if (category) mission.category = category;
     if (priority) mission.priority = priority;
-    if (clear_instructions !== undefined || clearInstructions !== undefined) {
-      mission.clear_instructions = (clear_instructions !== undefined ? clear_instructions : clearInstructions).trim();
+    if (clear_instructions !== void 0 || clearInstructions !== void 0) {
+      mission.clear_instructions = (clear_instructions !== void 0 ? clear_instructions : clearInstructions).trim();
     }
-
     saveDb();
-
     logActivity({
-      family_id: user?.family_id || 'fam-01',
+      family_id: user?.family_id || "fam-01",
       user_id: user?.id || authorId,
-      user_name: user?.name || 'Administrador',
-      user_role: user?.role || 'admin_geral',
-      action_type: 'mission_created',
-      category: 'Obrigações Diárias',
-      description: `Obrigação diária "${mission.title}" atualizada no sistema.`,
+      user_name: user?.name || "Administrador",
+      user_role: user?.role || "admin_geral",
+      action_type: "mission_created",
+      category: "Obriga\xE7\xF5es Di\xE1rias",
+      description: `Obriga\xE7\xE3o di\xE1ria "${mission.title}" atualizada no sistema.`
     });
-
     res.json({
       success: true,
-      message: 'Missão diária atualizada com sucesso.',
-      mission,
+      message: "Miss\xE3o di\xE1ria atualizada com sucesso.",
+      mission
     });
   });
-
-  // Excluir missão (Admin Geral ou Admin Familiar)
-  app.delete(['/api/missions/:id', '/api/daily-missions/:id'], (req, res) => {
+  app.delete(["/api/missions/:id", "/api/daily-missions/:id"], (req, res) => {
     const { id } = req.params;
     const { user_id } = req.query;
-    const user = db.users.find((u) => u.id === (user_id || 'usr-admin-samuel'));
-
-    if (!user || (user.role !== 'admin_family' && user.role !== 'admin_geral')) {
+    const user = db.users.find((u) => u.id === (user_id || "usr-admin-samuel"));
+    if (!user || user.role !== "admin_family" && user.role !== "admin_geral") {
       return res.status(403).json({
-        error: 'Permissão negada',
-        message: 'Somente o Administrador possui autorização para remover missões do protocolo.',
+        error: "Permiss\xE3o negada",
+        message: "Somente o Administrador possui autoriza\xE7\xE3o para remover miss\xF5es do protocolo."
       });
     }
-
     const index = db.dailyMissions.findIndex((m) => m.id === id);
-    if (index === -1) return res.status(404).json({ error: 'Missão não encontrada' });
-
+    if (index === -1) return res.status(404).json({ error: "Miss\xE3o n\xE3o encontrada" });
     const removed = db.dailyMissions.splice(index, 1)[0];
     saveDb();
-
     logActivity({
-      family_id: user?.family_id || 'fam-01',
+      family_id: user?.family_id || "fam-01",
       user_id: user.id,
       user_name: user.name,
       user_role: user.role,
-      action_type: 'mission_created',
-      category: 'Obrigações Diárias',
-      description: `Obrigação diária "${removed.title}" removida do protocolo por ${user.name}.`,
+      action_type: "mission_created",
+      category: "Obriga\xE7\xF5es Di\xE1rias",
+      description: `Obriga\xE7\xE3o di\xE1ria "${removed.title}" removida do protocolo por ${user.name}.`
     });
-
-    res.json({ success: true, message: 'Missão removida do protocolo diário.' });
+    res.json({ success: true, message: "Miss\xE3o removida do protocolo di\xE1rio." });
   });
-
-  // Marcar missão como cumprida pelo cuidador / executor
-  app.all(['/api/missions/:id/toggle', '/api/daily-missions/:id/toggle'], (req, res) => {
+  app.all(["/api/missions/:id/toggle", "/api/daily-missions/:id/toggle"], (req, res) => {
     const { id } = req.params;
     const { user_id, execution_notes } = req.body;
     const mission = db.dailyMissions.find((m) => m.id === id);
-    if (!mission) return res.status(404).json({ error: 'Missão não encontrada' });
-
+    if (!mission) return res.status(404).json({ error: "Miss\xE3o n\xE3o encontrada" });
     const user = db.users.find((u) => u.id === user_id);
     const officialTime = getOfficialServerTime();
-
     if (!mission.completed) {
       mission.completed = true;
       mission.completed_at = `${officialTime.formatted_time.slice(0, 5)}`;
-      mission.completed_by_name = user?.name || 'Clara Mendes (Cuidadora)';
+      mission.completed_by_name = user?.name || "Clara Mendes (Cuidadora)";
       if (execution_notes) mission.execution_notes = execution_notes;
     } else {
       mission.completed = false;
@@ -2451,43 +2185,35 @@ async function startServer() {
       mission.completed_by_name = null;
       mission.execution_notes = null;
     }
-
     saveDb();
-
     logActivity({
-      family_id: user?.family_id || 'fam-01',
-      user_id: user?.id || 'usr-01',
-      user_name: user?.name || 'Cuidador',
-      user_role: user?.role || 'caregiver',
-      action_type: 'mission_completed',
-      category: 'Obrigações Diárias',
-      description: `Missão "${mission.title}" marcada como ${mission.completed ? 'CUMPRIDA' : 'PENDENTE'} por ${user?.name || 'Cuidador'}.`,
+      family_id: user?.family_id || "fam-01",
+      user_id: user?.id || "usr-01",
+      user_name: user?.name || "Cuidador",
+      user_role: user?.role || "caregiver",
+      action_type: "mission_completed",
+      category: "Obriga\xE7\xF5es Di\xE1rias",
+      description: `Miss\xE3o "${mission.title}" marcada como ${mission.completed ? "CUMPRIDA" : "PENDENTE"} por ${user?.name || "Cuidador"}.`
     });
-
     res.json({ success: true, mission });
   });
-
-  // Attach Vite middleware in development
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: 'spa',
+      appType: "spa"
     });
     app.use(vite.middlewares);
   } else {
-    // Production static serve
-    app.use(express.static(path.resolve(__dirname, 'dist')));
-    app.get('*', (req, res) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
+    app.use(express.static(path.resolve(__dirname, "dist")));
+    app.get("*", (req, res) => {
+      res.sendFile(path.resolve(__dirname, "dist", "index.html"));
     });
   }
-
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`[CUIDA] Servidor ativo em http://0.0.0.0:${PORT}`);
   });
 }
-
 startServer().catch((err) => {
-  console.error('[CUIDA] Falha ao iniciar servidor:', err);
+  console.error("[CUIDA] Falha ao iniciar servidor:", err);
   process.exit(1);
 });

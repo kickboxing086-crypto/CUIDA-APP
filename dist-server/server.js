@@ -99,6 +99,21 @@ async function startServer() {
   } catch (err) {
     console.warn("[CUIDA DB] Aviso ao ler cuida-data-store.json:", err);
   }
+  if (!db.timeEntries) {
+    db.timeEntries = [];
+  }
+  db.timeEntries.forEach((entry) => {
+    if (!entry.family_id) {
+      const u = db.users.find((usr) => usr.id === entry.user_id || usr.username === entry.user_id || usr.name === entry.user_name);
+      if (u && u.family_id) {
+        entry.family_id = u.family_id;
+        entry.family_name = u.family_name;
+      } else if (db.families.length > 0) {
+        entry.family_id = db.families[0].id;
+        entry.family_name = db.families[0].name;
+      }
+    }
+  });
   if (!db.shiftSchedules) {
     db.shiftSchedules = [];
   }
@@ -1025,8 +1040,19 @@ async function startServer() {
     res.json(db.elderly);
   });
   app.get("/api/time-entries/active", (req, res) => {
-    const userId = req.query.userId || "usr-01";
-    const active = db.timeEntries.find((entry) => entry.user_id === userId && !entry.exit_time);
+    const { userId, familyId } = req.query;
+    if (familyId && familyId !== "Todos") {
+      const familyUserIds = db.users.filter((u) => u.family_id === familyId).map((u) => u.id);
+      const active2 = db.timeEntries.find(
+        (entry) => (entry.family_id === familyId || familyUserIds.includes(entry.user_id)) && !entry.exit_time
+      );
+      return res.json({ activeEntry: active2 || null });
+    }
+    const targetUserId = userId || "usr-01";
+    const user = db.users.find((u) => u.id === targetUserId || u.username === targetUserId);
+    const active = db.timeEntries.find(
+      (entry) => (entry.user_id === targetUserId || user && entry.user_id === user.id) && !entry.exit_time
+    );
     res.json({ activeEntry: active || null });
   });
   function validateGeofence(user, caregiverLat, caregiverLong) {
@@ -1082,19 +1108,26 @@ async function startServer() {
       elderlyId,
       photo_base64,
       photoBase64,
+      photo,
+      photo_url,
       location_lat,
       locationLat,
       location_long,
       locationLong,
-      notes
+      notes,
+      family_id,
+      familyId: reqFamilyId,
+      userName: reqUserName,
+      user_name: reqUser_name
     } = req.body;
     const effectiveUserId = user_id || userId || "usr-admin-master";
-    const effectivePhoto = photo_base64 || photoBase64 || null;
+    const effectivePhoto = photo_base64 || photoBase64 || photo || photo_url || null;
     const effectiveLat = location_lat !== void 0 ? location_lat : locationLat;
     const effectiveLong = location_long !== void 0 ? location_long : locationLong;
     const user = db.users.find((u) => u.id === effectiveUserId || u.username === effectiveUserId) || db.users[0];
-    const familyId = user?.family_id || (db.families[0]?.id || null);
-    const effectiveElderlyId = elderly_id || elderlyId || (familyId ? db.families.find((f) => f.id === familyId)?.elderly_id : null) || db.elderly?.id || "eld-01";
+    const targetFamilyId = family_id || reqFamilyId || user?.family_id || (db.families[0]?.id || null);
+    const targetFamilyObj = db.families.find((f) => f.id === targetFamilyId);
+    const effectiveElderlyId = elderly_id || elderlyId || (targetFamilyId ? targetFamilyObj?.elderly_id : null) || db.elderly?.id || "eld-01";
     const geoValidation = validateGeofence(user, effectiveLat, effectiveLong);
     const isAdmin = user?.role === "admin_geral" || user?.role === "admin_family" || user?.roles?.includes("admin_family");
     if (!isAdmin && effectiveLat && effectiveLong && !geoValidation.valid && geoValidation.distanceMeters > geoValidation.allowedRadius) {
@@ -1104,7 +1137,7 @@ async function startServer() {
       });
     }
     const familySchedules = (db.shiftSchedules || []).filter(
-      (s) => (s.family_id === familyId || !s.family_id) && s.active !== false
+      (s) => (s.family_id === targetFamilyId || !s.family_id) && s.active !== false
     );
     const userSchedules = familySchedules.filter(
       (s) => s.user_id === user?.id || s.user_id === effectiveUserId || s.user_name === user?.name
@@ -1141,11 +1174,14 @@ async function startServer() {
       existingOpen.total_hours_formatted = "Encerrado para novo plant\xE3o";
     }
     const entryPhoto = effectivePhoto || user?.avatar_url || null;
+    const finalUserName = reqUserName || reqUser_name || user?.name || "Cuidador";
     const newEntry = {
       id: `pnt-${Date.now()}`,
-      user_id: effectiveUserId,
-      user_name: user?.name || "Cuidador",
+      user_id: user?.id || effectiveUserId,
+      user_name: finalUserName,
       elderly_id: effectiveElderlyId,
+      family_id: targetFamilyId,
+      family_name: targetFamilyObj ? targetFamilyObj.name : user?.family_name || "Fam\xEDlia",
       entry_time: officialTime.iso_timestamp,
       entry_photo_url: entryPhoto,
       exit_time: null,
@@ -1159,19 +1195,19 @@ async function startServer() {
       residence_address: geoValidation.targetAddress,
       date_stamp: officialTime.date_stamp,
       day_of_week: officialTime.day_of_week,
-      notes: notes || `Check-in de ponto validado com hor\xE1rio oficial (${geoValidation.distanceMeters}m do local).`
+      notes: notes || `Check-in de ponto validado com foto e hor\xE1rio oficial (${geoValidation.distanceMeters}m do local).`
     };
     db.timeEntries.unshift(newEntry);
     saveDb();
     logActivity({
-      family_id: user?.family_id || "fam-01",
+      family_id: targetFamilyId || user?.family_id || "fam-01",
       user_id: user?.id || effectiveUserId,
-      user_name: user?.name || "Cuidador",
+      user_name: finalUserName,
       user_role: user?.role || "caregiver",
       action_type: "presence_clock",
       category: "Controle de Ponto",
-      description: `Entrada registrada por ${user?.name || "Cuidador"}: ponto validado com hor\xE1rio oficial sincronizado (dist\xE2ncia: ${geoValidation.distanceMeters}m).`,
-      details: `Hor\xE1rio oficial: ${officialTime.formatted_time} | Endere\xE7o: ${geoValidation.targetAddress}`
+      description: `Entrada com foto registrada por ${finalUserName}: ponto validado com hor\xE1rio oficial sincronizado (dist\xE2ncia: ${geoValidation.distanceMeters}m).`,
+      details: `Hor\xE1rio oficial: ${officialTime.formatted_time} | Endere\xE7o: ${geoValidation.targetAddress} | Foto auditada e vinculada \xE0 fam\xEDlia`
     });
     res.status(201).json({
       success: true,
@@ -1195,10 +1231,12 @@ async function startServer() {
     } = req.body;
     const targetEntryId = entry_id || entryId;
     const targetUserId = user_id || userId || "usr-01";
-    const effectivePhoto = photo_base64 || photoBase64 || null;
+    const effectivePhoto = photo_base64 || photoBase64 || req.body.photo || req.body.photo_url || null;
     const effectiveLat = location_lat !== void 0 ? location_lat : locationLat;
     const effectiveLong = location_long !== void 0 ? location_long : locationLong;
     const user = db.users.find((u) => u.id === targetUserId || u.username === targetUserId) || db.users.find((u) => u.id === targetEntryId) || db.users[0];
+    const targetFamilyId = req.body.family_id || req.body.familyId || user?.family_id || (db.families[0]?.id || null);
+    const targetFamilyObj = db.families.find((f) => f.id === targetFamilyId);
     let entry = db.timeEntries.find((e) => e.id === targetEntryId);
     if (!entry && (targetUserId || targetEntryId)) {
       entry = db.timeEntries.find(
@@ -1215,8 +1253,10 @@ async function startServer() {
       entry = {
         id: `pnt-out-${Date.now()}`,
         user_id: user?.id || targetUserId,
-        user_name: user?.name || "Cuidador",
+        user_name: req.body.userName || req.body.user_name || user?.name || "Cuidador",
         elderly_id: db.elderly?.id || "eld-01",
+        family_id: targetFamilyId,
+        family_name: targetFamilyObj ? targetFamilyObj.name : user?.family_name || "Fam\xEDlia",
         entry_time: entryTimeDate.toISOString(),
         entry_photo_url: effectivePhoto || user?.avatar_url || null,
         exit_time: officialTime.iso_timestamp,
@@ -1230,18 +1270,19 @@ async function startServer() {
         residence_address: geoVal.targetAddress,
         date_stamp: officialTime.date_stamp,
         day_of_week: officialTime.day_of_week,
-        notes: notes || "Encerramento de plant\xE3o registrado com sucesso."
+        notes: notes || "Encerramento de plant\xE3o registrado com foto auditada."
       };
       db.timeEntries.unshift(entry);
       saveDb();
       logActivity({
-        family_id: user?.family_id || "fam-01",
+        family_id: targetFamilyId || user?.family_id || "fam-01",
         user_id: user?.id || targetUserId,
-        user_name: user?.name || "Cuidador",
+        user_name: entry.user_name,
         user_role: user?.role || "caregiver",
         action_type: "presence_clock",
         category: "Controle de Ponto",
-        description: `Sa\xEDda de plant\xE3o registrada por ${user?.name || "Cuidador"} \xE0s ${officialTime.formatted_time}.`
+        description: `Sa\xEDda de plant\xE3o com foto registrada por ${entry.user_name} \xE0s ${officialTime.formatted_time}.`,
+        details: `Perman\xEAncia: 8h 00min | Foto auditada e vinculada \xE0 fam\xEDlia`
       });
       return res.status(200).json({
         success: true,
@@ -1250,12 +1291,16 @@ async function startServer() {
       });
     }
     if (entry.exit_time) {
-      entry.exit_photo_url = effectivePhoto || entry.exit_photo_url;
+      if (effectivePhoto) entry.exit_photo_url = effectivePhoto;
+      if (!entry.family_id) {
+        entry.family_id = targetFamilyId;
+        entry.family_name = targetFamilyObj ? targetFamilyObj.name : user?.family_name || "Fam\xEDlia";
+      }
       if (notes) entry.notes = `${entry.notes || ""} | ${notes}`;
       saveDb();
       return res.status(200).json({
         success: true,
-        message: `Sa\xEDda de plant\xE3o j\xE1 registrada! Dados atualizados com sucesso.`,
+        message: `Sa\xEDda de plant\xE3o j\xE1 registrada! Dados e foto atualizados com sucesso.`,
         entry
       });
     }
@@ -1269,7 +1314,11 @@ async function startServer() {
     const mins = totalMinutes % 60;
     const formattedHours = `${hours}h ${mins.toString().padStart(2, "0")}min`;
     entry.exit_time = officialTime.iso_timestamp;
-    entry.exit_photo_url = effectivePhoto || user?.avatar_url || null;
+    entry.exit_photo_url = effectivePhoto || entry.exit_photo_url || user?.avatar_url || null;
+    if (!entry.family_id) {
+      entry.family_id = targetFamilyId;
+      entry.family_name = targetFamilyObj ? targetFamilyObj.name : user?.family_name || "Fam\xEDlia";
+    }
     entry.total_hours = totalHours;
     entry.total_hours_formatted = formattedHours;
     if (notes) {
@@ -1277,18 +1326,18 @@ async function startServer() {
     }
     saveDb();
     logActivity({
-      family_id: user?.family_id || "fam-01",
+      family_id: entry.family_id || targetFamilyId || user?.family_id || "fam-01",
       user_id: user?.id || entry.user_id,
       user_name: user?.name || entry.user_name || "Cuidador",
       user_role: user?.role || "caregiver",
       action_type: "presence_clock",
       category: "Controle de Ponto",
-      description: `Sa\xEDda registrada por ${user?.name || "Cuidador"}: turno de ${formattedHours} encerrado com certifica\xE7\xE3o de hor\xE1rio oficial.`,
-      details: `Perman\xEAncia total: ${formattedHours} (${totalHours}h).`
+      description: `Sa\xEDda com foto registrada por ${user?.name || entry.user_name || "Cuidador"}: turno de ${formattedHours} encerrado com certifica\xE7\xE3o de hor\xE1rio oficial.`,
+      details: `Perman\xEAncia total: ${formattedHours} (${totalHours}h) | Foto auditada e vinculada \xE0 fam\xEDlia`
     });
     res.json({
       success: true,
-      message: `Check-out validado com sucesso! Perman\xEAncia de ${formattedHours} registrada.`,
+      message: `Check-out validado com sucesso! Perman\xEAncia de ${formattedHours} registrada com foto auditada.`,
       entry
     });
   });
@@ -1506,12 +1555,20 @@ async function startServer() {
     });
   });
   app.get("/api/time-entries/history", (req, res) => {
-    const { year, month, user_id } = req.query;
+    const { year, month, user_id, family_id, familyId } = req.query;
+    const targetFamilyId = family_id || familyId;
     let list = [...db.timeEntries];
-    if (user_id) {
+    if (targetFamilyId && targetFamilyId !== "Todos") {
+      const familyUserIds = db.users.filter((u) => u.family_id === targetFamilyId).map((u) => u.id);
+      list = list.filter(
+        (e) => e.family_id === targetFamilyId || familyUserIds.includes(e.user_id) || !e.family_id
+        // Include entries that may not have family_id explicitly assigned yet
+      );
+    }
+    if (user_id && user_id !== "Todos") {
       list = list.filter((e) => e.user_id === user_id);
     }
-    if (year && month) {
+    if (year && year !== "Todos" && month && month !== "Todos") {
       const prefix = `${year}-${String(month).padStart(2, "0")}`;
       list = list.filter((e) => e.date_stamp && e.date_stamp.startsWith(prefix));
     }

@@ -210,6 +210,9 @@ export function generateLocalOfficialTime(): OfficialServerTime {
   const minute = getPart('minute');
   const second = getPart('second');
 
+  const numericMonth = String(now.getMonth() + 1).padStart(2, '0');
+  const numericDay = String(now.getDate()).padStart(2, '0');
+
   return {
     iso_timestamp: now.toISOString(),
     epoch_ms: now.getTime(),
@@ -222,7 +225,7 @@ export function generateLocalOfficialTime(): OfficialServerTime {
     day_of_month: day,
     month_name: month,
     year: year,
-    date_stamp: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
+    date_stamp: `${year}-${numericMonth}-${numericDay}`,
   };
 }
 
@@ -252,18 +255,36 @@ export const api = {
   },
 
   // Active shift
-  async getActiveEntry(userId: string = 'usr-01'): Promise<TimeEntry | null> {
-    const res = await safeFetchJson<{ activeEntry: TimeEntry | null }>(`/api/time-entries/active?userId=${userId}`);
+  async getActiveEntry(userId?: string, familyId?: string): Promise<TimeEntry | null> {
+    const query = new URLSearchParams();
+    if (userId) query.append('userId', userId);
+    if (familyId) query.append('familyId', familyId);
+    const res = await safeFetchJson<{ activeEntry: TimeEntry | null }>(`/api/time-entries/active?${query.toString()}`);
     if (res.ok && res.data) {
+      if (res.data.activeEntry) {
+        const foundIdx = localTimeEntries.findIndex(e => e.id === res.data!.activeEntry!.id);
+        if (foundIdx >= 0) {
+          localTimeEntries[foundIdx] = res.data.activeEntry;
+        } else {
+          localTimeEntries.unshift(res.data.activeEntry);
+        }
+        saveLocalTimeEntries();
+      }
       return res.data.activeEntry;
     }
-    const found = localTimeEntries.find((e) => e.user_id === userId && !e.exit_time);
+    const found = localTimeEntries.find((e) => {
+      if (familyId && e.family_id === familyId && !e.exit_time) return true;
+      if (userId && e.user_id === userId && !e.exit_time) return true;
+      return !e.exit_time;
+    });
     return found || null;
   },
 
   // Clock In
   async checkIn(params: {
     userId: string;
+    userName?: string;
+    familyId?: string;
     elderlyId?: string;
     photoBase64?: string;
     locationLat?: number;
@@ -275,6 +296,10 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         user_id: params.userId,
+        user_name: params.userName,
+        userName: params.userName,
+        family_id: params.familyId,
+        familyId: params.familyId,
         elderly_id: params.elderlyId,
         photo_base64: params.photoBase64,
         location_lat: params.locationLat,
@@ -300,8 +325,9 @@ export const api = {
     const newEntry: TimeEntry = {
       id: `pnt-${Date.now()}`,
       user_id: params.userId,
-      user_name: user?.name || 'Cuidador',
+      user_name: params.userName || user?.name || 'Cuidador',
       elderly_id: params.elderlyId || INITIAL_ELDERLY.id || 'eld-01',
+      family_id: params.familyId || user?.family_id || undefined,
       entry_time: time.iso_timestamp,
       entry_photo_url: entryPhoto,
       exit_time: null,
@@ -331,6 +357,8 @@ export const api = {
   async checkOut(params: {
     entryId: string;
     userId: string;
+    userName?: string;
+    familyId?: string;
     photoBase64?: string;
     locationLat?: number;
     locationLong?: number;
@@ -342,6 +370,10 @@ export const api = {
       body: JSON.stringify({
         entry_id: params.entryId,
         user_id: params.userId,
+        user_name: params.userName,
+        userName: params.userName,
+        family_id: params.familyId,
+        familyId: params.familyId,
         photo_base64: params.photoBase64,
         location_lat: params.locationLat,
         location_long: params.locationLong,
@@ -394,8 +426,8 @@ export const api = {
     };
   },
 
-  // Timesheet history with month/year filter
-  async getTimesheetHistory(year?: string, month?: string, userId?: string): Promise<{
+  // Timesheet history with month/year filter and optional family filter
+  async getTimesheetHistory(year?: string, month?: string, userId?: string, familyId?: string): Promise<{
     entries: TimeEntry[];
     meta: {
       total_records: number;
@@ -408,6 +440,7 @@ export const api = {
     if (year && year !== 'Todos') q.append('year', year);
     if (month && month !== 'Todos') q.append('month', month);
     if (userId && userId !== 'Todos') q.append('user_id', userId);
+    if (familyId && familyId !== 'Todos') q.append('family_id', familyId);
 
     const res = await safeFetchJson<{
       entries: TimeEntry[];
@@ -420,16 +453,40 @@ export const api = {
     }>(`/api/time-entries/history?${q.toString()}`);
 
     if (res.ok && res.data && Array.isArray(res.data.entries)) {
+      if (res.data.entries.length > 0) {
+        for (const sEntry of res.data.entries) {
+          const idx = localTimeEntries.findIndex((e) => e.id === sEntry.id);
+          if (idx >= 0) {
+            localTimeEntries[idx] = sEntry;
+          } else {
+            localTimeEntries.unshift(sEntry);
+          }
+        }
+        saveLocalTimeEntries();
+      }
       return res.data;
     }
 
     let list = [...localTimeEntries];
+    if (familyId && familyId !== 'Todos') {
+      list = list.filter((e) => e.family_id === familyId || !e.family_id);
+    }
     if (userId && userId !== 'Todos') {
       list = list.filter((e) => e.user_id === userId);
     }
     if (year && year !== 'Todos' && month && month !== 'Todos') {
-      const prefix = `${year}-${String(month).padStart(2, '0')}`;
-      list = list.filter((e) => e.date_stamp && e.date_stamp.startsWith(prefix));
+      const targetYear = String(year);
+      const targetMonth = String(month).padStart(2, '0');
+      list = list.filter((e) => {
+        if (e.date_stamp && (e.date_stamp.startsWith(`${targetYear}-${targetMonth}`) || e.date_stamp.includes(`-${targetMonth}-`))) return true;
+        if (e.entry_time) {
+          const d = new Date(e.entry_time);
+          const y = String(d.getFullYear());
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          return y === targetYear && m === targetMonth;
+        }
+        return false;
+      });
     }
 
     const totalHoursAgg = list.reduce((acc, curr) => acc + (curr.total_hours || 0), 0);

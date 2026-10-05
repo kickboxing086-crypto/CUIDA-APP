@@ -188,11 +188,6 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
  return;
  }
 
- if (!newUserName.trim()) {
- setFeedback({ type: 'error', message: 'Preencha o nome completo do cliente.' });
- return;
- }
-
  if (selectedRoles.length === 0) {
  setFeedback({ type: 'error', message: 'Selecione pelo menos uma função para o usuário (até 2 opções permitidas).' });
  return;
@@ -200,16 +195,18 @@ export const FamilyLoginsAdminView: React.FC<FamilyLoginsAdminViewProps> = ({
 
  const cleanUser = newUserUsername.trim().toLowerCase().replace(/\s+/g, '_');
  const cleanPass = newUserPassword.trim().toLowerCase().slice(0, 8);
+ const effectiveName = newUserName.trim() || cleanUser || 'Novo Usuário';
+ const finalFamilyId = targetFamilyId || (families.length > 0 ? families[0].id : null);
 
  try {
  setIsSubmittingUser(true);
  await api.createUser({
- name: 'Pendente de Preenchimento',
+ name: effectiveName,
  username: cleanUser,
  password: cleanPass,
  roles: selectedRoles,
  role: selectedRoles[0],
- family_id: targetFamilyId || null,
+ family_id: finalFamilyId,
  requesting_user_id: currentUser.id });
 
  const roleNames = selectedRoles.map((r) => AVAILABLE_ROLES[r]?.name || r).join(' + ');

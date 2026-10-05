@@ -9,7 +9,11 @@ import {
   Bell,
   FileText,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Camera,
+  ZoomIn,
+  ShieldCheck,
+  X
 } from 'lucide-react';
 import { ElderlyProfile, TimeEntry, User, DailyMission, FamilyNotice } from '../types';
 import { api } from '../services/api';
@@ -33,18 +37,26 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
   onOpenAddPresence,
 }) => {
   const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
+  const [recentEntries, setRecentEntries] = useState<TimeEntry[]>([]);
   const [missions, setMissions] = useState<DailyMission[]>([]);
   const [notices, setNotices] = useState<FamilyNotice[]>([]);
   const [shiftTimeFormatted, setShiftTimeFormatted] = useState<string>('00h 00m');
+  const [previewPhoto, setPreviewPhoto] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
+
+  const isFamilyAdmin = currentUser.role === 'admin_family' || currentUser.roles?.includes('admin_family');
 
   const loadData = async () => {
     try {
-      const active = await api.getActiveEntry(currentUser.id);
+      const [active, allNotices, dailyMissions, historyRes] = await Promise.all([
+        api.getActiveEntry(isFamilyAdmin ? undefined : currentUser.id, currentUser.family_id || undefined),
+        api.getNotices(),
+        api.getDailyMissions(),
+        api.getTimesheetHistory(undefined, undefined, isFamilyAdmin ? undefined : currentUser.id, currentUser.family_id || undefined)
+      ]);
       setActiveEntry(active);
-      const allNotices = await api.getNotices();
       setNotices(allNotices.slice(0, 3));
-      const dailyMissions = await api.getDailyMissions();
       setMissions(dailyMissions);
+      setRecentEntries((historyRes.entries || []).slice(0, 6));
     } catch (err) {
       console.error(err);
     }
@@ -52,7 +64,7 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
 
   useEffect(() => {
     loadData();
-  }, [currentUser.id]);
+  }, [currentUser.id, currentUser.family_id]);
 
   // Live timer for active shift
   useEffect(() => {
@@ -351,6 +363,73 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
             </div>
           </div>
 
+          {/* Widget de Fotos Recentes dos Pontos da Família */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-blue-600" />
+                <h3 className="font-bold text-sm text-slate-900">
+                  {isFamilyAdmin ? 'Fotos dos Pontos da Família' : 'Fotos dos Seus Pontos'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigateTab('clock')}
+                className="text-xs font-semibold text-blue-600 hover:underline"
+              >
+                Ver Todas
+              </button>
+            </div>
+
+            {recentEntries.length === 0 ? (
+              <p className="text-xs text-slate-400 py-2 text-center">Nenhuma foto registrada recentemente.</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {recentEntries.slice(0, 4).map((e) => {
+                  const dateStr = e.date_stamp
+                    ? e.date_stamp.split('-').reverse().slice(0, 2).join('/')
+                    : '';
+                  return (
+                    <div
+                      key={e.id}
+                      onClick={() => {
+                        if (e.entry_photo_url) {
+                          setPreviewPhoto({
+                            url: e.entry_photo_url,
+                            title: `Selfie de Ponto · ${e.user_name}`,
+                            subtitle: `Data: ${dateStr} · Entrada: ${new Date(e.entry_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+                          });
+                        }
+                      }}
+                      className="group relative aspect-square rounded-xl overflow-hidden bg-slate-900 border border-slate-200 hover:border-blue-400 cursor-pointer shadow-2xs"
+                    >
+                      {e.entry_photo_url ? (
+                        <img
+                          src={e.entry_photo_url}
+                          alt={e.user_name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-[10px]">
+                          Sem foto
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-2 text-white">
+                        <span className="text-[10px] font-bold truncate leading-tight">{e.user_name}</span>
+                        <span className="text-[9px] text-blue-200">
+                          {new Date(e.entry_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="absolute top-1.5 right-1.5 p-1 bg-black/50 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ZoomIn className="w-3 h-3" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Card Rápido de Acesso à Aba de Ponto */}
           <div className="bg-gradient-to-br from-slate-900 to-blue-950 rounded-2xl p-4 text-white shadow-sm space-y-2.5">
             <div className="flex items-center gap-2 text-blue-300">
@@ -366,11 +445,57 @@ export const CaregiverDashboardView: React.FC<CaregiverDashboardViewProps> = ({
               onClick={() => onNavigateTab('clock')}
               className="w-full py-2 px-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
-              <span>Abrir Aba de Ponto</span>
+              <Camera className="w-4 h-4" />
+              <span>Acessar Painel de Ponto & Fotos</span>
             </button>
           </div>
         </div>
       </div>
+
+      {/* Modal de Zoom da Foto */}
+      {previewPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md"
+          onClick={() => setPreviewPhoto(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-emerald-400" />
+                <h3 className="font-bold text-sm text-slate-100 truncate">{previewPhoto.title}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewPhoto(null)}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 bg-slate-950 flex items-center justify-center min-h-[280px]">
+              <img
+                src={previewPhoto.url}
+                alt={previewPhoto.title}
+                className="max-h-[60vh] w-auto max-w-full rounded-xl object-contain shadow-lg ring-1 ring-white/10"
+              />
+            </div>
+
+            {previewPhoto.subtitle && (
+              <div className="p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-700 font-medium">
+                <div className="flex items-center gap-1.5 text-emerald-700 font-bold mb-0.5">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Foto Auditada da Família</span>
+                </div>
+                <p className="text-slate-600">{previewPhoto.subtitle}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

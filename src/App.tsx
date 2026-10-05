@@ -170,13 +170,15 @@ export default function App() {
  if (cameraMode === 'check_in') {
  await api.checkIn({
  userId: currentUser.id,
+ userName: currentUser.name,
+ familyId: currentUser.family_id || undefined,
  elderlyId: elderly.id,
  photoBase64: params.photoBase64,
  locationLat: params.locationLat,
  locationLong: params.locationLong,
  notes: 'Check-in confirmado com foto no raio da residência.' });
  } else {
- const active = await api.getActiveEntry(currentUser.id);
+ const active = await api.getActiveEntry(currentUser.id, currentUser.family_id || undefined);
  if (active) {
  await api.checkOut({
  entryId: active.id,
@@ -184,6 +186,8 @@ export default function App() {
  locationLat: params.locationLat,
  locationLong: params.locationLong,
  userId: currentUser.id,
+ userName: currentUser.name,
+ familyId: currentUser.family_id || undefined,
  notes: 'Check-out confirmado com foto no raio da residência.' });
  } else {
  await api.checkOut({
@@ -192,6 +196,8 @@ export default function App() {
  locationLat: params.locationLat,
  locationLong: params.locationLong,
  userId: currentUser.id,
+ userName: currentUser.name,
+ familyId: currentUser.family_id || undefined,
  notes: 'Check-out confirmado com foto no raio da residência.' });
  }
  }
@@ -351,6 +357,8 @@ export default function App() {
  {activeTab === 'timesheet' && (
  <TimesheetReportView
  elderly={elderly}
+ currentUser={currentUser}
+ users={usersList}
  onOpenAddPresence={() => setIsAddPresenceModalOpen(true)}
  />
  )}

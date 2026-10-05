@@ -16,6 +16,11 @@ import {
   Building2,
   Calendar,
   Users,
+  ZoomIn,
+  Eye,
+  X,
+  FileText,
+  Sparkles,
 } from 'lucide-react';
 import { ElderlyProfile, TimeEntry, User, ShiftSchedule } from '../types';
 import { api } from '../services/api';
@@ -62,9 +67,13 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
 
   // Active shift live duration counter
   const [shiftDurationFormatted, setShiftDurationFormatted] = useState<string>('00h 00m');
+  const [previewPhoto, setPreviewPhoto] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
+
+  const isFamilyAdmin =
+    currentUser.role === 'admin_family' || currentUser.roles?.includes('admin_family');
 
   const canManageResidence =
-    currentUser.role === 'admin_geral' || currentUser.role === 'admin_family' || currentUser.roles?.includes('admin_family');
+    currentUser.role === 'admin_geral' || isFamilyAdmin;
 
   const allowedRadius = elderly.allowed_radius_meters || 150;
   const hasResidenceConfigured = Boolean(elderly.residence_lat && elderly.residence_long);
@@ -73,12 +82,12 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
     setIsLoading(true);
     try {
       const [active, historyRes, schedList] = await Promise.all([
-        api.getActiveEntry(currentUser.id),
-        api.getTimesheetHistory(undefined, undefined, currentUser.id),
+        api.getActiveEntry(isFamilyAdmin ? undefined : currentUser.id, currentUser.family_id || undefined),
+        api.getTimesheetHistory(undefined, undefined, isFamilyAdmin ? undefined : currentUser.id, currentUser.family_id || undefined),
         api.getShiftSchedules(currentUser.family_id || undefined),
       ]);
       setActiveEntry(active);
-      setRecentEntries(historyRes.entries.slice(0, 5));
+      setRecentEntries(historyRes.entries.slice(0, 8));
       setSchedules(schedList);
     } catch (err) {
       console.error(err);
@@ -89,7 +98,7 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
 
   useEffect(() => {
     loadShiftState();
-  }, [currentUser.id]);
+  }, [currentUser.id, currentUser.family_id]);
 
   // Request real device GPS coordinates
   useEffect(() => {
@@ -170,6 +179,8 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
       if (cameraMode === 'check_in') {
         const res = await api.checkIn({
           userId: currentUser.id,
+          userName: currentUser.name,
+          familyId: currentUser.family_id || undefined,
           elderlyId: elderly.id,
           photoBase64: params.photoBase64,
           locationLat: params.locationLat || currentCoords?.lat,
@@ -178,7 +189,8 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
         });
         setActionSuccess(res.message);
       } else if (cameraMode === 'check_out') {
-        const currentActive = activeEntry || (await api.getActiveEntry(currentUser.id));
+        const currentActive =
+          activeEntry || (await api.getActiveEntry(currentUser.id, currentUser.family_id || undefined));
         if (!currentActive) {
           setActionError('Não há plantão em andamento para registrar saída.');
           return;
@@ -186,6 +198,8 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
         const res = await api.checkOut({
           entryId: currentActive.id,
           userId: currentUser.id,
+          userName: currentUser.name,
+          familyId: currentUser.family_id || undefined,
           photoBase64: params.photoBase64,
           locationLat: params.locationLat || currentCoords?.lat,
           locationLong: params.locationLong || currentCoords?.lng,
@@ -527,6 +541,223 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Seção Exclusiva: Auditoria & Galeria de Fotos dos Pontos da Família */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <Camera className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                {isFamilyAdmin
+                  ? 'Fotos dos Pontos dos Clientes & Cuidadores da Família'
+                  : 'Histórico Recente de Pontos com Foto'}
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {isFamilyAdmin
+                ? 'Todas as selfies capturadas nos Check-ins e Check-outs dos colaboradores vinculados à sua família ficam auditadas abaixo.'
+                : 'Suas fotos e registros de presença vinculados ao acompanhamento residencial.'}
+            </p>
+          </div>
+
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 self-start sm:self-center flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+            {recentEntries.length} {recentEntries.length === 1 ? 'registro' : 'registros'}
+          </span>
+        </div>
+
+        {recentEntries.length === 0 ? (
+          <div className="text-center py-10 px-4 bg-slate-50/70 rounded-xl border border-dashed border-slate-200 text-slate-500 space-y-2">
+            <Camera className="w-8 h-8 text-slate-300 mx-auto" />
+            <p className="font-semibold text-xs sm:text-sm text-slate-700">
+              Nenhum ponto registrado recentemente para esta família.
+            </p>
+            <p className="text-[11px] text-slate-400 max-w-md mx-auto">
+              Assim que um colaborador realizar o Check-in ou Check-out com foto, as fotos e horários aparecerão automaticamente aqui.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {recentEntries.map((entry) => {
+              const entryDate = new Date(entry.entry_time);
+              const entryTimeStr = entryDate.toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+              const exitTimeStr = entry.exit_time
+                ? new Date(entry.exit_time).toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : null;
+
+              const formattedDate = entry.date_stamp
+                ? entry.date_stamp.split('-').reverse().join('/')
+                : entryDate.toLocaleDateString('pt-BR');
+
+              return (
+                <div
+                  key={entry.id}
+                  className="bg-slate-50/70 hover:bg-white border border-slate-200 hover:border-blue-300 rounded-xl p-3.5 flex flex-col justify-between space-y-3 transition-all shadow-2xs hover:shadow-xs"
+                >
+                  {/* Header do Card */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-slate-900 truncate">
+                        {entry.user_name || 'Colaborador'}
+                      </h4>
+                      <span className="text-[10px] text-slate-500 block font-medium">
+                        {formattedDate} · {entry.day_of_week?.slice(0, 3)}
+                      </span>
+                    </div>
+
+                    <span
+                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${
+                        entry.exit_time
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200 animate-pulse'
+                      }`}
+                    >
+                      {entry.exit_time ? 'Concluído' : 'Em Andamento'}
+                    </span>
+                  </div>
+
+                  {/* Grid das Fotos de Entrada e Saída */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Foto Entrada */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-bold text-emerald-700">Entrada</span>
+                        <span className="font-mono text-slate-600">{entryTimeStr}</span>
+                      </div>
+                      <div
+                        onClick={() => {
+                          if (entry.entry_photo_url) {
+                            setPreviewPhoto({
+                              url: entry.entry_photo_url,
+                              title: `Selfie de Entrada · ${entry.user_name}`,
+                              subtitle: `Entrada às ${entryTimeStr} em ${formattedDate} (${entry.day_of_week})`,
+                            });
+                          }
+                        }}
+                        className="relative group aspect-square rounded-lg overflow-hidden bg-slate-900 border border-emerald-500/50 cursor-pointer shadow-2xs"
+                      >
+                        {entry.entry_photo_url ? (
+                          <img
+                            src={entry.entry_photo_url}
+                            alt="Foto Entrada"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400 text-[9px]">
+                            Sem foto
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                          <ZoomIn className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Foto Saída */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-bold text-rose-700">Saída</span>
+                        <span className="font-mono text-slate-600">{exitTimeStr || '--:--'}</span>
+                      </div>
+                      <div
+                        onClick={() => {
+                          if (entry.exit_photo_url) {
+                            setPreviewPhoto({
+                              url: entry.exit_photo_url,
+                              title: `Selfie de Saída · ${entry.user_name}`,
+                              subtitle: `Saída às ${exitTimeStr} em ${formattedDate} · Total: ${entry.total_hours_formatted || '0h'}`,
+                            });
+                          }
+                        }}
+                        className="relative group aspect-square rounded-lg overflow-hidden bg-slate-900 border border-slate-300 cursor-pointer shadow-2xs"
+                      >
+                        {entry.exit_photo_url ? (
+                          <img
+                            src={entry.exit_photo_url}
+                            alt="Foto Saída"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-[9px] p-1 text-center">
+                            <span className="font-medium text-[9px]">
+                              {entry.exit_time ? 'Sem foto' : 'Aguardando saída'}
+                            </span>
+                          </div>
+                        )}
+                        {entry.exit_photo_url && (
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                            <ZoomIn className="w-4 h-4" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rodapé do Card */}
+                  <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-200/60 flex items-center justify-between">
+                    <span>Permanência:</span>
+                    <strong className="text-slate-800 font-mono">
+                      {entry.total_hours_formatted || (entry.exit_time ? 'Concluído' : 'Em plantão')}
+                    </strong>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Modal de Zoom da Foto de Ponto */}
+      {previewPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md"
+          onClick={() => setPreviewPhoto(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-emerald-400" />
+                <h3 className="font-bold text-sm text-slate-100 truncate">{previewPhoto.title}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewPhoto(null)}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 bg-slate-950 flex items-center justify-center min-h-[280px]">
+              <img
+                src={previewPhoto.url}
+                alt={previewPhoto.title}
+                className="max-h-[60vh] w-auto max-w-full rounded-xl object-contain shadow-lg ring-1 ring-white/10"
+              />
+            </div>
+
+            {previewPhoto.subtitle && (
+              <div className="p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-700 font-medium">
+                <div className="flex items-center gap-1.5 text-emerald-700 font-bold mb-0.5">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Foto Auditada com Sucesso</span>
+                </div>
+                <p className="text-slate-600">{previewPhoto.subtitle}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Camera Capture Modal */}
       <CameraCaptureModal
